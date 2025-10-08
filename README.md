@@ -168,7 +168,189 @@ function nextAssignee(groupId, cycleId, date):
 
 ## 10) Roadmap
 
-**v0.2 (esta iteración)**
+### **v0.0.1 (Prototipo Actual) - Estado: ✅ COMPLETAMENTE FUNCIONAL**
+
+#### ✅ **Completado:**
+- [x] **Setup inicial del proyecto Flutter**
+- [x] **OCR básico con Google ML Kit** (text recognition)
+- [x] **Base de datos local con Drift/SQLite**
+- [x] **Estructura de carpetas y arquitectura**
+- [x] **Resolución de errores de build:**
+  - [x] Cache de Gradle corrupto
+  - [x] NDK de Android incompleto
+  - [x] Namespace faltante en google_mlkit_commons
+  - [x] Actualización de dependencias de desarrollo
+- [x] **Funcionamiento en Web** ✅
+- [x] **Build exitoso para Android** ✅
+- [x] **Sistema de Share Handler** - Recibe capturas de pantalla
+- [x] **OCR automático** - Procesa imágenes compartidas
+- [x] **Parser especializado para Yape** - Extrae datos de transacciones
+- [x] **Validación de capturas** - Identifica Yape, Binance, Banco
+- [x] **Base de datos completa** - Esquema con migraciones
+- [x] **UI principal** - HomeScreen con resumen financiero
+- [x] **Modo nocturno** - Adapta al tema del sistema
+- [x] **Campos completos de transacciones:**
+  - [x] Fecha, Monto, Categoría, Subcategoría
+  - [x] Cuenta, Descripción, Notas
+  - [x] Captura (si disponible)
+- [x] **Sistema de categorías** - 10 categorías con subcategorías
+- [x] **Notas inteligentes:**
+  - [x] **Manuales** - Escritura libre del usuario
+  - [x] **Automáticas** - Generación con IA contextual
+  - [x] **Estructuración** - Organización automática del contenido
+  - [x] **Múltiples formatos** - Estructurado, lista, simple
+- [x] **Dialog de edición** - Interfaz completa para editar transacciones
+- [x] **Integración completa** - Flujo end-to-end funcional
+
+#### 🎯 **Funcionalidades Principales Implementadas:**
+
+##### **📱 Procesamiento de Capturas:**
+- ✅ **Share Handler** - Recibe capturas de otras apps
+- ✅ **OCR automático** - Extrae texto de imágenes
+- ✅ **Validación inteligente** - Identifica Yape, Binance, Banco
+- ✅ **Parser especializado** - Extrae datos estructurados
+- ✅ **Registro automático** - Crea transacciones sin intervención
+
+##### **🎨 Interfaz de Usuario:**
+- ✅ **HomeScreen** - Resumen financiero y lista de transacciones
+- ✅ **Modo nocturno** - Adapta automáticamente al tema del sistema
+- ✅ **Dialog de edición** - Campos completos para transacciones
+- ✅ **Categorías visuales** - 10 categorías con iconos y subcategorías
+- ✅ **Notas inteligentes** - Manuales y automáticas con estructuración
+
+##### **🤖 Notas Inteligentes:**
+- ✅ **Escritura manual** - Campo libre para el usuario
+- ✅ **Generación automática** - IA contextual basada en datos
+- ✅ **Estructuración** - Organización automática del contenido
+- ✅ **Múltiples formatos:**
+  - Estructurado: `• Pago con Yape - Comida\n  → En Restaurante\n  → Gasto considerable`
+  - Lista: `• Pago con Yape\n• Categoría: Comida\n• Lugar: Restaurante`
+  - Simple: `Pago con Yape - Comida en Restaurante`
+
+##### **💾 Base de Datos:**
+- ✅ **Esquema completo** - Captures, Expenses con todos los campos
+- ✅ **Migraciones** - Manejo de cambios de esquema
+- ✅ **Relaciones** - Captures → Expenses
+- ✅ **Campos adicionales** - sourceApp, category, subcategory, account, description
+
+#### 🤖 **Sistema de Notas Inteligentes:**
+
+##### **Funcionalidades:**
+- ✅ **Notas manuales** - El usuario puede escribir libremente
+- ✅ **Notas automáticas** - IA genera notas contextuales
+- ✅ **Estructuración** - Organiza contenido existente automáticamente
+- ✅ **Múltiples formatos** - 3 tipos de generación aleatoria
+
+##### **Interfaz:**
+```
+┌─────────────────────────────────────────┐
+│ Notas                    [🤖] [📝]     │
+│ • Pago con Yape - Comida               │
+│   → En Restaurante El Buen Sabor       │
+│   → Gasto considerable                 │
+└─────────────────────────────────────────┘
+```
+
+##### **Tipos de Notas Generadas:**
+
+**1. Estructurada (33%):**
+```
+• Pago con Yape - Comida (Comidas fuera)
+  → En Restaurante El Buen Sabor
+  → Gasto considerable
+```
+
+**2. Lista (33%):**
+```
+• Pago con Yape
+• Categoría: Comida
+• Tipo: Comidas fuera
+• Lugar: Restaurante El Buen Sabor
+```
+
+**3. Simple (34%):**
+```
+Pago con Yape - Comida (Comidas fuera) en Restaurante
+```
+
+##### **Características Técnicas:**
+- ✅ **Contexto inteligente** - Basado en app de origen (Yape, Binance, Banco)
+- ✅ **Categorización automática** - Usa datos de la transacción
+- ✅ **Estructuración inteligente** - Detecta formato existente
+- ✅ **Feedback visual** - Notificaciones cuando se usan las funciones
+- ✅ **Tooltips informativos** - Explican cada función
+
+#### 📱 **Flujo de Uso Actual:**
+
+##### **1. Procesamiento Automático:**
+1. **Usuario** toma captura de pantalla de Yape
+2. **Usuario** comparte con "El Ahorrador" desde la galería
+3. **App** recibe la imagen automáticamente
+4. **OCR** extrae el texto de la imagen
+5. **Parser** identifica que es de Yape y extrae datos
+6. **App** registra automáticamente como gasto
+7. **App** muestra mensaje de confirmación
+8. **Usuario** puede editar detalles si lo desea
+
+##### **2. Edición de Transacciones:**
+1. **Usuario** toca una transacción en la lista
+2. **App** abre dialog de edición
+3. **Usuario** puede modificar:
+   - Monto, fecha, categoría, subcategoría
+   - Cuenta, destinatario, descripción
+   - **Notas** (manuales o automáticas)
+4. **Usuario** guarda cambios
+5. **App** actualiza la transacción
+
+##### **3. Notas Inteligentes:**
+1. **Usuario** abre dialog de edición
+2. **Usuario** puede:
+   - **Escribir manualmente** en el campo de notas
+   - **Presionar 🤖** para generar nota automática
+   - **Presionar 📝** para estructurar contenido existente
+3. **App** genera/estructura la nota
+4. **App** muestra feedback visual
+5. **Usuario** puede seguir editando o guardar
+
+#### 📚 **Documentación Técnica:**
+
+##### **Archivos de Documentación:**
+- ✅ **`IMPLEMENTACION_YAPE.md`** - Implementación del parser de Yape
+- ✅ **`MODO_NOCTURNO.md`** - Implementación del modo nocturno
+- ✅ **`CAMPOS_COMPLETOS.md`** - Campos completos de transacciones
+- ✅ **`NOTAS_INTELIGENTES.md`** - Sistema de notas inteligentes
+
+##### **Estructura del Proyecto:**
+```
+lib/
+├── core/                    # Lógica de negocio
+│   ├── parser.dart         # Parser principal
+│   ├── yape_parser.dart    # Parser de Yape
+│   ├── categories.dart     # Sistema de categorías
+│   ├── ai_notes_generator.dart # Generador de notas IA
+│   └── capture_validator.dart # Validador de capturas
+├── data/                   # Base de datos
+│   ├── app_database.dart   # Esquema Drift
+│   └── daos.dart          # Data Access Objects
+├── screens/               # Pantallas
+│   └── home_screen.dart   # Pantalla principal
+├── widgets/               # Componentes UI
+│   └── expense_edit_dialog.dart # Dialog de edición
+└── main.dart              # Punto de entrada
+```
+
+#### 🚀 **Features Avanzadas Propuestas:**
+- [ ] **Overlay System** - Icono flotante como sistema
+- [ ] **Detección automática de capturas de pantalla**
+- [ ] **OCR automático en fotos de galería**
+- [ ] **Permisos de acceso a archivos y fotos**
+- [ ] **Procesamiento automático de Binance y Banco**
+- [ ] **Sistema de grupos y Round-Robin**
+- [ ] **Compartir gastos entre usuarios**
+
+---
+
+**v0.2 (próxima iteración)**
 
 * Tablas `groups`, `group_members`, `rr_cycles`, `rr_assignments`.
 * UI Grupo: lista, detalle del ciclo, asignación vigente (aceptar/declinar).

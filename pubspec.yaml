@@ -1,5 +1,5 @@
-name: mis_gastos
-description: "A new Flutter project."
+name: el_ahorrador
+description: "El Ahorrador - App de gestión de gastos personales"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -37,7 +37,7 @@ dependencies:
   
   # Share handling and OCR
   share_handler: ^0.0.4
-  google_mlkit_text_recognition: ^0.10.0
+  google_mlkit_text_recognition: ^0.15.0
   
   # File and path handling
   path_provider: ^2.1.1
@@ -50,6 +50,7 @@ dependencies:
   # Utilities
   uuid: ^4.2.1
   crypto: ^3.0.3
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
@@ -60,7 +61,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   
   # Code generation
   drift_dev: ^2.14.1

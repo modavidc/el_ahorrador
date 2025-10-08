@@ -1,0 +1,31 @@
+{
+  "dart.flutterHotReloadOnSave": "always",
+  "dart.flutterHotRestartOnSave": "never",
+  "dart.flutterHotReloadOnSaveMode": "manualAndAuto",
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/.dart_tool/**": true,
+    "**/android/build/**": true,
+    "**/ios/build/**": true,
+    "**/linux/build/**": true,
+    "**/macos/build/**": true,
+    "**/windows/build/**": true
+  },
+  "dart.debugExternalLibraries": false,
+  "dart.debugSdkLibraries": false,
+  "dart.previewFlutterUiGuides": true,
+  "dart.previewFlutterUiGuidesCustomTracking": true,
+  "dart.flutterSdkPath": null,
+  "dart.sdkPath": null,
+  "dart.analysisExcludedFolders": [
+    "build",
+    ".dart_tool"
+  ],
+  "dart.enableSdkFormatter": true,
+  "dart.lineLength": 120,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
+  }
+}

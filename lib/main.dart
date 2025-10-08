@@ -1,122 +1,226 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:share_handler/share_handler.dart';
+import 'package:uuid/uuid.dart';
+import 'core/file_store.dart';
+import 'core/ocr_engine.dart';
+import 'core/parser.dart';
+import 'core/capture_validator.dart';
+import 'core/category_service.dart';
+import 'data/app_database.dart';
+import 'data/daos.dart';
+import 'screens/home_screen.dart';
+import 'widgets/expense_edit_dialog.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MisGastosApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MisGastosApp extends StatefulWidget {
+  const MisGastosApp({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<MisGastosApp> createState() => _MisGastosAppState();
+}
+
+class _MisGastosAppState extends State<MisGastosApp> {
+  final db = AppDatabase();
+  final _uuid = const Uuid();
+  final _ocr = MlKitEngine();
+  StreamSubscription<SharedMedia>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initServices();
+    _initShareHandler();
   }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  void _initServices() {
+    // Inicializar el servicio de categorías
+    CategoryService().initialize(db);
+  }
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  Future<void> _initShareHandler() async {
+    final share = ShareHandlerPlatform.instance;
+    final initial = await share.getInitialSharedMedia();
+    if (initial != null) {
+      _handleShare(initial);
+    }
+    _sub = share.sharedMediaStream.listen(_handleShare);
+  }
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+  Future<void> _handleShare(SharedMedia media) async {
+    final attachments = media.attachments;
+    if (attachments != null) {
+      for (final att in attachments) {
+        if (att != null && att.type == SharedAttachmentType.image) {
+          final localPath = await FileStore.persistIncomingFile(att.path);
+          final id = _uuid.v4();
+          await db.insertCapture(id: id, imagePath: localPath);
+          await db.setProcessing(id);
+          
+          // OCR
+          final res = await _ocr.run(localPath);
+          final confidence = res.meta['confidence']?.toString();
+          await db.setOcrResult(id: id, text: res.text, confidence: confidence);
+          
+          // Validar tipo de captura
+          final captureType = CaptureValidator.validateCapture(res.text);
+          
+          // Mostrar mensaje según el tipo de captura
+          _showCaptureMessage(captureType);
+          
+            // Solo procesar si es una captura válida
+            if (CaptureValidator.isProcessable(captureType)) {
+              // Parse → expense
+              final parsed = await Parser.fromOcr(
+                res.text,
+                fallbackDateEpoch: DateTime.now().millisecondsSinceEpoch,
+                ocrConfidence: confidence,
+              );
+            
+            // Solo registrar si tiene monto válido
+            if (parsed.amountCents > 0) {
+              await db.insertExpenseFromParser(
+                id: _uuid.v4(),
+                captureId: id,
+                dateEpochMs: parsed.dateEpochMs,
+                amountCents: parsed.amountCents,
+                currency: parsed.currency,
+                categoryId: parsed.category,
+                subcategoryId: parsed.subcategory,
+                account: parsed.account,
+                vendor: parsed.vendor,
+                description: parsed.description,
+                notes: parsed.notes,
+                sourceApp: parsed.sourceApp,
+              );
+              
+              // Mostrar mensaje de confirmación y navegar a la pantalla principal
+              _showSuccessMessage(parsed);
+            }
+          }
+        }
+      }
+    }
+  }
 
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  void _showCaptureMessage(CaptureType type) {
+    // Mostrar mensaje según el tipo de captura
+    final message = CaptureValidator.getValidationMessage(type);
+    
+    // Usar un delay para asegurar que el MaterialApp esté listo
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: type == CaptureType.invalid 
+                ? Colors.red 
+                : type == CaptureType.unknown 
+                    ? Colors.orange 
+                    : Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     });
   }
 
+  void _showSuccessMessage(ParsedExpense expense) {
+    // Mostrar mensaje de éxito sin abrir dialog
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✅ Transacción de ${expense.sourceApp} registrada: S/ ${(expense.amountCents / 100).toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Editar',
+              textColor: Colors.white,
+              onPressed: () => _showEditDialog(expense),
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  void _showEditDialog(ParsedExpense expense) {
+    showDialog(
+      context: context,
+      builder: (context) => ExpenseEditDialog(
+        expense: expense,
+        onSave: (updatedExpense) async {
+          // Actualizar el gasto en la base de datos
+          await db.insertExpenseFromParser(
+            id: const Uuid().v4(),
+            captureId: null, // No asociar con captura específica
+            dateEpochMs: updatedExpense.dateEpochMs,
+            amountCents: updatedExpense.amountCents,
+            currency: updatedExpense.currency,
+            categoryId: updatedExpense.category,
+            subcategoryId: updatedExpense.subcategory,
+            account: updatedExpense.account,
+            vendor: updatedExpense.vendor,
+            description: updatedExpense.description,
+            notes: updatedExpense.notes,
+            sourceApp: updatedExpense.sourceApp,
+          );
+          
+          // Mostrar confirmación
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gasto actualizado: S/ ${updatedExpense.amountCents / 100} - ${updatedExpense.vendor}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+    return MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+          brightness: Brightness.light,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+          brightness: Brightness.dark,
+        ),
+      ),
+      themeMode: ThemeMode.system, // Sigue el tema del sistema
+      home: HomeScreen(db: db),
     );
   }
 }
