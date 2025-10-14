@@ -130,7 +130,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   flex: 1,
                   child: _buildGridItem(
                     label: 'Subcategoría',
-                    value: transaction.subcategory ?? 'N/A',
+                    value: transaction.subcategory,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -139,7 +139,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   flex: 1,
                   child: _buildGridItem(
                     label: 'Cuenta',
-                    value: transaction.account ?? 'N/A',
+                    value: transaction.account,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -176,7 +176,7 @@ class TransactionDetailScreen extends StatelessWidget {
                   flex: 1,
                   child: _buildGridItem(
                     label: 'Vendor',
-                    value: transaction.destination ?? 'N/A',
+                    value: transaction.destination,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -210,7 +210,7 @@ class TransactionDetailScreen extends StatelessWidget {
 
   Widget _buildGridItem({
     required String label,
-    required String value,
+    required String? value,
     bool isEmoji = false,
     bool isAmount = false,
   }) {
@@ -233,7 +233,7 @@ class TransactionDetailScreen extends StatelessWidget {
           )
         else if (isAmount)
           Text(
-            value,
+            value ?? '',
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -242,7 +242,7 @@ class TransactionDetailScreen extends StatelessWidget {
           )
         else
           Text(
-            value,
+            value ?? '',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,

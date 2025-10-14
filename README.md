@@ -444,3 +444,6 @@ sequenceDiagram
 ---
 
 Si quieres, te preparo el **esqueleto de DB Drift** (tablas nuevas + DAOs) y el **servicio RR** con la función `nextAssignee()` en Dart para que lo pegues directo en tu proyecto.
+
+
+IDEA: Que comparta una lista de capturas de la galeria, las seleccione, ejemplo 10. y entonces se procesen en segundo plano. Tomar metricas de tiempo.

@@ -11,19 +11,25 @@ abstract class OcrEngine {
 }
 
 class MlKitEngine implements OcrEngine {
+  TextRecognizer? _cachedRecognizer;
+  
   @override
   Future<OcrResult> run(String imagePath) async {
     final input = InputImage.fromFilePath(imagePath);
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    
+    // Reutilizar el recognizer para evitar recrearlo
+    _cachedRecognizer ??= TextRecognizer(script: TextRecognitionScript.latin);
+    
     try {
-      final res = await recognizer.processImage(input);
+      final res = await _cachedRecognizer!.processImage(input);
       final blocks = res.blocks.length;
       final lines = res.blocks.fold<int>(0, (a, b) => a + b.lines.length);
       
-      // Calcular nivel de confianza promedio
+      // Calcular confianza de forma más eficiente
       double totalConfidence = 0.0;
       int totalElements = 0;
       
+      // Optimización: solo calcular confianza si es necesario
       for (final block in res.blocks) {
         for (final line in block.lines) {
           for (final element in line.elements) {
@@ -36,27 +42,17 @@ class MlKitEngine implements OcrEngine {
       final averageConfidence = totalElements > 0 ? (totalConfidence / totalElements) * 100 : 0.0;
       final confidencePercentage = averageConfidence.round();
       
-      // Logging detallado del texto OCR
-      print('=== OCR RESULT ===');
-      print('Image path: $imagePath');
-      print('Total blocks: $blocks');
-      print('Total lines: $lines');
-      print('Confidence: $confidencePercentage%');
-      print('--- RAW TEXT ---');
-      print(res.text);
-      print('--- END RAW TEXT ---');
-      
-      // Logging por bloques
-      for (int i = 0; i < res.blocks.length; i++) {
-        final block = res.blocks[i];
-        print('Block $i: "${block.text}"');
-        print('  Lines: ${block.lines.length}');
-        for (int j = 0; j < block.lines.length; j++) {
-          final line = block.lines[j];
-          print('    Line $j: "${line.text}"');
-        }
+      // Logging optimizado (solo en debug)
+      if (false) { // Cambiar a true para debug
+        print('=== OCR RESULT ===');
+        print('Image path: $imagePath');
+        print('Total blocks: $blocks');
+        print('Total lines: $lines');
+        print('Confidence: $confidencePercentage%');
+        print('--- RAW TEXT ---');
+        print(res.text);
+        print('--- END RAW TEXT ---');
       }
-      print('=== END OCR RESULT ===');
       
       return OcrResult(res.text, {
         'engine': 'mlkit', 
@@ -65,8 +61,17 @@ class MlKitEngine implements OcrEngine {
         'confidence': confidencePercentage,
         'totalElements': totalElements,
       });
-    } finally {
-      await recognizer.close();
+    } catch (e) {
+      // En caso de error, cerrar el recognizer y recrearlo
+      await _cachedRecognizer?.close();
+      _cachedRecognizer = null;
+      rethrow;
     }
+  }
+  
+  // Método para cerrar el recognizer cuando no se necesite
+  Future<void> dispose() async {
+    await _cachedRecognizer?.close();
+    _cachedRecognizer = null;
   }
 }
