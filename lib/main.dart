@@ -37,51 +37,91 @@ class MisGastosApp extends StatefulWidget {
 class _MisGastosAppState extends State<MisGastosApp> {
   final db = AppDatabase();
   final _uuid = const Uuid();
-  MlKitEngine? _ocr;
+  MlKitEngine? _ocr; // OCR engine (lazy init)
   StreamSubscription<SharedMedia>? _sub;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _isProcessingShare = false;
   bool _isInitialized = false;
+  OverlayEntry? _spinnerEntry;
 
   @override
   void initState() {
     super.initState();
     print('🚀 [STARTUP] initState() called');
-    _initServices();
-    _initShareHandler();
-  }
-
-  void _initServices() {
-    // Inicializar el servicio de categorías
-    CategoryService().initialize(db);
     
-    // Inicializar OCR en background para no bloquear la UI
-    _initOcrAsync();
+    // ✅ OPTIMIZACIÓN: Diferir todo al siguiente frame para no bloquear el primer render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🚀 [STARTUP] Post-frame callback executing...');
+      _bootstrap();
+    });
   }
 
-  Future<void> _initOcrAsync() async {
-    print('🚀 [STARTUP] Initializing ML Kit...');
+  /// Bootstrap asíncrono que no bloquea el primer frame
+  Future<void> _bootstrap() async {
+    final startTime = DateTime.now();
+    print('🚀 [STARTUP] Bootstrap started');
+    
+    try {
+      // Inicializar servicios en paralelo (sin bloquear UI)
+      await Future.wait([
+        _initServices(),
+        _initShareHandler(),
+      ]);
+      
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
+      print('🚀 [STARTUP] Bootstrap completed in ${duration}ms');
+      
+      // Marcar como inicializado
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e) {
+      print('❌ [STARTUP] Bootstrap error: $e');
+      // Aún así marcar como inicializado para mostrar la app
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _initServices() async {
+    print('🚀 [STARTUP] Initializing services...');
     final start = DateTime.now();
     
-    // Inicializar OCR en background
-    _ocr = MlKitEngine();
+    // Inicializar el servicio de categorías (sincrónico, rápido)
+    CategoryService().initialize(db);
     
     final duration = DateTime.now().difference(start).inMilliseconds;
-    print('🚀 [STARTUP] ML Kit initialized in ${duration}ms');
-    
-    setState(() {
-      _isInitialized = true;
-    });
-    print('🚀 [STARTUP] App ready! Total time from initState');
+    print('🚀 [STARTUP] Services initialized in ${duration}ms');
   }
 
+  /// ✅ OPTIMIZACIÓN: Share handler perezoso - no bloquea el render
   Future<void> _initShareHandler() async {
-    final share = ShareHandlerPlatform.instance;
-    final initial = await share.getInitialSharedMedia();
-    if (initial != null) {
-      _handleShare(initial);
+    print('🚀 [STARTUP] Initializing share handler...');
+    final start = DateTime.now();
+    
+    try {
+      final share = ShareHandlerPlatform.instance;
+      
+      // Primero suscribirse al stream (no bloquea)
+      _sub = share.sharedMediaStream.listen(_handleShare);
+      
+      // Luego obtener el intent inicial (sin bloquear)
+      final initial = await share.getInitialSharedMedia();
+      if (initial != null && mounted) {
+        // No esperar, procesar en background
+        unawaited(_handleShare(initial));
+      }
+      
+      final duration = DateTime.now().difference(start).inMilliseconds;
+      print('🚀 [STARTUP] Share handler initialized in ${duration}ms');
+    } catch (e) {
+      print('❌ [STARTUP] Share handler error: $e');
     }
-    _sub = share.sharedMediaStream.listen(_handleShare);
   }
 
   Future<void> _handleShare(SharedMedia media) async {
@@ -89,75 +129,99 @@ class _MisGastosAppState extends State<MisGastosApp> {
     if (_isProcessingShare) return;
     _isProcessingShare = true;
     
+    // ⏱️ INICIO DEL CRONÓMETRO TOTAL
+    final shareStartTime = DateTime.now();
+    print('⏱️  [TIMER] ========================================');
+    print('⏱️  [TIMER] SHARE STARTED at ${shareStartTime.toIso8601String()}');
+    print('⏱️  [TIMER] ========================================');
+    
     // Iniciar tracking de tiempo
     TimeTracker.startShareTracking();
+    
+    print('📤 [SHARE] Received shared media');
     
     final attachments = media.attachments;
     if (attachments != null) {
       for (final att in attachments) {
         if (att != null && att.type == SharedAttachmentType.image) {
-          // Mostrar mensaje inmediatamente
-          _showQuickProcessingMessage();
+          print('📤 [SHARE] Processing image attachment');
           
-          // Procesar inmediatamente sin esperar
-          _processSharedImage(att);
+          // ✅ Procesar inmediatamente (el spinner se mostrará dentro de _processSharedImage)
+          await _processSharedImage(att, shareStartTime);
         }
       }
     }
   }
 
-  Future<void> _processSharedImage(SharedAttachment att) async {
+  /// ✅ OPTIMIZACIÓN: Procesamiento asíncrono optimizado
+  Future<void> _processSharedImage(SharedAttachment att, DateTime shareStartTime) async {
     try {
       // Marcar inicio del procesamiento
       TimeTracker.startProcessing();
       
-      // Mostrar alerta antes del OCR
-      _showOcrAlert();
+      // ✅ Mostrar UI de carga
+      _showSpinnerOverlay();
       
-      // Procesamiento en paralelo para máxima velocidad
-      final futures = await Future.wait([
-        // 1. Persistir archivo
-        FileStore.persistIncomingFile(att.path),
-        // 2. Generar ID
-        Future.value(_uuid.v4()),
-        // 3. Obtener timestamp actual
-        Future.value(DateTime.now().millisecondsSinceEpoch),
-      ]);
+      // ⏱️ Tiempo desde que se compartió hasta aquí
+      final uiDelay = DateTime.now().difference(shareStartTime).inMilliseconds;
+      print('⏱️  [TIMER] UI shown after ${uiDelay}ms from share click');
       
-      final localPath = futures[0] as String;
-      final id = futures[1] as String;
-      final currentTime = futures[2] as int;
+      // ✅ PASO 1: Persistir archivo (asíncrono, no bloquea UI)
+      print('📁 [PROCESS] Persisting file...');
+      final persistStart = DateTime.now();
+      final localPath = await FileStore.persistIncomingFile(att.path);
+      final persistDuration = DateTime.now().difference(persistStart).inMilliseconds;
+      print('📁 [PROCESS] File persisted in ${persistDuration}ms');
+      print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
       
-      // Operaciones de base de datos en paralelo
-      await Future.wait([
-        db.insertCapture(id: id, imagePath: localPath),
-        db.setProcessing(id),
-      ]);
+      // Generar ID y timestamp
+      final id = _uuid.v4();
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
       
-      // OCR optimizado - esperar a que esté inicializado si es necesario
-      if (_ocr == null) {
-        // Esperar a que el OCR esté listo
-        while (_ocr == null) {
-          await Future.delayed(const Duration(milliseconds: 100));
-        }
-      }
+      // ✅ PASO 2: Operaciones de base de datos en transacción (más rápido)
+      print('💾 [PROCESS] Inserting capture in DB...');
+      final dbStart = DateTime.now();
+      await db.transaction(() async {
+        await db.insertCapture(id: id, imagePath: localPath);
+        await db.setProcessing(id);
+      });
+      final dbDuration = DateTime.now().difference(dbStart).inMilliseconds;
+      print('💾 [PROCESS] DB operations completed in ${dbDuration}ms');
+      print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
+      
+      // ✅ PASO 3: OCR (asíncrono, la operación nativa es no-bloqueante)
+      print('🔍 [PROCESS] Running OCR...');
+      final ocrStart = DateTime.now();
+      
+      // Inicializar OCR si no existe
+      _ocr ??= MlKitEngine();
       final res = await _ocr!.run(localPath);
+      
+      final ocrDuration = DateTime.now().difference(ocrStart).inMilliseconds;
+      print('🔍 [PROCESS] OCR completed in ${ocrDuration}ms');
+      print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
+      
       final confidence = res.meta['confidence']?.toString();
       
-      // Validar y procesar en paralelo
+      // Validar tipo de captura
       final captureType = CaptureValidator.validateCapture(res.text);
       
-      // Guardar resultado OCR en paralelo con el parsing
+      // Guardar resultado OCR (en paralelo con validación)
       final ocrSaveFuture = db.setOcrResult(id: id, text: res.text, confidence: confidence);
       
       // Solo procesar si es una captura válida
       if (CaptureValidator.isProcessable(captureType)) {
-        // Parse → expense (usando parser rápido)
+        // ✅ PASO 4: Parse (asíncrono)
+        print('📝 [PROCESS] Parsing...');
+        final parseStart = DateTime.now();
         final parsed = await FastParser.fromOcr(
           res.text,
           fallbackDateEpoch: currentTime,
           ocrConfidence: confidence,
         );
+        final parseDuration = DateTime.now().difference(parseStart).inMilliseconds;
+        print('📝 [PROCESS] Parsing completed in ${parseDuration}ms');
+        print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
       
         // Solo registrar si tiene monto válido
         if (parsed.amountCents > 0) {
@@ -165,6 +229,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
           await ocrSaveFuture;
           
           // Insertar gasto
+          print('💰 [PROCESS] Inserting expense...');
+          final dbInsertStart = DateTime.now();
           await db.insertExpenseFromParser(
             id: _uuid.v4(),
             captureId: id,
@@ -179,24 +245,44 @@ class _MisGastosAppState extends State<MisGastosApp> {
             notes: parsed.notes,
             sourceApp: parsed.sourceApp,
           );
+          final dbInsertDuration = DateTime.now().difference(dbInsertStart).inMilliseconds;
+          print('💰 [PROCESS] Expense inserted in ${dbInsertDuration}ms');
+          
+          // ⏱️ TIEMPO TOTAL
+          final totalTime = DateTime.now().difference(shareStartTime).inMilliseconds;
+          print('⏱️  [TIMER] ========================================');
+          print('⏱️  [TIMER] TOTAL TIME: ${totalTime}ms (${(totalTime/1000).toStringAsFixed(2)}s)');
+          print('⏱️  [TIMER] Breakdown:');
+          print('⏱️  [TIMER]   UI delay: ${uiDelay}ms');
+          print('⏱️  [TIMER]   File persist: ${persistDuration}ms');
+          print('⏱️  [TIMER]   DB insert: ${dbDuration}ms');
+          print('⏱️  [TIMER]   OCR: ${ocrDuration}ms');
+          print('⏱️  [TIMER]   Parse: ${parseDuration}ms');
+          print('⏱️  [TIMER]   Save expense: ${dbInsertDuration}ms');
+          print('⏱️  [TIMER] ========================================');
           
           // Marcar fin del procesamiento
           TimeTracker.endProcessing();
           
-          // Mostrar animación de éxito con tiempo ahorrado
+          // Ocultar spinner y mostrar animación de éxito
+          _hideSpinnerOverlay();
           _showSuccessAnimation(parsed);
         } else {
           // Si no hay monto válido, marcar fin del procesamiento
           TimeTracker.endProcessing();
+          _hideSpinnerOverlay();
           _showErrorAnimation("No se pudo detectar un monto válido");
         }
       } else {
         // Si no es procesable, marcar fin del procesamiento
         TimeTracker.endProcessing();
+        _hideSpinnerOverlay();
         _showErrorAnimation("Tipo de captura no reconocido");
       }
     } catch (e) {
+      print('❌ [PROCESS] Error: $e');
       TimeTracker.endProcessing();
+      _hideSpinnerOverlay();
       _showErrorAnimation("Error al procesar la captura: $e");
     } finally {
       // Resetear el flag de procesamiento
@@ -206,113 +292,94 @@ class _MisGastosAppState extends State<MisGastosApp> {
 
 
 
-  void _showQuickProcessingMessage() {
-    // Mostrar mensaje instantáneamente sin esperar
+  /// ✅ Mostrar overlay liviano para procesamiento (no modal, no bloquea)
+  void _showSpinnerOverlay() {
     final context = _navigatorKey.currentContext;
-    if (context != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Procesando tu captura...',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
+    if (context != null && _spinnerEntry == null) {
+      try {
+        // Intentar obtener el overlay - puede no estar listo aún
+        final overlay = Overlay.of(context, rootOverlay: true);
+        _spinnerEntry = OverlayEntry(
+          builder: (_) => const ImmediateLoadingOverlay(
+            message: 'Procesando captura...',
           ),
-          backgroundColor: Colors.blue.shade600,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    } else {
-      // Si no hay context, intentar de nuevo en el siguiente frame
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showQuickProcessingMessage();
-      });
+        );
+        overlay.insert(_spinnerEntry!);
+        print('🎨 [UI] Spinner overlay shown');
+      } catch (e) {
+        print('⚠️  [UI] Overlay not ready yet, showing dialog instead');
+        // Fallback: usar un diálogo simple si el overlay no está listo
+        _showSimpleLoadingDialog();
+      }
     }
   }
-
-  void _showOcrAlert() {
-    // Mostrar alerta instantáneamente antes del OCR
+  
+  /// Fallback: diálogo simple si el overlay no está disponible
+  void _showSimpleLoadingDialog() {
     final context = _navigatorKey.currentContext;
     if (context != null) {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(
-                  strokeWidth: 4,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                ),
+        builder: (context) => WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Analizando captura...',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Procesando captura...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Esto puede tomar unos segundos',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
         ),
       );
-    } else {
-      // Si no hay context, intentar de nuevo en el siguiente frame
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showOcrAlert();
-      });
+    }
+  }
+
+  /// ✅ Ocultar overlay de procesamiento
+  void _hideSpinnerOverlay() {
+    final context = _navigatorKey.currentContext;
+    
+    if (_spinnerEntry != null) {
+      // Si usamos overlay, removerlo
+      _spinnerEntry?.remove();
+      _spinnerEntry = null;
+      print('🎨 [UI] Spinner overlay hidden');
+    } else if (context != null) {
+      // Si usamos diálogo fallback, cerrarlo
+      try {
+        Navigator.of(context).pop();
+        print('🎨 [UI] Loading dialog closed');
+      } catch (e) {
+        // Si no hay diálogo, no pasa nada
+      }
     }
   }
 
 
+  /// ✅ Mostrar animación de éxito (sin pop, el overlay ya fue removido)
   void _showSuccessAnimation(ParsedExpense expense) {
     final context = _navigatorKey.currentContext;
     if (context != null) {
-      // Cerrar diálogo de OCR si está abierto
-      Navigator.of(context).pop();
-      
-      // Mostrar animación de éxito directamente
       final timeSaved = TimeTracker.generateShortTimeSavedMessage();
       final totalTime = TimeTracker.getTotalProcessingTime();
       final totalTimeStr = totalTime != null 
           ? TimeTracker.formatDuration(totalTime) 
           : 'N/A';
+      
+      print('✅ [UI] Showing success animation (${totalTimeStr})');
       
       showDialog(
         context: context,
@@ -332,13 +399,12 @@ class _MisGastosAppState extends State<MisGastosApp> {
     }
   }
 
+  /// ✅ Mostrar mensaje de error (sin pop, el overlay ya fue removido)
   void _showErrorAnimation(String message) {
     final context = _navigatorKey.currentContext;
     if (context != null) {
-      // Cerrar diálogo de OCR si está abierto
-      Navigator.of(context).pop();
+      print('❌ [UI] Showing error message: $message');
       
-      // Mostrar mensaje de error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -496,7 +562,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
   @override
   void dispose() {
     _sub?.cancel();
-    _ocr?.dispose();
+    _ocr?.dispose(); // Limpiar OCR engine
+    _hideSpinnerOverlay(); // Limpiar overlay si existe
     TimeTracker.reset();
     super.dispose();
   }
