@@ -21,12 +21,14 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            tooltip: 'Buscar transacciones',
             icon: const Icon(Icons.search),
             onPressed: () {
               // TODO: Implementar búsqueda
             },
           ),
           IconButton(
+            tooltip: 'Filtrar transacciones',
             icon: const Icon(Icons.filter_list),
             onPressed: () {
               // TODO: Implementar filtros
@@ -45,6 +47,7 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Agregar transacción',
         onPressed: () {
           // TODO: Implementar agregar transacción manual
         },
@@ -125,10 +128,14 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
       stream: db.watchExpenses(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(child: Semantics(liveRegion: true, child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('No pudimos cargar tus transacciones.'),
+            const SizedBox(height: 8),
+            FilledButton.icon(onPressed: () => setState(() {}), icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
+          ])));
         }
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: Semantics(label: 'Cargando transacciones', liveRegion: true, child: const CircularProgressIndicator()));
         }
 
         final expenses = snapshot.data!;

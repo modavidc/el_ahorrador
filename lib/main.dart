@@ -316,7 +316,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
       print('❌ [PROCESS] Error: $e');
       TimeTracker.endProcessing();
       _hideSpinnerOverlay();
-      _showErrorAnimation("Error al procesar la captura: $e");
+      _showErrorAnimation(
+        'No pudimos procesar la captura. Inténtalo nuevamente o regístrala manualmente.',
+      );
     }
   }
 
