@@ -89,7 +89,18 @@ class FastParser {
   
   static int _toCents(String s) {
     // Normalizar formato de número
-    final norm = s.replaceAll('.', '').replaceAll(',', '.');
+    final lastDot = s.lastIndexOf('.');
+    final lastComma = s.lastIndexOf(',');
+    final separatorIndex = lastDot > lastComma ? lastDot : lastComma;
+    final hasBoth = lastDot >= 0 && lastComma >= 0;
+    final decimalDigits =
+        separatorIndex < 0 ? 0 : s.length - separatorIndex - 1;
+    final hasDecimals =
+        separatorIndex >= 0 && (hasBoth || decimalDigits <= 2);
+    final digits = s.replaceAll(RegExp(r'[^0-9]'), '');
+    final norm = hasDecimals
+        ? '${digits.substring(0, digits.length - decimalDigits)}.${digits.substring(digits.length - decimalDigits)}'
+        : digits;
     final v = double.tryParse(norm) ?? 0;
     return (v * 100).round();
   }
