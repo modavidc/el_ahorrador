@@ -5,7 +5,7 @@ import '../data/daos.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final AppDatabase db;
-  
+
   const AddTransactionScreen({super.key, required this.db});
 
   @override
@@ -15,7 +15,7 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   int _selectedTypeIndex = 1; // 0: Ingreso, 1: Gasto, 2: Transferencia
   final List<String> _transactionTypes = ['Ingreso', 'Gasto', 'Transferencia'];
-  
+
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   String _amount = '';
@@ -24,7 +24,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _showKeyboard = false; // Deshabilitado al inicio
   String? _selectedCategory;
   String? _selectedSubcategory;
-  
+
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _accountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -53,51 +53,55 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 8),
-                  
+
                   // Tabs de tipo de transacción
                   _buildTransactionTypeTabs(),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Fecha y hora
                   _buildDateTimeRow(),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Importe
                   _buildAmountField(),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Categoría (con selector)
                   _buildCategoryField(),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Cuenta
                   _buildSimpleField('Cuenta', _accountController),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Título/Detalle con IA
-                  _buildSimpleField('Título/Detalle', _noteController, showAI: true),
-                  
+                  _buildSimpleField(
+                    'Título/Detalle',
+                    _noteController,
+                    showAI: true,
+                  ),
+
                   const SizedBox(height: 16),
-                  
+
                   // Notas adicionales con cámara
                   _buildDescriptionField(),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Botones Guardar y Continuar
                   _buildActionButtons(),
-                  
+
                   const SizedBox(height: 12),
                 ],
               ),
             ),
           ),
-          
+
           // Teclado numérico personalizado
           if (_showKeyboard) _buildCustomKeyboard(),
         ],
@@ -140,46 +144,56 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           final isSelected = index == _selectedTypeIndex;
           final isIncome = index == 0;
           final isExpense = index == 1;
-          
+
           Color selectedColor = Colors.grey[800]!;
           if (isIncome) selectedColor = Colors.blue;
           if (isExpense) selectedColor = Colors.red;
-          
+
           return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedTypeIndex = index;
-                });
-              },
-              child: Container(
-                margin: EdgeInsets.only(
-                  right: index < _transactionTypes.length - 1 ? 8 : 0,
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? selectedColor : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected ? selectedColor : Colors.grey[300]!,
-                    width: 2,
+            child: Semantics(
+              button: true,
+              selected: isSelected,
+              label: 'Tipo de transacción: ${_transactionTypes[index]}',
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedTypeIndex = index;
+                  });
+                },
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  margin: EdgeInsets.only(
+                    right: index < _transactionTypes.length - 1 ? 8 : 0,
                   ),
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: selectedColor.withValues(alpha: 0.3),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? selectedColor : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? selectedColor : Colors.grey[300]!,
+                      width: 2,
                     ),
-                  ] : [],
-                ),
-                child: Text(
-                  _transactionTypes[index],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[700],
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    fontSize: 15,
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: selectedColor.withValues(alpha: 0.3),
+                              spreadRadius: 1,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Text(
+                    _transactionTypes[index],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey[700],
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -220,7 +234,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           _formatDateShort(_selectedDate),
@@ -263,7 +281,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.access_time,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           _selectedTime.format(context),
@@ -284,7 +306,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
     );
   }
-  
+
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -299,7 +321,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       });
     }
   }
-  
+
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -314,10 +336,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Widget _buildAmountField() {
-    final color = _selectedTypeIndex == 0 
-        ? Colors.blue 
+    final color = _selectedTypeIndex == 0
+        ? Colors.blue
         : (_selectedTypeIndex == 1 ? Colors.red : Colors.grey[800]!);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -332,26 +354,33 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _showKeyboard = true;
-              });
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(bottom: 4),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: color, width: 2),
+          Semantics(
+            textField: true,
+            label: 'Importe',
+            value: _amount.isEmpty
+                ? 'Sin importe'
+                : '$_amount $_selectedCurrency',
+            hint: 'Activa para introducir el importe',
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showKeyboard = true;
+                });
+              },
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 48),
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 4),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: color, width: 2)),
                 ),
-              ),
-              child: Text(
-                _amount.isEmpty ? '' : _amount,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
+                child: Text(
+                  _amount.isEmpty ? '' : _amount,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -361,7 +390,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildSimpleField(String label, TextEditingController controller, {bool showAI = false}) {
+  Widget _buildSimpleField(
+    String label,
+    TextEditingController controller, {
+    bool showAI = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -382,7 +415,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 GestureDetector(
                   onTap: _generateNoteWithAI,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.purple[50],
                       borderRadius: BorderRadius.circular(12),
@@ -391,7 +427,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 12, color: Colors.purple[700]),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 12,
+                          color: Colors.purple[700],
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'IA',
@@ -417,10 +457,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
             child: TextField(
               controller: controller,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 15, color: Colors.black87),
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 4),
@@ -437,7 +474,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
     );
   }
-  
+
   void _generateNoteWithAI() {
     // TODO: Implementar generación de nota con IA
     ScaffoldMessenger.of(context).showSnackBar(
@@ -447,7 +484,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
     );
   }
-  
+
   Widget _buildCategoryField() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -489,13 +526,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       _selectedCategory ?? '',
                       style: TextStyle(
                         fontSize: 15,
-                        color: _selectedCategory == null 
-                            ? Colors.grey[400] 
+                        color: _selectedCategory == null
+                            ? Colors.grey[400]
                             : Colors.black87,
                       ),
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: Colors.grey[400],
+                  ),
                 ],
               ),
             ),
@@ -504,7 +545,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
     );
   }
-  
+
   void _showCategorySelector() {
     showModalBottomSheet(
       context: context,
@@ -526,9 +567,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[200]!),
-                  ),
+                  border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                 ),
                 child: Row(
                   children: [
@@ -580,7 +619,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
     );
   }
-  
+
   Widget _buildCategoryItem({
     required String icon,
     required String name,
@@ -594,16 +633,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: isSelected ? Colors.pink[50] : Colors.white,
-          border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!),
-          ),
+          border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
         ),
         child: Row(
           children: [
-            Text(
-              icon,
-              style: const TextStyle(fontSize: 24),
-            ),
+            Text(icon, style: const TextStyle(fontSize: 24)),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -622,28 +656,60 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
     );
   }
-  
+
   String _getCategoryIcon(String categoryName) {
     final categories = _getCategories();
     return categories.firstWhere(
-      (c) => c['name'] == categoryName, 
-      orElse: () => {'icon': '📁'}
+      (c) => c['name'] == categoryName,
+      orElse: () => {'icon': '📁'},
     )['icon']!;
   }
-  
+
   List<Map<String, dynamic>> _getCategories() {
     return [
-      {'icon': '🍝', 'name': 'Comida', 'subcategories': ['Restaurante', 'Supermercado', 'Delivery']},
+      {
+        'icon': '🍝',
+        'name': 'Comida',
+        'subcategories': ['Restaurante', 'Supermercado', 'Delivery'],
+      },
       {'icon': '👨‍👩‍👧‍👦', 'name': 'Familia', 'subcategories': []},
-      {'icon': '📙', 'name': 'Educación', 'subcategories': ['Libros', 'Cursos', 'Material']},
+      {
+        'icon': '📙',
+        'name': 'Educación',
+        'subcategories': ['Libros', 'Cursos', 'Material'],
+      },
       {'icon': '🏛️', 'name': 'Préstamos Dados', 'subcategories': []},
       {'icon': '😃', 'name': 'Préstamos Pagados', 'subcategories': []},
-      {'icon': '🧹', 'name': 'Servicios', 'subcategories': ['Limpieza', 'Mantenimiento', 'Reparaciones']},
-      {'icon': '🚗', 'name': 'Transporte', 'subcategories': ['Taxi', 'Bus', 'Gasolina']},
-      {'icon': '🏠', 'name': 'Hogar', 'subcategories': ['Alquiler', 'Servicios', 'Muebles']},
-      {'icon': '💊', 'name': 'Salud', 'subcategories': ['Medicinas', 'Doctor', 'Seguro']},
-      {'icon': '🎮', 'name': 'Entretenimiento', 'subcategories': ['Cine', 'Streaming', 'Juegos']},
-      {'icon': '🛍️', 'name': 'Compras', 'subcategories': ['Ropa', 'Tecnología', 'Varios']},
+      {
+        'icon': '🧹',
+        'name': 'Servicios',
+        'subcategories': ['Limpieza', 'Mantenimiento', 'Reparaciones'],
+      },
+      {
+        'icon': '🚗',
+        'name': 'Transporte',
+        'subcategories': ['Taxi', 'Bus', 'Gasolina'],
+      },
+      {
+        'icon': '🏠',
+        'name': 'Hogar',
+        'subcategories': ['Alquiler', 'Servicios', 'Muebles'],
+      },
+      {
+        'icon': '💊',
+        'name': 'Salud',
+        'subcategories': ['Medicinas', 'Doctor', 'Seguro'],
+      },
+      {
+        'icon': '🎮',
+        'name': 'Entretenimiento',
+        'subcategories': ['Cine', 'Streaming', 'Juegos'],
+      },
+      {
+        'icon': '🛍️',
+        'name': 'Compras',
+        'subcategories': ['Ropa', 'Tecnología', 'Varios'],
+      },
       {'icon': '📁', 'name': 'Otro', 'subcategories': []},
     ];
   }
@@ -668,8 +734,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               IconButton(
                 icon: Icon(Icons.camera_alt, color: Colors.grey[600], size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                tooltip: 'Adjuntar foto',
                 onPressed: () {
                   // TODO: Abrir cámara
                 },
@@ -684,10 +749,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
             child: TextField(
               controller: _descriptionController,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 15, color: Colors.black87),
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 4),
@@ -731,7 +793,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('No pudimos guardar la transacción. Revisa los datos e inténtalo nuevamente.'),
+                          content: const Text(
+                            'No pudimos guardar la transacción. Revisa los datos e inténtalo nuevamente.',
+                          ),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -740,7 +804,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade400,
+                backgroundColor: Colors.red.shade700,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -750,10 +814,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               child: const Text(
                 'Guardar',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -761,12 +822,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           Expanded(
             flex: 2,
             child: OutlinedButton(
-              onPressed: () {
-                // TODO: Guardar y continuar
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Continuar...')),
-                );
-              },
+              onPressed: null,
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.grey[700],
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -777,10 +833,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               child: const Text(
                 'Continuar',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -808,9 +861,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
-              ),
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
             ),
             child: Row(
               children: [
@@ -829,28 +880,38 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: _currencies.map((currency) {
                       final isSelected = currency == _selectedCurrency;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedCurrency = currency;
-                          });
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Colors.grey[800] : Colors.grey[100],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            currency,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.grey[700],
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                      return Semantics(
+                        button: true,
+                        selected: isSelected,
+                        label: 'Moneda $currency',
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedCurrency = currency;
+                            });
+                          },
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 48),
+                            margin: const EdgeInsets.only(right: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.grey[800]
+                                  : Colors.grey[100],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              currency,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -860,9 +921,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: Icon(Icons.keyboard_hide, color: Colors.grey[700], size: 20),
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    Icons.keyboard_hide,
+                    color: Colors.grey[700],
+                    size: 20,
+                  ),
+                  tooltip: 'Ocultar teclado numérico',
                   onPressed: () {
                     setState(() {
                       _showKeyboard = false;
@@ -872,7 +936,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ],
             ),
           ),
-          
+
           // Teclado numérico
           Column(
             children: [
@@ -902,9 +966,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   right: BorderSide(color: Colors.grey[200]!, width: 0.5),
                 ),
               ),
-              child: Center(
-                child: _buildKeyContent(key),
-              ),
+              child: Center(child: _buildKeyContent(key)),
             ),
           ),
         );
@@ -958,7 +1020,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String _formatDateShort(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-  
+
   bool _validateForm() {
     // Validar que el importe no sea cero
     if (_amount.isEmpty || double.tryParse(_amount) == 0) {
@@ -967,7 +1029,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       );
       return false;
     }
-    
+
     // Validar categoría
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -975,7 +1037,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       );
       return false;
     }
-    
+
     // Validar cuenta
     if (_accountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -983,7 +1045,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       );
       return false;
     }
-    
+
     // Validar nota
     if (_noteController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -991,21 +1053,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       );
       return false;
     }
-    
+
     return true;
   }
-  
+
   Future<void> _saveTransaction() async {
     // Debug: verificar que la base de datos esté disponible
     print('DEBUG: widget.db = ${widget.db}');
     if (widget.db == null) {
       throw Exception('Base de datos no disponible');
     }
-    
+
     // Generar ID único
     const uuid = Uuid();
     final id = uuid.v4();
-    
+
     // Combinar fecha y hora
     final dateTime = DateTime(
       _selectedDate.year,
@@ -1014,14 +1076,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedTime.hour,
       _selectedTime.minute,
     );
-    
+
     // Convertir monto a centavos
     final amount = double.parse(_amount);
     final amountCents = (amount * 100).round();
-    
+
     // Determinar el signo según el tipo
-    final finalAmountCents = _selectedTypeIndex == 0 ? amountCents : -amountCents;
-    
+    final finalAmountCents = _selectedTypeIndex == 0
+        ? amountCents
+        : -amountCents;
+
     // Guardar en la base de datos
     await widget.db.insertExpenseFromParser(
       id: id,
@@ -1031,8 +1095,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       account: _accountController.text,
       vendor: _selectedCategory,
       description: _noteController.text, // La nota es el título/detalle
-      notes: _descriptionController.text.isNotEmpty 
-          ? _descriptionController.text 
+      notes: _descriptionController.text.isNotEmpty
+          ? _descriptionController.text
           : null, // La descripción va en notes
       sourceApp: 'Manual',
     );

@@ -9,7 +9,7 @@ import 'debug_ocr_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppDatabase db;
-  
+
   const HomeScreen({super.key, required this.db});
 
   @override
@@ -41,14 +41,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           // Tabs de navegación
           _buildTabBar(),
-          
+
           // Resumen financiero
           _buildFinancialSummary(),
-          
+
           // Lista de transacciones
-          Expanded(
-            child: _buildTransactionList(),
-          ),
+          Expanded(child: _buildTransactionList()),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigation(),
@@ -73,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               IconButton(
                 onPressed: _previousMonth,
                 icon: const Icon(Icons.chevron_left, color: Colors.black),
+                tooltip: 'Mes anterior',
               ),
               Text(
                 _formatMonthYear(_selectedDate),
@@ -85,10 +84,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               IconButton(
                 onPressed: _nextMonth,
                 icon: const Icon(Icons.chevron_right, color: Colors.black),
+                tooltip: 'Mes siguiente',
               ),
             ],
           ),
-          
+
           // Iconos de acción
           Row(
             children: [
@@ -105,16 +105,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 tooltip: 'Debug OCR',
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: null,
                 icon: const Icon(Icons.star_border, color: Colors.black),
+                tooltip: 'Favoritos (próximamente)',
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: null,
                 icon: const Icon(Icons.search, color: Colors.black),
+                tooltip: 'Buscar (próximamente)',
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: null,
                 icon: const Icon(Icons.filter_list, color: Colors.black),
+                tooltip: 'Filtrar (próximamente)',
               ),
             ],
           ),
@@ -164,16 +167,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           final expenses = snapshot.data!;
           final (income, expense, balance) = _calculateTotals(expenses);
-          
+
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildSummaryItem('Ingresos', income, Colors.blue),
               _buildSummaryItem('Gastos', expense, Colors.red),
-              _buildSummaryItem('Balance', balance, balance >= 0 ? Colors.green : Colors.red),
+              _buildSummaryItem(
+                'Balance',
+                balance,
+                balance >= 0 ? Colors.green : Colors.red,
+              ),
             ],
           );
         },
@@ -184,13 +191,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildSummaryItem(String label, double amount, Color color) {
     return Column(
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
         const SizedBox(height: 4),
         Text(
           'S/. ${amount.toStringAsFixed(2)}',
@@ -208,9 +209,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TransactionDetailScreen(
-          transaction: transaction,
-        ),
+        builder: (context) => TransactionDetailScreen(transaction: transaction),
       ),
     );
   }
@@ -220,17 +219,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       stream: widget.db.watchExpenses(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Semantics(liveRegion: true, child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('No pudimos cargar tus transacciones.'),
-            const SizedBox(height: 8),
-            FilledButton.icon(onPressed: () => setState(() {}), icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
-          ])));
+          return Center(
+            child: Semantics(
+              liveRegion: true,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('No pudimos cargar tus transacciones.'),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => setState(() {}),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
-        
+
         if (!snapshot.hasData) {
-          return Center(child: Semantics(label: 'Cargando transacciones', liveRegion: true, child: const CircularProgressIndicator()));
+          return Center(
+            child: Semantics(
+              label: 'Cargando transacciones',
+              liveRegion: true,
+              child: const CircularProgressIndicator(),
+            ),
+          );
         }
-        
+
         final expenses = snapshot.data!;
         if (expenses.isEmpty) {
           return const Center(
@@ -252,10 +269,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           );
         }
-        
+
         // Agrupar por fecha
         final groupedTransactions = _groupTransactionsByDate(expenses);
-        
+
         return ListView.builder(
           padding: const EdgeInsets.only(bottom: 80),
           itemCount: groupedTransactions.length,
@@ -263,13 +280,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             final entry = groupedTransactions.entries.elementAt(index);
             final date = entry.key;
             final transactions = entry.value;
-            
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header de fecha
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       Text(
@@ -290,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
-                
+
                 // Lista de transacciones del día
                 ...transactions.map((expense) {
                   final transaction = Transaction.fromDatabase(
@@ -334,22 +354,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         // TODO: Implementar navegación
       },
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.book),
-          label: 'Trans.',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart),
-          label: 'Estad.',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Trans.'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Estad.'),
         BottomNavigationBarItem(
           icon: Icon(Icons.account_balance_wallet),
           label: 'Cuentas',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.more_horiz),
-          label: 'Más',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'Más'),
       ],
     );
   }
@@ -357,8 +368,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // Métodos auxiliares
   String _formatMonthYear(DateTime date) {
     const months = [
-      'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-      'jul', 'ago', 'sep', 'oct', 'nov', 'dic'
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -383,36 +404,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   (double, double, double) _calculateTotals(List<Expense> expenses) {
     double income = 0;
     double expense = 0;
-    
+
     for (final exp in expenses) {
       final amount = exp.amountCents / 100.0;
       // Por ahora, asumimos que todos son gastos
       // TODO: Mejorar lógica de detección de ingresos
       expense += amount;
     }
-    
+
     return (income, expense, income - expense);
   }
 
-  Map<DateTime, List<Expense>> _groupTransactionsByDate(List<Expense> expenses) {
+  Map<DateTime, List<Expense>> _groupTransactionsByDate(
+    List<Expense> expenses,
+  ) {
     final Map<DateTime, List<Expense>> grouped = {};
-    
+
     for (final expense in expenses) {
       final date = DateTime.fromMillisecondsSinceEpoch(expense.date);
       final dateOnly = DateTime(date.year, date.month, date.day);
-      
+
       grouped.putIfAbsent(dateOnly, () => []).add(expense);
     }
-    
+
     // Ordenar por fecha (más reciente primero)
     final sortedEntries = grouped.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
-    
+
     return Map.fromEntries(sortedEntries);
   }
 
   double _calculateDayTotal(List<Expense> transactions) {
-    return transactions.fold(0.0, (sum, exp) => sum + (exp.amountCents / 100.0));
+    return transactions.fold(
+      0.0,
+      (sum, exp) => sum + (exp.amountCents / 100.0),
+    );
   }
 
   void _showAddTransactionDialog() {
