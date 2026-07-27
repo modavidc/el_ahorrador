@@ -1,7 +1,8 @@
 # Delivery, observability and operations
 
-Every pull request must pass `Quality gate / quality`: formatting, fatal static
-analysis, generated-source drift, tests with coverage, repository readiness and
+Every pull request must pass `Quality gate / quality`: formatting, static
+analysis without errors, generated-source drift, tests with at least 25% line
+coverage, repository readiness and
 a signed release AAB smoke build. The AAB, checksum and LCOV are retained as
 commit-addressed evidence. Protect `master` and require this check and one review.
 

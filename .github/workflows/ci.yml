@@ -49,6 +49,8 @@ jobs:
           dart run build_runner build --delete-conflicting-outputs
           git diff --exit-code -- lib/data/app_database.g.dart
       - run: flutter test --coverage --reporter expanded
+      - name: Enforce coverage floor
+        run: dart run tool/check_coverage.dart coverage/lcov.info 25
       - run: dart run tool/check_release_readiness.dart
       - name: Create ephemeral CI signing key
         run: >-
