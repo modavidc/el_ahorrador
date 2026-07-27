@@ -4,6 +4,10 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
+import 'database_key_store.dart';
+import 'sqlcipher_migrator.dart';
+import 'sqlcipher_runtime.dart';
+
 part 'app_database.g.dart';
 
 class Captures extends Table {
@@ -246,8 +250,16 @@ class AppDatabase extends _$AppDatabase {
 
 LazyDatabase _open() {
   return LazyDatabase(() async {
+    configureSqlCipherRuntime();
     final dir = await getApplicationDocumentsDirectory();
     final file = File(p.join(dir.path, 'misgastos.sqlite'));
-    return NativeDatabase.createInBackground(file);
+    final key = await SecureDatabaseKeyStore().getOrCreateKey();
+    const migrator = SqlCipherMigrator();
+    await migrator.prepare(file, key);
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (database) => migrator.configure(database, key),
+      isolateSetup: configureSqlCipherRuntime,
+    );
   });
 }
