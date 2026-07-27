@@ -40,6 +40,24 @@ void main() {
   });
 
   test(
+    'an orphaned export is removed after an interrupted first launch',
+    () async {
+      final partial = File('${databaseFile.path}.encrypted.partial');
+      final marker = File('${databaseFile.path}.migration.json');
+      await partial.writeAsBytes(List<int>.filled(128, 0x41));
+      await marker.writeAsString('{"version":1,"stage":"exporting"}');
+
+      expect(
+        await migrator.prepare(databaseFile, key),
+        SqlCipherMigrationResult.recovered,
+      );
+      expect(await databaseFile.exists(), isFalse);
+      expect(await partial.exists(), isFalse);
+      expect(await marker.exists(), isFalse);
+    },
+  );
+
+  test(
     'missing native SQLCipher fails closed and preserves plaintext',
     () async {
       final plaintext = sqlite3.open(databaseFile.path);
