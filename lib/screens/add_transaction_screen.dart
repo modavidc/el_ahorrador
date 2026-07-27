@@ -727,11 +727,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       );
                       Navigator.pop(context); // Volver a la pantalla anterior
                     }
-                  } catch (e) {
+                  } catch (_) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Error al guardar: $e'),
+                          content: const Text('No pudimos guardar la transacción. Revisa los datos e inténtalo nuevamente.'),
                           backgroundColor: Colors.red,
                         ),
                       );

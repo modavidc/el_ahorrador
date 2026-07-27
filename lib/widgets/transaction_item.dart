@@ -10,12 +10,16 @@ class TransactionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('🔍 DEBUG TRANSACTION:');
-    print(transaction.category);
-    print(transaction.subcategory);
-    print('--------------------------------');
-
-    return InkWell(
+    final typeLabel = switch (transaction.type) {
+      TransactionType.expense => 'expense',
+      TransactionType.income => 'income',
+      TransactionType.transfer => 'transfer',
+    };
+    return Semantics(
+      container: true,
+      label: '$typeLabel, ${transaction.formattedAmount}, ${transaction.description}',
+      button: onTap != null,
+      child: InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -66,12 +70,16 @@ class TransactionItem extends StatelessWidget {
                         color: _getCategoryColor(),
                       ),
                       const SizedBox(width: 4),
-                      Text(
+                      Expanded(
+                        child: Text(
                         'Categoria: ${transaction.categoryDisplayName}',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
                           fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -80,7 +88,7 @@ class TransactionItem extends StatelessWidget {
                   const SizedBox(height: 2),
 
                   // Subcategoría (si existe)
-                  if (transaction.subcategory != null)
+                  if (transaction.subcategory.isNotEmpty)
                     Row(
                       children: [
                         Icon(
@@ -89,14 +97,18 @@ class TransactionItem extends StatelessWidget {
                           color: Colors.grey[500],
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          'Subcategoria: ${transaction.subcategory!}',
+                      Expanded(
+                        child: Text(
+                        'Subcategoria: ${transaction.subcategory}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[500],
-                            fontWeight: FontWeight.w400,
-                          ),
+                          fontWeight: FontWeight.w400,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      ),
                       ],
                     ),
 
@@ -125,21 +137,21 @@ class TransactionItem extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
 
             // Monto y hora
-            Column(
+            Flexible(child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Monto en ROJO para gastos
-                Text(
+                FittedBox(fit: BoxFit.scaleDown, child: Text(
                   transaction.formattedAmount,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: _getAmountColor(),
                   ),
-                ),
+                )),
 
                 const SizedBox(height: 2),
 
@@ -154,10 +166,10 @@ class TransactionItem extends StatelessWidget {
                 // Icono para ver captura OCR
                 _buildOcrIcon(),
               ],
-            ),
+            )),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -202,18 +214,14 @@ class TransactionItem extends StatelessWidget {
         .toLowerCase();
 
     if (text.contains('yape') || text.contains('ocr')) {
-      return GestureDetector(
-        onTap: () {
-          // TODO: Navegar a pantalla de captura OCR
-          // print('Ver captura OCR');
-        },
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Icon(Icons.visibility, size: 16, color: Colors.grey[400]),
+      return Semantics(
+        label: 'Ver captura OCR',
+        button: true,
+        child: IconButton(
+          tooltip: 'Ver captura OCR',
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          onPressed: () {},
+          icon: const Icon(Icons.visibility, size: 20),
         ),
       );
     }

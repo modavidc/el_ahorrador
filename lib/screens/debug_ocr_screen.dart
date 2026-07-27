@@ -30,10 +30,11 @@ class _DebugOcrScreenState extends State<DebugOcrScreen> {
         _captures = captures;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error cargando capturas: $e')),
+        SnackBar(content: const Text('No pudimos cargar las capturas.'), action: SnackBarAction(label: 'Reintentar', onPressed: _loadCaptures)),
       );
     }
   }
@@ -46,13 +47,14 @@ class _DebugOcrScreenState extends State<DebugOcrScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            tooltip: 'Actualizar capturas',
             icon: const Icon(Icons.refresh),
             onPressed: _loadCaptures,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: Semantics(label: 'Cargando capturas OCR', liveRegion: true, child: const CircularProgressIndicator()))
           : _captures.isEmpty
               ? const Center(
                   child: Text('No hay capturas para mostrar'),
