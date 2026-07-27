@@ -121,3 +121,4 @@ void main() async {
     await db.close();
   }
 }
+// ignore_for_file: avoid_print

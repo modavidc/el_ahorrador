@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 class BancoTransaction {
   final double amount;
   final String currency;
@@ -75,7 +77,7 @@ class BancoParser {
         accountNumber: null,
       );
     } catch (e) {
-      print('Error parsing Banco transaction: $e');
+      developer.log('Error parsing Banco transaction: $e');
       return null;
     }
   }

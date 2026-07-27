@@ -1,4 +1,9 @@
 import 'ai_notes_generator.dart';
+import 'package:flutter/foundation.dart';
+
+void _debugLog(Object? message) {
+  if (kDebugMode) debugPrint(message?.toString());
+}
 
 class YapeTransaction {
   final double amount;
@@ -56,8 +61,8 @@ class YapeParser {
 
   /// Extrae los datos de una transacción de Yape del texto OCR
   static YapeTransaction? parseYapeTransaction(String ocrText) {
-    print('Parsing Yape transaction: $ocrText');
-    print('Is Yape capture: ${isYapeCapture(ocrText)}');
+    _debugLog('Parsing Yape transaction: $ocrText');
+    _debugLog('Is Yape capture: ${isYapeCapture(ocrText)}');
 
     if (!isYapeCapture(ocrText)) {
       return null;
@@ -75,21 +80,21 @@ class YapeParser {
       String? description;
       
       // 🐛 DEBUG: Imprimir líneas del OCR para debug
-      print('🔍 DEBUG OCR LINES:');
+      _debugLog('🔍 DEBUG OCR LINES:');
       final lines = ocrText.split('\n');
       for (int i = 0; i < lines.length; i++) {
-        print('  Line $i: "${lines[i].trim()}"');
+        _debugLog('  Line $i: "${lines[i].trim()}"');
       }
       
       // Buscar patrón específico: nombre después del monto
       for (int i = 0; i < lines.length; i++) {
         final line = lines[i].trim();
         if (_amountPattern.hasMatch(line)) {
-          print('💰 Found amount in line $i: "$line"');
+          _debugLog('💰 Found amount in line $i: "$line"');
           // Buscar en las siguientes líneas el nombre y descripción
           for (int j = i + 1; j < lines.length && j < i + 5; j++) {
             final nextLine = lines[j].trim();
-            print('  Checking line $j: "$nextLine"');
+            _debugLog('  Checking line $j: "$nextLine"');
             if (nextLine.isNotEmpty && 
                 !nextLine.contains('yape') && 
                 !nextLine.contains('código') &&
@@ -103,12 +108,12 @@ class YapeParser {
               // Si es la primera línea válida, es el destinatario
               if (recipient == 'Desconocido') {
                 recipient = nextLine;
-                print('  ✅ Set recipient: "$recipient"');
+                _debugLog('  ✅ Set recipient: "$recipient"');
               } 
               // Si empieza con "F" seguido de espacio, es la descripción (Favor/Producto)
               else if (nextLine.startsWith('F ') && nextLine.length > 3) {
                 description = nextLine;
-                print('  ✅ Set description: "$description"');
+                _debugLog('  ✅ Set description: "$description"');
                 break;
               }
               // Si es una línea más larga con productos/comida, es la descripción
@@ -122,7 +127,7 @@ class YapeParser {
                         nextLine.contains('helado') ||
                         nextLine.contains('café'))) {
                 description = nextLine;
-                print('  ✅ Set description: "$description"');
+                _debugLog('  ✅ Set description: "$description"');
                 break;
               }
             }
@@ -131,9 +136,9 @@ class YapeParser {
         }
       }
       
-      print('🔍 EXTRACTED VALUES:');
-      print('  🏪 recipient: "$recipient"');
-      print('  📝 description: "$description"');
+      _debugLog('🔍 EXTRACTED VALUES:');
+      _debugLog('  🏪 recipient: "$recipient"');
+      _debugLog('  📝 description: "$description"');
 
       // Extraer fecha y hora usando el patrón combinado
       DateTime date = DateTime.now();
@@ -207,7 +212,7 @@ class YapeParser {
         description: description,
       );
     } catch (e) {
-      print('Error parsing Yape transaction: $e');
+      _debugLog('Error parsing Yape transaction: $e');
       return null;
     }
   }
@@ -239,19 +244,19 @@ class YapeParser {
     }
     
     // 🐛 DEBUG: Imprimir todos los campos mapeados antes de guardar
-    print('🔍 DEBUG YAPE MAPPING:');
-    print('  📅 date: ${yapeTransaction.date}');
-    print('  💰 amountCents: ${(yapeTransaction.amount * 100).round()}');
-    print('  💱 currency: PEN');
-    print('  🏷️ category: $category');
-    print('  📂 subcategory: $subcategory');
-    print('  🏦 account: BCP Soles');
-    print('  🏪 vendor: ${yapeTransaction.recipient}');
-    print('  📝 description: $description');
-    print('  📄 notes: $notes');
-    print('  📱 sourceApp: Yape');
-    print('  🔍 ocrConfidence: $ocrConfidence');
-    print('  🔴 type: GASTO (rojo)');
+    _debugLog('🔍 DEBUG YAPE MAPPING:');
+    _debugLog('  📅 date: ${yapeTransaction.date}');
+    _debugLog('  💰 amountCents: ${(yapeTransaction.amount * 100).round()}');
+    _debugLog('  💱 currency: PEN');
+    _debugLog('  🏷️ category: $category');
+    _debugLog('  📂 subcategory: $subcategory');
+    _debugLog('  🏦 account: BCP Soles');
+    _debugLog('  🏪 vendor: ${yapeTransaction.recipient}');
+    _debugLog('  📝 description: $description');
+    _debugLog('  📄 notes: $notes');
+    _debugLog('  📱 sourceApp: Yape');
+    _debugLog('  🔍 ocrConfidence: $ocrConfidence');
+    _debugLog('  🔴 type: GASTO (rojo)');
     
     return ParsedExpense(
       amountCents: (yapeTransaction.amount * 100).round(),

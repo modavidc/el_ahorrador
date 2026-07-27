@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 class BinanceTransaction {
   final double amount;
   final String currency;
@@ -69,7 +71,7 @@ class BinanceParser {
         status: 'Completed',
       );
     } catch (e) {
-      print('Error parsing Binance transaction: $e');
+      developer.log('Error parsing Binance transaction: $e');
       return null;
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import '../data/app_database.dart';
@@ -43,7 +45,7 @@ class CategoryRepository {
       
       return result;
     } catch (e) {
-      print('Error loading categories: $e');
+      developer.log('Error loading categories: $e');
       return [];
     }
   }
@@ -83,7 +85,7 @@ class CategoryRepository {
         updatedAt: DateTime.fromMillisecondsSinceEpoch(now),
       );
     } catch (e) {
-      print('Error adding category: $e');
+      developer.log('Error adding category: $e');
       return null;
     }
   }
@@ -105,7 +107,7 @@ class CategoryRepository {
       
       return true;
     } catch (e) {
-      print('Error updating category: $e');
+      developer.log('Error updating category: $e');
       return false;
     }
   }
@@ -129,7 +131,7 @@ class CategoryRepository {
       
       return true;
     } catch (e) {
-      print('Error deleting category: $e');
+      developer.log('Error deleting category: $e');
       return false;
     }
   }
@@ -150,7 +152,7 @@ class CategoryRepository {
       
       return true;
     } catch (e) {
-      print('Error adding subcategory: $e');
+      developer.log('Error adding subcategory: $e');
       return false;
     }
   }
@@ -176,7 +178,7 @@ class CategoryRepository {
       
       return true;
     } catch (e) {
-      print('Error updating subcategory: $e');
+      developer.log('Error updating subcategory: $e');
       return false;
     }
   }
@@ -193,7 +195,7 @@ class CategoryRepository {
         ..where((s) => s.id.equals(subcategoryId) & s.categoryId.equals(categoryId))).go();
       return deleted > 0;
     } catch (e) {
-      print('Error deleting subcategory: $e');
+      developer.log('Error deleting subcategory: $e');
       return false;
     }
   }
@@ -217,7 +219,7 @@ class CategoryRepository {
       }
       return true;
     } catch (e) {
-      print('Error reordering categories: $e');
+      developer.log('Error reordering categories: $e');
       return false;
     }
   }
@@ -248,7 +250,7 @@ class CategoryRepository {
       }
       return true;
     } catch (e) {
-      print('Error reordering subcategories: $e');
+      developer.log('Error reordering subcategories: $e');
       return false;
     }
   }
@@ -284,7 +286,7 @@ class CategoryRepository {
         updatedAt: DateTime.fromMillisecondsSinceEpoch(category.updatedAt),
       );
     } catch (e) {
-      print('Error getting category by name: $e');
+      developer.log('Error getting category by name: $e');
       return null;
     }
   }
@@ -308,7 +310,7 @@ class CategoryRepository {
         updatedAt: DateTime.fromMillisecondsSinceEpoch(subcategory.updatedAt),
       );
     } catch (e) {
-      print('Error getting subcategory by name: $e');
+      developer.log('Error getting subcategory by name: $e');
       return null;
     }
   }
@@ -344,7 +346,7 @@ class CategoryRepository {
         updatedAt: DateTime.fromMillisecondsSinceEpoch(category.updatedAt),
       );
     } catch (e) {
-      print('Error getting category by ID: $e');
+      developer.log('Error getting category by ID: $e');
       return null;
     }
   }
@@ -365,7 +367,7 @@ class CategoryRepository {
         updatedAt: DateTime.fromMillisecondsSinceEpoch(subcategory.updatedAt),
       );
     } catch (e) {
-      print('Error getting subcategory by ID: $e');
+      developer.log('Error getting subcategory by ID: $e');
       return null;
     }
   }
@@ -377,7 +379,7 @@ class CategoryRepository {
       await _db.delete(_db.categories).go();
       return true;
     } catch (e) {
-      print('Error clearing categories: $e');
+      developer.log('Error clearing categories: $e');
       return false;
     }
   }
