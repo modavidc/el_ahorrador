@@ -1,0 +1,2 @@
+- https://www.yapay.net.pe/
+- https://www.yape.com.pe/preguntas-frecuentes (para centro de ayuda)

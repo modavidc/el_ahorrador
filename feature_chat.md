@@ -1,0 +1,1 @@
+le paso por texto: mira gasté esto, esto otro, esto otro, tipo feature resumen para ayudarme a organizar y no hacerlo uno por uno cuando hubo un dia que no pude anotar, como una salida a la playa, por ejemplo

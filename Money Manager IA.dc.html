@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>.ms{font-family:'Material Symbols Rounded';font-weight:400;line-height:1;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';font-style:normal;white-space:nowrap;-webkit-font-smoothing:antialiased;vertical-align:middle;}</style>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #d9dade; font-family: 'Roboto', system-ui, sans-serif; }
+  .noscroll::-webkit-scrollbar { display: none; }
+  a { color: #f0523c; text-decoration: none; }
+  a:hover { color: #d33f2b; }
+  input, textarea, select { font-family: inherit; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pop { 0% { transform: scale(.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes slideup { 0% { transform: translateY(16px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+  @keyframes scanline { 0% { top: 6%; } 100% { top: 92%; } }
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 12px;">
+  <div style="width:390px;height:812px;background:#f4f4f6;border-radius:40px;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;position:relative;display:flex;flex-direction:column;border:10px solid #111;">
+
+    <!-- status bar -->
+    <div style="height:34px;flex:none;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:13px;font-weight:500;color:#222;">
+      <span>22:27</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.5px;">
+        <span>4G</span>
+        <span style="border:1px solid #333;border-radius:3px;padding:0 4px;font-size:9px;">33</span>
+      </span>
+    </div>
+
+    <!-- ======= DAILY ======= -->
+    <sc-if value="{{ isDaily }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#f4f4f6;">
+      <div style="padding:14px 16px 0;flex:none;background:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;font-size:20px;font-weight:700;color:#222;">
+            <span style="color:#333;font-size:22px;">‹</span>
+            <span>{{ monthLabel }}</span>
+            <span style="color:#333;font-size:22px;">›</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:18px;color:#555;font-size:22px;">
+            <span class="ms">star</span><span class="ms">search</span><span class="ms">tune</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;margin-top:16px;font-size:15px;color:#9a9a9a;">
+          <span style="color:#f0523c;font-weight:700;border-bottom:3px solid #f0523c;padding-bottom:9px;">Diario</span>
+          <span style="padding-bottom:9px;">Calend.</span>
+          <span style="padding-bottom:9px;">Mensual</span>
+          <span style="padding-bottom:9px;">Total</span>
+          <span style="padding-bottom:9px;">Nota</span>
+        </div>
+      </div>
+      <div class="noscroll" style="flex:1;min-height:0;overflow-y:auto;">
+        <!-- summary card -->
+        <div style="margin:16px;background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);display:grid;grid-template-columns:1fr 1fr 1fr;padding:16px 8px;">
+          <div style="text-align:center;"><div style="font-size:13px;color:#8a8a8a;">Ingresos</div><div style="color:#2f80ed;font-size:17px;font-weight:700;margin-top:5px;">{{ incomeStr }}</div></div>
+          <div style="text-align:center;border-left:1px solid #f0f0f0;border-right:1px solid #f0f0f0;"><div style="font-size:13px;color:#8a8a8a;">Gastos</div><div style="color:#f0523c;font-size:17px;font-weight:700;margin-top:5px;">{{ expenseStr }}</div></div>
+          <div style="text-align:center;"><div style="font-size:13px;color:#8a8a8a;">Balance</div><div style="color:{{ balanceColor }};font-size:17px;font-weight:700;margin-top:5px;">{{ totalStr }}</div></div>
+        </div>
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:6px 20px 8px;">
+            <span style="font-size:16px;font-weight:700;color:#222;">{{ g.dayLabel }}</span>
+            <span style="color:{{ g.netColor }};font-size:15px;font-weight:600;">{{ g.netStr }}</span>
+          </div>
+          <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="1">
+            <div onClick="{{ t.onClick }}" style="margin:0 16px 10px;background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.05);padding:14px;display:flex;gap:12px;cursor:pointer;">
+              <div style="width:44px;height:44px;border-radius:12px;background:{{ t.tileBg }};color:{{ t.iconColor }};display:flex;align-items:center;justify-content:center;flex:none;"><span class="ms" style="font-size:24px;">{{ t.icon }}</span></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:16px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.note }}</div>
+                <div style="font-size:12px;color:#8a8a8a;margin-top:3px;"><span class="ms" style="font-size:14px;">category</span> Categoría: {{ t.category }}</div>
+                <div style="font-size:12px;color:#b0b0b0;"><span class="ms" style="font-size:14px;">sell</span> Subcategoría: {{ t.subcat }}</div>
+                <div style="font-size:13px;color:#555;margin-top:2px;">{{ t.account }}</div>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                  <span style="background:#efe3fc;color:#8a4fd6;font-size:11px;font-weight:500;padding:4px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><span class="ms" style="font-size:14px;">smartphone</span>{{ t.method }}</span>
+                  <sc-if value="{{ t.hasConf }}" hint-placeholder-val="">
+                    <span style="background:#e3f7ea;color:#2ea862;font-size:11px;font-weight:500;padding:4px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><span class="ms" style="font-size:14px;">auto_awesome</span>{{ t.confStr }}</span>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;flex:none;">
+                <div style="color:{{ t.amountColor }};font-size:16px;font-weight:700;">{{ t.amountStr }}</div>
+                <div style="font-size:12px;color:#b0b0b0;margin-top:2px;">{{ t.time }}</div>
+                <div style="width:30px;height:30px;border-radius:8px;background:#3a3a3a;color:#fff;display:flex;align-items:center;justify-content:center;margin-top:6px;"><span class="ms" style="font-size:16px;">visibility</span></div>
+              </div>
+            </div>
+          </sc-for>
+        </sc-for>
+        <div style="height:100px;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ======= STATS ======= -->
+    <sc-if value="{{ isStats }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#f4f4f6;">
+      <div style="background:#fff;padding:16px;flex:none;border-bottom:1px solid #eee;">
+        <div style="font-size:19px;font-weight:500;color:#222;">Estadísticas</div>
+        <div style="font-size:13px;color:#8a8a8a;margin-top:2px;">{{ monthLabel }} · Gastos por categoría</div>
+      </div>
+      <div class="noscroll" style="flex:1;overflow-y:auto;padding:16px;">
+        <div style="background:#fff;border-radius:14px;padding:20px;text-align:center;margin-bottom:14px;">
+          <div style="font-size:12px;color:#8a8a8a;">Gasto total del mes</div>
+          <div style="font-size:32px;font-weight:700;color:#f0523c;margin-top:4px;">{{ expenseStr }}</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:16px 18px;">
+          <sc-for list="{{ statBars }}" as="b" hint-placeholder-count="3">
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;color:#333;margin-bottom:6px;">
+                <span>{{ b.emoji }} {{ b.name }}</span>
+                <span style="color:#f0523c;">{{ b.amountStr }} · {{ b.pct }}%</span>
+              </div>
+              <div style="height:9px;background:#f0f0f0;border-radius:6px;overflow:hidden;">
+                <div style="height:100%;width:{{ b.width }};background:{{ b.color }};border-radius:6px;"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:90px;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ======= CHAT IA ======= -->
+    <sc-if value="{{ isChat }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#f4f4f6;">
+      <div style="background:#fff;padding:14px 16px;flex:none;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#f0523c,#ff8a5c);display:flex;align-items:center;justify-content:center;color:#fff;"><span class="ms" style="font-size:20px;">auto_awesome</span></div>
+        <div><div style="font-size:16px;font-weight:500;color:#222;">Asistente IA</div><div style="font-size:11px;color:#2ecc71;">● en línea · analiza tus gastos</div></div>
+      </div>
+      <div class="noscroll" id="chatscroll" style="flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <sc-for list="{{ chat }}" as="m" hint-placeholder-count="1">
+          <div style="align-self:{{ m.align }};max-width:80%;background:{{ m.bg }};color:{{ m.color }};padding:10px 13px;border-radius:{{ m.radius }};font-size:14px;line-height:1.45;white-space:pre-wrap;box-shadow:0 1px 2px rgba(0,0,0,.05);animation:slideup .2s ease;">{{ m.text }}</div>
+        </sc-for>
+      </div>
+      <div style="flex:none;padding:0 12px;">
+        <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">
+          <sc-for list="{{ chatChips }}" as="c" hint-placeholder-count="3">
+            <button onClick="{{ c.onClick }}" style="flex:none;border:1px solid #e2e2e2;background:#fff;color:#555;font-size:12px;padding:7px 12px;border-radius:16px;cursor:pointer;white-space:nowrap;">{{ c.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:none;padding:10px 12px 14px;background:#fff;border-top:1px solid #eee;display:flex;gap:8px;align-items:center;">
+        <input value="{{ chatInput }}" onInput="{{ onChatInput }}" onKeyDown="{{ onChatKey }}" placeholder="Pregunta sobre tus gastos..." style="flex:1;border:1px solid #e2e2e2;border-radius:22px;padding:11px 16px;font-size:14px;outline:none;background:#f7f7f8;" />
+        <button onClick="{{ sendChat }}" style="width:42px;height:42px;border:none;border-radius:50%;background:#f0523c;color:#fff;font-size:18px;cursor:pointer;flex:none;">➤</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ======= ADD ======= -->
+    <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#f4f4f6;">
+      <div style="background:#f0523c;padding:14px 16px;flex:none;display:flex;align-items:center;gap:14px;color:#fff;">
+        <span onClick="{{ goDaily }}" style="font-size:22px;cursor:pointer;">←</span>
+        <span style="font-size:17px;font-weight:500;">Nueva transacción</span>
+      </div>
+      <div style="display:flex;background:#f0523c;flex:none;">
+        <sc-for list="{{ typeTabs }}" as="tt" hint-placeholder-count="3">
+          <div onClick="{{ tt.onClick }}" style="flex:1;text-align:center;padding:11px 0;font-size:14px;color:#fff;border-bottom:3px solid {{ tt.border }};opacity:{{ tt.opacity }};cursor:pointer;">{{ tt.label }}</div>
+        </sc-for>
+      </div>
+      <div class="noscroll" style="flex:1;overflow-y:auto;padding:16px;">
+        <!-- NL magic box -->
+        <div style="background:linear-gradient(135deg,#fff,#fff5f2);border:1px solid #ffd9cd;border-radius:14px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:500;color:#f0523c;display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span class="ms" style="font-size:16px;">auto_awesome</span> Escribe en lenguaje natural</div>
+          <textarea value="{{ nlText }}" onInput="{{ onNl }}" placeholder="ej. almuerzo menu trucha 13 soles con yape" rows="2" style="width:100%;border:1px solid #eed9d2;border-radius:10px;padding:10px;font-size:14px;resize:none;outline:none;"></textarea>
+          <button onClick="{{ interpret }}" style="margin-top:8px;width:100%;background:#f0523c;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:500;cursor:pointer;">Interpretar con IA</button>
+          <sc-if value="{{ nlHint }}" hint-placeholder-val="">
+            <div style="margin-top:8px;font-size:12px;color:#2ecc71;background:#f0fbf4;border-radius:8px;padding:8px 10px;">{{ nlHint }}</div>
+          </sc-if>
+        </div>
+        <!-- fields -->
+        <div style="background:#fff;border-radius:14px;overflow:hidden;">
+          <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f2f2f2;"><span style="width:88px;font-size:13px;color:#8a8a8a;">Fecha</span><input value="{{ form.date }}" onInput="{{ onDate }}" style="flex:1;border:none;font-size:15px;color:#222;outline:none;" /></div>
+          <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f2f2f2;"><span style="width:88px;font-size:13px;color:#8a8a8a;">Monto</span><span style="color:#8a8a8a;margin-right:4px;">S/.</span><input value="{{ form.amount }}" onInput="{{ onAmount }}" inputmode="decimal" placeholder="0.00" style="flex:1;border:none;font-size:17px;font-weight:500;color:{{ amountFieldColor }};outline:none;" /></div>
+          <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f2f2f2;"><span style="width:88px;font-size:13px;color:#8a8a8a;">Categoría</span>
+            <select value="{{ form.category }}" onChange="{{ onCategory }}" style="flex:1;border:none;font-size:15px;color:#222;outline:none;background:transparent;">
+              <sc-for list="{{ categoryOptions }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #f2f2f2;"><span style="width:88px;font-size:13px;color:#8a8a8a;">Cuenta</span>
+            <select value="{{ form.account }}" onChange="{{ onAccount }}" style="flex:1;border:none;font-size:15px;color:#222;outline:none;background:transparent;">
+              <sc-for list="{{ accountOptions }}" as="a" hint-placeholder-count="3"><option value="{{ a }}">{{ a }}</option></sc-for>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;padding:14px 16px;"><span style="width:88px;font-size:13px;color:#8a8a8a;">Nota</span><input value="{{ form.note }}" onInput="{{ onNote }}" placeholder="Descripción" style="flex:1;border:none;font-size:15px;color:#222;outline:none;" /></div>
+        </div>
+        <button onClick="{{ saveTx }}" style="margin-top:18px;width:100%;background:#f0523c;color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;">Guardar</button>
+        <div style="height:40px;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ======= SCAN OCR ======= -->
+    <sc-if value="{{ isScan }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#1a1a1a;">
+      <div style="padding:14px 16px;flex:none;display:flex;align-items:center;gap:14px;color:#fff;">
+        <span onClick="{{ goDaily }}" style="font-size:22px;cursor:pointer;">←</span>
+        <span style="font-size:17px;font-weight:500;">Escanear recibo</span>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;position:relative;">
+        <div style="width:250px;height:340px;background:#fff;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5);padding:18px 16px;font-family:'Courier New',monospace;color:#333;">
+          <div style="text-align:center;font-weight:700;font-size:14px;letter-spacing:1px;">RESTAURANT EL TRIGAL</div>
+          <div style="text-align:center;font-size:9px;color:#888;margin:2px 0 10px;">RUC 20481234567 · Cusco</div>
+          <div style="border-top:1px dashed #ccc;margin:6px 0;"></div>
+          <div style="font-size:10px;display:flex;justify-content:space-between;"><span>1 Menu trucha</span><span>13.00</span></div>
+          <div style="font-size:10px;display:flex;justify-content:space-between;color:#999;"><span>Chicha morada</span><span>incl.</span></div>
+          <div style="border-top:1px dashed #ccc;margin:8px 0;"></div>
+          <div style="font-size:12px;font-weight:700;display:flex;justify-content:space-between;"><span>TOTAL S/.</span><span>13.00</span></div>
+          <div style="font-size:9px;color:#888;margin-top:8px;">22/07/2026 22:24</div>
+          <div style="text-align:center;font-size:9px;color:#aaa;margin-top:14px;">¡GRACIAS POR SU VISITA!</div>
+          <sc-if value="{{ scanning }}" hint-placeholder-val="">
+            <div style="position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#2ecc71,transparent);box-shadow:0 0 14px #2ecc71;animation:scanline 1.1s ease-in-out infinite alternate;"></div>
+          </sc-if>
+        </div>
+        <!-- corner brackets -->
+        <div style="position:absolute;top:calc(50% - 190px);left:50%;transform:translateX(-135px);width:22px;height:22px;border-top:3px solid #2ecc71;border-left:3px solid #2ecc71;"></div>
+        <div style="position:absolute;top:calc(50% - 190px);left:50%;transform:translateX(113px);width:22px;height:22px;border-top:3px solid #2ecc71;border-right:3px solid #2ecc71;"></div>
+      </div>
+      <div style="flex:none;background:#fff;border-radius:22px 22px 0 0;padding:18px 16px 22px;">
+        <sc-if value="{{ scanIdle }}" hint-placeholder-val="{{ true }}">
+          <div style="text-align:center;font-size:13px;color:#8a8a8a;margin-bottom:14px;">Encuadra el recibo dentro del marco</div>
+          <button onClick="{{ startScan }}" style="width:100%;background:#f0523c;color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;"><span class="ms" style="font-size:20px;">photo_camera</span> Escanear y extraer con IA</button>
+        </sc-if>
+        <sc-if value="{{ scanning }}" hint-placeholder-val="">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;color:#f0523c;font-size:15px;">
+            <span style="width:18px;height:18px;border:3px solid #f6c9bf;border-top-color:#f0523c;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>
+            Extrayendo datos del recibo...
+          </div>
+        </sc-if>
+        <sc-if value="{{ scanDone }}" hint-placeholder-val="">
+          <div style="animation:pop .25s ease;">
+            <div style="font-size:12px;color:#2ecc71;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:5px;"><span class="ms" style="font-size:16px;">check_circle</span> Datos detectados por OCR</div>
+            <div style="background:#f7f7f8;border-radius:12px;padding:4px 14px;margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee;font-size:14px;"><span style="color:#8a8a8a;">Comercio</span><span style="color:#222;">El Trigal</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee;font-size:14px;"><span style="color:#8a8a8a;">Monto</span><span style="color:#f0523c;font-weight:600;">S/. 13.00</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee;font-size:14px;"><span style="color:#8a8a8a;">Fecha</span><span style="color:#222;">22.07.2026</span></div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:14px;"><span style="color:#8a8a8a;">Categoría IA</span><span style="color:#222;display:inline-flex;align-items:center;gap:5px;"><span class="ms" style="font-size:16px;color:#f0523c;">shopping_cart</span> Alimentación · Otros</span></div>
+            </div>
+            <button onClick="{{ addScanned }}" style="width:100%;background:#f0523c;color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;">Añadir transacción</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ======= FAB menu overlay ======= -->
+    <sc-if value="{{ fabOpen }}" hint-placeholder-val="">
+      <div onClick="{{ closeFab }}" style="position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:40;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;padding:0 20px 96px;">
+        <sc-for list="{{ fabActions }}" as="f" hint-placeholder-count="3">
+          <div onClick="{{ f.onClick }}" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;cursor:pointer;animation:slideup .18s ease;">
+            <span style="color:#fff;font-size:14px;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.4);">{{ f.label }}</span>
+            <span style="width:48px;height:48px;border-radius:50%;background:{{ f.bg }};color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.3);"><span class="ms" style="font-size:22px;">{{ f.icon }}</span></span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- ======= FAB ======= -->
+    <sc-if value="{{ showFab }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ toggleFab }}" style="position:absolute;right:20px;bottom:88px;width:60px;height:60px;border-radius:50%;background:#f0523c;color:#fff;border:none;font-size:30px;box-shadow:0 6px 16px rgba(240,82,60,.5);cursor:pointer;z-index:50;transition:transform .2s;transform:rotate({{ fabRotate }});">+</button>
+    </sc-if>
+
+    <!-- ======= bottom nav ======= -->
+    <div style="flex:none;background:#fff;border-top:1px solid #eee;display:flex;padding:8px 0 6px;z-index:30;">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+        <div onClick="{{ n.onClick }}" style="flex:1;text-align:center;color:{{ n.color }};cursor:pointer;">
+          <div style="line-height:1;"><span class="ms" style="font-size:22px;">{{ n.icon }}</span></div>
+          <div style="font-size:10px;margin-top:3px;">{{ n.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- android nav bar -->
+    <div style="flex:none;height:34px;background:#f4f4f6;display:flex;align-items:center;justify-content:space-around;color:#999;font-size:13px;border-top:1px solid #ececec;">
+      <span>■</span><span>●</span><span>◀</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'daily',
+    fabOpen: false,
+    transactions: [
+      { id: 1, day: 21, weekday: 'mar', dateNum: '07.2026', category: 'Alimentación', subcat: 'Otros', emoji: '🛒', note: 'almuerzo menu trucha', account: 'BCP Soles', method: 'Yape', confidence: 85, time: '15:17', amount: 13, type: 'expense' },
+      { id: 2, day: 20, weekday: 'lun', dateNum: '07.2026', category: 'Alimentación', subcat: 'Otros', emoji: '🛒', note: 'cena pan y emoliente', account: 'BCP Soles', method: 'Yape', confidence: 85, time: '21:15', amount: 5, type: 'expense' },
+    ],
+    form: { type: 'expense', date: '22.07.2026', amount: '', category: 'Alimentación', account: 'BCP Soles', note: '' },
+    nlText: '',
+    nlHint: '',
+    scan: 'idle',
+    chatInput: '',
+    chat: [
+      { role: 'ai', text: '¡Hola! Soy tu asistente financiero. Pregúntame lo que quieras sobre tus gastos, por ejemplo "¿cuánto gasté en comida?"' },
+    ],
+  };
+
+  cats = {
+    'Alimentación': { icon: 'shopping_cart', color: '#f0523c', tile: '#fbe0da', sub: 'Otros', kw: ['almuerzo','cena','desayuno','comida','comí','menu','menú','trucha','pan','emoliente','restaurant','pollo','ceviche','café','cafe','mercado','super'] },
+    Transporte: { icon: 'directions_bus', color: '#2f80ed', tile: '#dbe8fb', sub: 'Movilidad', kw: ['taxi','bus','combi','uber','pasaje','gasolina','transporte','tren'] },
+    Compras: { icon: 'shopping_bag', color: '#9b51e0', tile: '#efe3fc', sub: 'Varios', kw: ['ropa','compra','tienda','zapatos'] },
+    Servicios: { icon: 'lightbulb', color: '#f2994a', tile: '#fdeed9', sub: 'Hogar', kw: ['luz','agua','internet','celular','recibo','servicio','netflix','plan'] },
+    Salud: { icon: 'medication', color: '#27ae60', tile: '#dbf3e5', sub: 'Bienestar', kw: ['farmacia','medicina','doctor','salud','pastilla'] },
+    Ocio: { icon: 'sports_esports', color: '#eb5757', tile: '#fbdede', sub: 'Diversión', kw: ['cine','juego','ocio','bar','cerveza','fiesta'] },
+    Sueldo: { icon: 'payments', color: '#2ecc71', tile: '#dbf3e5', sub: 'Ingreso', kw: ['sueldo','pago','salario','ingreso','deposito','freelance'] },
+    Otros: { icon: 'category', color: '#828282', tile: '#ececec', sub: 'Sin categoría', kw: [] },
+  };
+  accounts = ['BCP Soles', 'Efectivo', 'Yape', 'Interbank'];
+  fmt(n) { return 'S/. ' + Number(n).toFixed(2); }
+  now() { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+
+  renderVals() {
+    const s = this.state;
+    const set = (p) => this.setState(p);
+    const go = (screen) => set({ screen, fabOpen: false });
+    const exp = s.transactions.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+    const inc = s.transactions.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+
+    // group by day
+    const map = {};
+    s.transactions.forEach(t => {
+      if (!map[t.day]) map[t.day] = { day: t.day, weekday: t.weekday, dateSuffix: t.dateNum, items: [], inc: 0, exp: 0 };
+      map[t.day].items.push(t);
+      if (t.type === 'income') map[t.day].inc += t.amount; else map[t.day].exp += t.amount;
+    });
+    const groups = Object.values(map).sort((a, b) => b.day - a.day).map(g => {
+      const net = g.inc - g.exp;
+      return {
+        dayLabel: `${g.day} ${g.weekday} ${g.dateSuffix}`,
+        netStr: (net < 0 ? '-' : '') + this.fmt(Math.abs(net)),
+        netColor: net < 0 ? '#f0523c' : (net > 0 ? '#2f80ed' : '#8a8a8a'),
+        items: g.items.map(t => ({
+          icon: (this.cats[t.category] || this.cats.Otros).icon,
+          iconColor: (this.cats[t.category] || this.cats.Otros).color,
+          category: t.category, subcat: t.subcat, note: t.note, account: t.account,
+          tileBg: (this.cats[t.category] || this.cats.Otros).tile,
+          method: t.method || 'Efectivo', hasConf: !!t.confidence, confStr: (t.confidence || 0) + '%',
+          time: t.time || '',
+          amountStr: this.fmt(t.amount), amountColor: t.type === 'income' ? '#2f80ed' : '#f0523c',
+          onClick: () => {},
+        })),
+      };
+    });
+
+    // stats
+    const byCat = {};
+    s.transactions.filter(t => t.type === 'expense').forEach(t => { byCat[t.category] = (byCat[t.category] || 0) + t.amount; });
+    const maxCat = Math.max(1, ...Object.values(byCat));
+    const statBars = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([name, amt]) => ({
+      name, emoji: (this.cats[name] || this.cats.Otros).emoji, color: (this.cats[name] || this.cats.Otros).color,
+      amountStr: this.fmt(amt), pct: exp ? Math.round(amt / exp * 100) : 0, width: (amt / maxCat * 100) + '%',
+    }));
+
+    // nav
+    const navDef = [
+      { key: 'daily', icon: 'receipt_long', label: 'Trans.' },
+      { key: 'stats', icon: 'bar_chart', label: 'Estad.' },
+      { key: 'chat', icon: 'auto_awesome', label: 'IA' },
+      { key: 'accounts', icon: 'account_balance_wallet', label: 'Cuentas' },
+      { key: 'more', icon: 'more_horiz', label: 'Más' },
+    ];
+    const navItems = navDef.map(n => ({
+      icon: n.icon, label: n.label,
+      color: s.screen === n.key ? '#f0523c' : '#9a9a9a',
+      onClick: () => (n.key === 'accounts' || n.key === 'more') ? null : go(n.key),
+    }));
+
+    // type tabs (add screen)
+    const typeTabs = [
+      { key: 'income', label: 'Ingreso' }, { key: 'expense', label: 'Gasto' }, { key: 'transfer', label: 'Transf.' },
+    ].map(t => ({
+      label: t.label,
+      border: s.form.type === t.key ? '#fff' : 'transparent',
+      opacity: s.form.type === t.key ? 1 : 0.7,
+      onClick: () => set({ form: { ...s.form, type: t.key } }),
+    }));
+
+    // NL parse
+    const interpret = () => {
+      const txt = s.nlText.trim();
+      if (!txt) { set({ nlHint: '' }); return; }
+      const low = txt.toLowerCase();
+      const amtM = low.match(/(\d+(?:[.,]\d{1,2})?)/);
+      const amount = amtM ? amtM[1].replace(',', '.') : '';
+      let category = 'Otros';
+      for (const [name, c] of Object.entries(this.cats)) { if (c.kw.some(k => low.includes(k))) { category = name; break; } }
+      const isIncome = ['sueldo','pago','salario','ingreso','deposito','recibí','freelance'].some(k => low.includes(k));
+      let account = 'BCP Soles';
+      if (low.includes('yape')) account = 'Yape';
+      else if (low.includes('efectivo') || low.includes('cash')) account = 'Efectivo';
+      else if (low.includes('interbank')) account = 'Interbank';
+      let note = txt.replace(/\d+(?:[.,]\d{1,2})?/, '').replace(/soles|s\/\.?|con yape|en efectivo|con bcp|interbank/gi, '').trim();
+      note = note.charAt(0).toUpperCase() + note.slice(1);
+      set({
+        form: { ...s.form, type: isIncome ? 'income' : 'expense', amount, category, account, note },
+        nlHint: `Detecté: ${isIncome ? 'ingreso' : 'gasto'} de S/. ${amount || '?'} · ${category} · ${account}. Revisa y guarda.`,
+      });
+    };
+
+    const saveTx = () => {
+      const f = s.form;
+      const amt = parseFloat(f.amount);
+      if (!amt || amt <= 0) { set({ nlHint: 'Ingresa un monto válido para continuar.' }); return; }
+      const c = this.cats[f.category] || this.cats.Otros;
+      const tx = { id: Date.now(), day: 22, weekday: 'mié', dateNum: '07.2026', category: f.category, subcat: c.sub, emoji: c.emoji, note: f.note || f.category, account: f.account, method: f.account === 'Yape' ? 'Yape' : 'Efectivo', time: this.now(), amount: amt, type: f.type === 'transfer' ? 'expense' : f.type };
+      set({ transactions: [tx, ...s.transactions], screen: 'daily', nlText: '', nlHint: '', form: { type: 'expense', date: '22.07.2026', amount: '', category: 'Alimentación', account: 'BCP Soles', note: '' } });
+    };
+
+    // scan
+    const startScan = () => {
+      set({ scan: 'scanning' });
+      setTimeout(() => set({ scan: 'done' }), 2200);
+    };
+    const addScanned = () => {
+      const tx = { id: Date.now(), day: 22, weekday: 'mié', dateNum: '07.2026', category: 'Alimentación', subcat: 'Otros', emoji: '🛒', note: 'Menu trucha (El Trigal)', account: 'BCP Soles', method: 'Yape', confidence: 96, time: this.now(), amount: 13, type: 'expense' };
+      set({ transactions: [tx, ...s.transactions], screen: 'daily', scan: 'idle' });
+    };
+
+    // chat engine
+    const answer = (q) => {
+      const low = q.toLowerCase();
+      const e = s.transactions.filter(t => t.type === 'expense');
+      const total = e.reduce((a, t) => a + t.amount, 0);
+      const cats = {};
+      e.forEach(t => { cats[t.category] = (cats[t.category] || 0) + t.amount; });
+      if (low.includes('comida') || low.includes('aliment') || low.includes('comí') || low.includes('comer')) {
+        const c = cats['Alimentación'] || 0;
+        return `Has gastado ${this.fmt(c)} en Alimentación este mes (${total ? Math.round(c / total * 100) : 0}% de tus gastos). Es tu categoría más alta.`;
+      }
+      if (low.includes('categor') || low.includes('desglose') || low.includes('en qué')) {
+        const lines = Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([n, v]) => `• ${n}: ${this.fmt(v)}`).join('\n');
+        return `Desglose de gastos:\n${lines}\n\nTotal: ${this.fmt(total)}`;
+      }
+      if (low.includes('promedio') || low.includes('diario')) {
+        const days = new Set(e.map(t => t.day)).size || 1;
+        return `Tu gasto promedio es de ${this.fmt(total / days)} por día con actividad (${days} día(s) registrados).`;
+      }
+      if (low.includes('ahorr') || low.includes('consejo') || low.includes('recom')) {
+        return `Consejo: casi todos tus gastos son en Alimentación fuera de casa. Si preparas 2 comidas en casa por semana podrías ahorrar ~S/. 40 al mes. ¿Te creo un presupuesto de S/. 200 para alimentación?`;
+      }
+      if (low.includes('cuánto') || low.includes('cuanto') || low.includes('total') || low.includes('gast') || low.includes('mes')) {
+        return `Este mes llevas ${this.fmt(total)} en gastos y ${this.fmt(inc)} en ingresos. Balance: ${this.fmt(inc - total)}.`;
+      }
+      if (low.includes('hola') || low.includes('gracias')) return '¡Claro! Puedo darte totales, desglose por categoría, promedios o consejos de ahorro.';
+      return `Tengo registrados ${s.transactions.length} movimientos por ${this.fmt(total)} en gastos. Pregúntame por una categoría, tu promedio diario o consejos de ahorro.`;
+    };
+    const pushChat = (text) => {
+      if (!text.trim()) return;
+      const reply = answer(text);
+      set({ chat: [...s.chat, { role: 'user', text }, { role: 'ai', text: reply }], chatInput: '' });
+      setTimeout(() => { const el = document.getElementById('chatscroll'); if (el) el.scrollTop = el.scrollHeight; }, 60);
+    };
+    const chatChips = [
+      { label: '¿Cuánto gasté este mes?', q: '¿cuánto gasté este mes?' },
+      { label: 'Desglose por categoría', q: 'desglose por categoría' },
+      { label: 'Consejo de ahorro', q: 'dame un consejo de ahorro' },
+      { label: 'Gasto en comida', q: '¿cuánto en comida?' },
+    ].map(c => ({ label: c.label, onClick: () => pushChat(c.q) }));
+
+    const fabActions = [
+      { label: 'Añadir manual', icon: 'edit', bg: '#2f80ed', onClick: () => go('add') },
+      { label: 'Escanear recibo (OCR)', icon: 'photo_camera', bg: '#27ae60', onClick: () => set({ screen: 'scan', scan: 'idle', fabOpen: false }) },
+      { label: 'Preguntar a la IA', icon: 'auto_awesome', bg: '#9b51e0', onClick: () => go('chat') },
+    ];
+
+    return {
+      isDaily: s.screen === 'daily', isStats: s.screen === 'stats', isChat: s.screen === 'chat',
+      isAdd: s.screen === 'add', isScan: s.screen === 'scan',
+      monthLabel: 'Jul 2026',
+      incomeStr: this.fmt(inc), expenseStr: this.fmt(exp),
+      totalStr: ((inc - exp) < 0 ? '-' : '') + this.fmt(Math.abs(inc - exp)),
+      balanceColor: (inc - exp) < 0 ? '#f0523c' : (inc - exp > 0 ? '#2f80ed' : '#8a8a8a'),
+      groups, statBars, navItems, typeTabs,
+      form: s.form, nlText: s.nlText, nlHint: s.nlHint,
+      amountFieldColor: s.form.type === 'income' ? '#2f80ed' : '#f0523c',
+      categoryOptions: Object.keys(this.cats), accountOptions: this.accounts,
+      onNl: (e) => set({ nlText: e.target.value }), interpret,
+      onDate: (e) => set({ form: { ...s.form, date: e.target.value } }),
+      onAmount: (e) => set({ form: { ...s.form, amount: e.target.value } }),
+      onCategory: (e) => set({ form: { ...s.form, category: e.target.value } }),
+      onAccount: (e) => set({ form: { ...s.form, account: e.target.value } }),
+      onNote: (e) => set({ form: { ...s.form, note: e.target.value } }),
+      saveTx, goDaily: () => go('daily'),
+      scanIdle: s.scan === 'idle', scanning: s.scan === 'scanning', scanDone: s.scan === 'done',
+      startScan, addScanned,
+      chat: s.chat.map(m => ({
+        text: m.text, align: m.role === 'user' ? 'flex-end' : 'flex-start',
+        bg: m.role === 'user' ? '#f0523c' : '#fff', color: m.role === 'user' ? '#fff' : '#222',
+        radius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+      })),
+      chatInput: s.chatInput, chatChips,
+      onChatInput: (e) => set({ chatInput: e.target.value }),
+      onChatKey: (e) => { if (e.key === 'Enter') pushChat(s.chatInput); },
+      sendChat: () => pushChat(s.chatInput),
+      fabOpen: s.fabOpen, fabActions,
+      showFab: s.screen === 'daily' || s.screen === 'stats',
+      toggleFab: () => set({ fabOpen: !s.fabOpen }), closeFab: () => set({ fabOpen: false }),
+      fabRotate: s.fabOpen ? '45deg' : '0deg',
+    };
+  }
+}
+</script>
+</body>
+</html>
