@@ -113,6 +113,12 @@ class CategoryRepository {
   // Eliminar categoría
   Future<bool> deleteCategory(String categoryId) async {
     try {
+      await (_db.update(_db.expenses)
+            ..where((expense) => expense.categoryId.equals(categoryId)))
+          .write(const ExpensesCompanion(
+        categoryId: Value(null),
+        subcategoryId: Value(null),
+      ));
       // Eliminar subcategorías primero
       await (_db.delete(_db.subcategories)
         ..where((s) => s.categoryId.equals(categoryId))).go();
@@ -152,6 +158,11 @@ class CategoryRepository {
   // Actualizar subcategoría
   Future<bool> updateSubcategory(String categoryId, SubcategoryModel subcategory) async {
     try {
+      final existing = await (_db.select(_db.subcategories)
+            ..where((row) => row.id.equals(subcategory.id) &
+                row.categoryId.equals(categoryId)))
+          .getSingleOrNull();
+      if (existing == null) return false;
       final now = DateTime.now().millisecondsSinceEpoch;
       
       await _db.update(_db.subcategories).replace(SubcategoriesCompanion(
@@ -173,10 +184,14 @@ class CategoryRepository {
   // Eliminar subcategoría
   Future<bool> deleteSubcategory(String categoryId, String subcategoryId) async {
     try {
-      await (_db.delete(_db.subcategories)
+      await (_db.update(_db.expenses)
+            ..where((expense) =>
+                expense.categoryId.equals(categoryId) &
+                expense.subcategoryId.equals(subcategoryId)))
+          .write(const ExpensesCompanion(subcategoryId: Value(null)));
+      final deleted = await (_db.delete(_db.subcategories)
         ..where((s) => s.id.equals(subcategoryId) & s.categoryId.equals(categoryId))).go();
-      
-      return true;
+      return deleted > 0;
     } catch (e) {
       print('Error deleting subcategory: $e');
       return false;
@@ -186,6 +201,8 @@ class CategoryRepository {
   // Reordenar categorías
   Future<bool> reorderCategories(List<CategoryModel> reorderedCategories) async {
     try {
+      final ids = reorderedCategories.map((category) => category.id).toSet();
+      if (ids.length != reorderedCategories.length) return false;
       for (int i = 0; i < reorderedCategories.length; i++) {
         final category = reorderedCategories[i];
         await _db.update(_db.categories).replace(CategoriesCompanion(
@@ -208,6 +225,16 @@ class CategoryRepository {
   // Reordenar subcategorías
   Future<bool> reorderSubcategories(String categoryId, List<SubcategoryModel> reorderedSubcategories) async {
     try {
+      final persisted = await (_db.select(_db.subcategories)
+            ..where((row) => row.categoryId.equals(categoryId)))
+          .get();
+      final persistedIds = persisted.map((row) => row.id).toSet();
+      final requestedIds =
+          reorderedSubcategories.map((subcategory) => subcategory.id).toSet();
+      if (requestedIds.length != reorderedSubcategories.length ||
+          !persistedIds.containsAll(requestedIds)) {
+        return false;
+      }
       for (int i = 0; i < reorderedSubcategories.length; i++) {
         final subcategory = reorderedSubcategories[i];
         await _db.update(_db.subcategories).replace(SubcategoriesCompanion(
