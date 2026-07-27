@@ -1,0 +1,103 @@
+name: Quality gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.35.4
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze --fatal-infos
+      - name: Verify generated sources are current
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code -- lib/data/app_database.g.dart
+      - name: Tests and coverage
+        run: flutter test --coverage --reporter expanded
+      - name: Coverage gate
+        run: >-
+          dart run tool/check_coverage.dart coverage/lcov.info 35
+          lib/core/financial_domain.dart=90
+          lib/data/daos.dart=80
+          lib/data/data_backup_service.dart=90
+          lib/features/capture/application/shared_capture_coordinator.dart=90
+      - name: Release configuration gates
+        run: |
+          dart run tool/check_release_identifiers.dart
+          dart run tool/check_release_readiness.dart
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Create ephemeral CI signing key
+        shell: bash
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/ci-upload.jks" \
+            -storepass ci-android-password \
+            -alias ci-upload \
+            -keypass ci-android-password \
+            -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname "CN=CI,O=El Ahorrador,C=PE"
+      - name: Release build smoke test
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/ci-upload.jks
+          ANDROID_KEYSTORE_PASSWORD: ci-android-password
+          ANDROID_KEY_ALIAS: ci-upload
+          ANDROID_KEY_PASSWORD: ci-android-password
+        run: >-
+          flutter build appbundle --release
+          --dart-define=APP_ENV=ci
+          --dart-define=APP_REVISION=${{ github.sha }}
+      - name: Verify release candidate signature
+        # Android upload certificates are normally self-signed. `-strict`
+        # rejects that valid Android signing model, so verify integrity here
+        # and let Play App Signing validate the registered upload certificate.
+        run: jarsigner -verify -certs build/app/outputs/bundle/release/app-release.aab
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.sha }}-android-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14

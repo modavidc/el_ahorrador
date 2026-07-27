@@ -1,0 +1,6 @@
+# Copy this file to key.properties and keep the real file out of version control.
+# The storeFile path is resolved from the android/ directory.
+storeFile=keystores/upload-keystore.jks
+storePassword=replace-with-a-secret
+keyAlias=upload
+keyPassword=replace-with-a-secret
