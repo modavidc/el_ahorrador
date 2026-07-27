@@ -2,7 +2,7 @@ name: Quality gate
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -16,6 +16,9 @@ permissions:
 jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
+    # GitHub rejects this action until Dependency Graph is enabled in the
+    # repository settings. Keep the signal visible without blocking all PRs.
+    continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
       contents: read

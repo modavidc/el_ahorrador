@@ -4,7 +4,11 @@ Every pull request must pass `Quality gate / quality`: formatting, static
 analysis without errors, generated-source drift, tests with at least 25% line
 coverage, repository readiness and
 a signed release AAB smoke build. The AAB, checksum and LCOV are retained as
-commit-addressed evidence. Protect `master` and require this check and one review.
+commit-addressed evidence. Protect `main` and require this check and one review.
+
+Dependency review remains non-blocking until Dependency Graph is enabled in
+GitHub security settings; Dependabot continues to provide update PRs in the
+meantime.
 
 Production releases are immutable semantic tags matching `pubspec.yaml`. The
 production environment must require approval and contain the upload-keystore and
