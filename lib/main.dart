@@ -20,6 +20,7 @@ import 'screens/home_screen.dart';
 import 'widgets/expense_edit_dialog.dart';
 import 'widgets/processing_animation.dart';
 import 'widgets/immediate_loading_overlay.dart';
+import 'security/app_lock_gate.dart';
 
 void _debugLog(Object? message) {
   if (kDebugMode) debugPrint(message?.toString());
@@ -155,7 +156,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
     // ⏱️ INICIO DEL CRONÓMETRO TOTAL
     final shareStartTime = DateTime.now();
     _debugLog('⏱️  [TIMER] ========================================');
-    _debugLog('⏱️  [TIMER] SHARE STARTED at ${shareStartTime.toIso8601String()}');
+    _debugLog(
+      '⏱️  [TIMER] SHARE STARTED at ${shareStartTime.toIso8601String()}',
+    );
     _debugLog('⏱️  [TIMER] ========================================');
 
     // Iniciar tracking de tiempo
@@ -228,7 +231,13 @@ class _MisGastosAppState extends State<MisGastosApp> {
 
       // Inicializar OCR si no existe
       _ocr ??= MlKitEngine();
-      final res = await _ocr!.run(localPath);
+      final materializedPath = await FileStore.materializeForRead(localPath);
+      late final OcrResult res;
+      try {
+        res = await _ocr!.run(materializedPath);
+      } finally {
+        await FileStore.releaseMaterializedFile(materializedPath);
+      }
 
       final ocrDuration = DateTime.now().difference(ocrStart).inMilliseconds;
       _debugLog('🔍 [PROCESS] OCR completed in ${ocrDuration}ms');
@@ -610,6 +619,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
     _debugLog('🚀 [STARTUP] build() called, _isInitialized=$_isInitialized');
     return MaterialApp(
       navigatorKey: _navigatorKey,
+      builder: (context, child) => AppLockGate(child: child!),
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,

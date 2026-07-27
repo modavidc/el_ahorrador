@@ -15,9 +15,9 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MisGastosApp());
 
-    // Bootstrap is asynchronous, so the first frame must expose a stable
-    // loading state instead of depending on platform plugins in this test.
+    // Sensitive content is covered by the local-auth gate from the first
+    // frame, before asynchronous bootstrap can expose financial data.
     expect(find.byType(MaterialApp), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.textContaining('bloqueado'), findsOneWidget);
   });
 }
