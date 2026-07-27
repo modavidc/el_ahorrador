@@ -9,6 +9,8 @@ import 'core/fast_parser.dart';
 import 'core/capture_validator.dart';
 import 'core/category_service.dart';
 import 'core/time_tracker.dart';
+import 'features/capture/application/bounded_serial_queue.dart';
+import 'features/capture/application/attachment_batch_processor.dart';
 import 'data/app_database.dart';
 import 'data/daos.dart';
 import 'screens/home_screen.dart';
@@ -19,12 +21,16 @@ import 'widgets/immediate_loading_overlay.dart';
 void main() {
   final startTime = DateTime.now();
   print('🚀 [STARTUP] main() called at ${startTime.toIso8601String()}');
-  
+
   WidgetsFlutterBinding.ensureInitialized();
-  print('🚀 [STARTUP] WidgetsFlutterBinding initialized (${DateTime.now().difference(startTime).inMilliseconds}ms)');
-  
+  print(
+    '🚀 [STARTUP] WidgetsFlutterBinding initialized (${DateTime.now().difference(startTime).inMilliseconds}ms)',
+  );
+
   runApp(const MisGastosApp());
-  print('🚀 [STARTUP] runApp() called (${DateTime.now().difference(startTime).inMilliseconds}ms)');
+  print(
+    '🚀 [STARTUP] runApp() called (${DateTime.now().difference(startTime).inMilliseconds}ms)',
+  );
 }
 
 class MisGastosApp extends StatefulWidget {
@@ -40,7 +46,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
   MlKitEngine? _ocr; // OCR engine (lazy init)
   StreamSubscription<SharedMedia>? _sub;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  bool _isProcessingShare = false;
+  final _shareQueue = BoundedSerialQueue<SharedMedia, void>(maxPending: 10);
   bool _isInitialized = false;
   OverlayEntry? _spinnerEntry;
 
@@ -48,7 +54,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
   void initState() {
     super.initState();
     print('🚀 [STARTUP] initState() called');
-    
+
     // ✅ OPTIMIZACIÓN: Diferir todo al siguiente frame para no bloquear el primer render
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('🚀 [STARTUP] Post-frame callback executing...');
@@ -60,17 +66,14 @@ class _MisGastosAppState extends State<MisGastosApp> {
   Future<void> _bootstrap() async {
     final startTime = DateTime.now();
     print('🚀 [STARTUP] Bootstrap started');
-    
+
     try {
       // Inicializar servicios en paralelo (sin bloquear UI)
-      await Future.wait([
-        _initServices(),
-        _initShareHandler(),
-      ]);
-      
+      await Future.wait([_initServices(), _initShareHandler()]);
+
       final duration = DateTime.now().difference(startTime).inMilliseconds;
       print('🚀 [STARTUP] Bootstrap completed in ${duration}ms');
-      
+
       // Marcar como inicializado
       if (mounted) {
         setState(() {
@@ -91,10 +94,10 @@ class _MisGastosAppState extends State<MisGastosApp> {
   Future<void> _initServices() async {
     print('🚀 [STARTUP] Initializing services...');
     final start = DateTime.now();
-    
+
     // Inicializar el servicio de categorías (sincrónico, rápido)
     CategoryService().initialize(db);
-    
+
     final duration = DateTime.now().difference(start).inMilliseconds;
     print('🚀 [STARTUP] Services initialized in ${duration}ms');
   }
@@ -103,20 +106,20 @@ class _MisGastosAppState extends State<MisGastosApp> {
   Future<void> _initShareHandler() async {
     print('🚀 [STARTUP] Initializing share handler...');
     final start = DateTime.now();
-    
+
     try {
       final share = ShareHandlerPlatform.instance;
-      
+
       // Primero suscribirse al stream (no bloquea)
       _sub = share.sharedMediaStream.listen(_handleShare);
-      
+
       // Luego obtener el intent inicial (sin bloquear)
       final initial = await share.getInitialSharedMedia();
       if (initial != null && mounted) {
         // No esperar, procesar en background
         unawaited(_handleShare(initial));
       }
-      
+
       final duration = DateTime.now().difference(start).inMilliseconds;
       print('🚀 [STARTUP] Share handler initialized in ${duration}ms');
     } catch (e) {
@@ -125,59 +128,71 @@ class _MisGastosAppState extends State<MisGastosApp> {
   }
 
   Future<void> _handleShare(SharedMedia media) async {
-    // Evitar procesamiento múltiple
-    if (_isProcessingShare) return;
-    _isProcessingShare = true;
-    
+    try {
+      await _shareQueue.enqueue(media, _processSharedMedia);
+    } on QueueFullException catch (error) {
+      print('Share rejected explicitly: $error');
+    }
+  }
+
+  Future<void> _processSharedMedia(SharedMedia media) async {
     // ⏱️ INICIO DEL CRONÓMETRO TOTAL
     final shareStartTime = DateTime.now();
     print('⏱️  [TIMER] ========================================');
     print('⏱️  [TIMER] SHARE STARTED at ${shareStartTime.toIso8601String()}');
     print('⏱️  [TIMER] ========================================');
-    
+
     // Iniciar tracking de tiempo
     TimeTracker.startShareTracking();
-    
+
     print('📤 [SHARE] Received shared media');
-    
+
     final attachments = media.attachments;
     if (attachments != null) {
-      for (final att in attachments) {
-        if (att != null && att.type == SharedAttachmentType.image) {
+      await const AttachmentBatchProcessor<SharedAttachment>().process(
+        attachments: attachments,
+        isEligible: (attachment) =>
+            attachment.type == SharedAttachmentType.image,
+        processAttachment: (attachment) async {
           print('📤 [SHARE] Processing image attachment');
-          
-          // ✅ Procesar inmediatamente (el spinner se mostrará dentro de _processSharedImage)
-          await _processSharedImage(att, shareStartTime);
-        }
-      }
+          await _processSharedImage(attachment, shareStartTime);
+        },
+      );
     }
   }
 
   /// ✅ OPTIMIZACIÓN: Procesamiento asíncrono optimizado
-  Future<void> _processSharedImage(SharedAttachment att, DateTime shareStartTime) async {
+  Future<void> _processSharedImage(
+    SharedAttachment att,
+    DateTime shareStartTime,
+  ) async {
     try {
       // Marcar inicio del procesamiento
       TimeTracker.startProcessing();
-      
+
       // ✅ Mostrar UI de carga
       _showSpinnerOverlay();
-      
+
       // ⏱️ Tiempo desde que se compartió hasta aquí
       final uiDelay = DateTime.now().difference(shareStartTime).inMilliseconds;
       print('⏱️  [TIMER] UI shown after ${uiDelay}ms from share click');
-      
+
       // ✅ PASO 1: Persistir archivo (asíncrono, no bloquea UI)
       print('📁 [PROCESS] Persisting file...');
       final persistStart = DateTime.now();
       final localPath = await FileStore.persistIncomingFile(att.path);
-      final persistDuration = DateTime.now().difference(persistStart).inMilliseconds;
+      final persistDuration = DateTime.now()
+          .difference(persistStart)
+          .inMilliseconds;
       print('📁 [PROCESS] File persisted in ${persistDuration}ms');
-      print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
-      
+      print(
+        '⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms',
+      );
+
       // Generar ID y timestamp
       final id = _uuid.v4();
       final currentTime = DateTime.now().millisecondsSinceEpoch;
-      
+
       // ✅ PASO 2: Operaciones de base de datos en transacción (más rápido)
       print('💾 [PROCESS] Inserting capture in DB...');
       final dbStart = DateTime.now();
@@ -187,28 +202,36 @@ class _MisGastosAppState extends State<MisGastosApp> {
       });
       final dbDuration = DateTime.now().difference(dbStart).inMilliseconds;
       print('💾 [PROCESS] DB operations completed in ${dbDuration}ms');
-      print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
-      
+      print(
+        '⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms',
+      );
+
       // ✅ PASO 3: OCR (asíncrono, la operación nativa es no-bloqueante)
       print('🔍 [PROCESS] Running OCR...');
       final ocrStart = DateTime.now();
-      
+
       // Inicializar OCR si no existe
       _ocr ??= MlKitEngine();
       final res = await _ocr!.run(localPath);
-      
+
       final ocrDuration = DateTime.now().difference(ocrStart).inMilliseconds;
       print('🔍 [PROCESS] OCR completed in ${ocrDuration}ms');
-      print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
-      
+      print(
+        '⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms',
+      );
+
       final confidence = res.meta['confidence']?.toString();
-      
+
       // Validar tipo de captura
       final captureType = CaptureValidator.validateCapture(res.text);
-      
+
       // Guardar resultado OCR (en paralelo con validación)
-      final ocrSaveFuture = db.setOcrResult(id: id, text: res.text, confidence: confidence);
-      
+      final ocrSaveFuture = db.setOcrResult(
+        id: id,
+        text: res.text,
+        confidence: confidence,
+      );
+
       // Solo procesar si es una captura válida
       if (CaptureValidator.isProcessable(captureType)) {
         // ✅ PASO 4: Parse (asíncrono)
@@ -219,15 +242,19 @@ class _MisGastosAppState extends State<MisGastosApp> {
           fallbackDateEpoch: currentTime,
           ocrConfidence: confidence,
         );
-        final parseDuration = DateTime.now().difference(parseStart).inMilliseconds;
+        final parseDuration = DateTime.now()
+            .difference(parseStart)
+            .inMilliseconds;
         print('📝 [PROCESS] Parsing completed in ${parseDuration}ms');
-        print('⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms');
-      
+        print(
+          '⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms',
+        );
+
         // Solo registrar si tiene monto válido
         if (parsed.amountCents > 0) {
           // Esperar a que se complete el guardado del OCR
           await ocrSaveFuture;
-          
+
           // Insertar gasto
           print('💰 [PROCESS] Inserting expense...');
           final dbInsertStart = DateTime.now();
@@ -245,13 +272,19 @@ class _MisGastosAppState extends State<MisGastosApp> {
             notes: parsed.notes,
             sourceApp: parsed.sourceApp,
           );
-          final dbInsertDuration = DateTime.now().difference(dbInsertStart).inMilliseconds;
+          final dbInsertDuration = DateTime.now()
+              .difference(dbInsertStart)
+              .inMilliseconds;
           print('💰 [PROCESS] Expense inserted in ${dbInsertDuration}ms');
-          
+
           // ⏱️ TIEMPO TOTAL
-          final totalTime = DateTime.now().difference(shareStartTime).inMilliseconds;
+          final totalTime = DateTime.now()
+              .difference(shareStartTime)
+              .inMilliseconds;
           print('⏱️  [TIMER] ========================================');
-          print('⏱️  [TIMER] TOTAL TIME: ${totalTime}ms (${(totalTime/1000).toStringAsFixed(2)}s)');
+          print(
+            '⏱️  [TIMER] TOTAL TIME: ${totalTime}ms (${(totalTime / 1000).toStringAsFixed(2)}s)',
+          );
           print('⏱️  [TIMER] Breakdown:');
           print('⏱️  [TIMER]   UI delay: ${uiDelay}ms');
           print('⏱️  [TIMER]   File persist: ${persistDuration}ms');
@@ -260,10 +293,10 @@ class _MisGastosAppState extends State<MisGastosApp> {
           print('⏱️  [TIMER]   Parse: ${parseDuration}ms');
           print('⏱️  [TIMER]   Save expense: ${dbInsertDuration}ms');
           print('⏱️  [TIMER] ========================================');
-          
+
           // Marcar fin del procesamiento
           TimeTracker.endProcessing();
-          
+
           // Ocultar spinner y mostrar animación de éxito
           _hideSpinnerOverlay();
           _showSuccessAnimation(parsed);
@@ -284,13 +317,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
       TimeTracker.endProcessing();
       _hideSpinnerOverlay();
       _showErrorAnimation("Error al procesar la captura: $e");
-    } finally {
-      // Resetear el flag de procesamiento
-      _isProcessingShare = false;
     }
   }
-
-
 
   /// ✅ Mostrar overlay liviano para procesamiento (no modal, no bloquea)
   void _showSpinnerOverlay() {
@@ -300,9 +328,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
         // Intentar obtener el overlay - puede no estar listo aún
         final overlay = Overlay.of(context, rootOverlay: true);
         _spinnerEntry = OverlayEntry(
-          builder: (_) => const ImmediateLoadingOverlay(
-            message: 'Procesando captura...',
-          ),
+          builder: (_) =>
+              const ImmediateLoadingOverlay(message: 'Procesando captura...'),
         );
         overlay.insert(_spinnerEntry!);
         print('🎨 [UI] Spinner overlay shown');
@@ -313,7 +340,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
       }
     }
   }
-  
+
   /// Fallback: diálogo simple si el overlay no está disponible
   void _showSimpleLoadingDialog() {
     final context = _navigatorKey.currentContext;
@@ -351,7 +378,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
   /// ✅ Ocultar overlay de procesamiento
   void _hideSpinnerOverlay() {
     final context = _navigatorKey.currentContext;
-    
+
     if (_spinnerEntry != null) {
       // Si usamos overlay, removerlo
       _spinnerEntry?.remove();
@@ -368,26 +395,26 @@ class _MisGastosAppState extends State<MisGastosApp> {
     }
   }
 
-
   /// ✅ Mostrar animación de éxito (sin pop, el overlay ya fue removido)
   void _showSuccessAnimation(ParsedExpense expense) {
     final context = _navigatorKey.currentContext;
     if (context != null) {
       final timeSaved = TimeTracker.generateShortTimeSavedMessage();
       final totalTime = TimeTracker.getTotalProcessingTime();
-      final totalTimeStr = totalTime != null 
-          ? TimeTracker.formatDuration(totalTime) 
+      final totalTimeStr = totalTime != null
+          ? TimeTracker.formatDuration(totalTime)
           : 'N/A';
-      
+
       print('✅ [UI] Showing success animation (${totalTimeStr})');
-      
+
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => SuccessAnimation(
           title: '¡Registrado!',
-          message: 'Transacción de ${expense.sourceApp} procesada en $totalTimeStr\n'
-                   'Monto: S/ ${(expense.amountCents / 100).toStringAsFixed(2)}',
+          message:
+              'Transacción de ${expense.sourceApp} procesada en $totalTimeStr\n'
+              'Monto: S/ ${(expense.amountCents / 100).toStringAsFixed(2)}',
           timeSaved: timeSaved,
           onClose: () {
             Navigator.of(context).pop();
@@ -404,7 +431,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
     final context = _navigatorKey.currentContext;
     if (context != null) {
       print('❌ [UI] Showing error message: $message');
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -412,10 +439,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
               const Icon(Icons.error, color: Colors.white),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(fontSize: 14),
-                ),
+                child: Text(message, style: const TextStyle(fontSize: 14)),
               ),
             ],
           ),
@@ -484,12 +508,14 @@ class _MisGastosAppState extends State<MisGastosApp> {
               notes: updatedExpense.notes,
               sourceApp: updatedExpense.sourceApp,
             );
-            
+
             // Mostrar confirmación usando el contexto del diálogo
             if (dialogContext.mounted) {
               ScaffoldMessenger.of(dialogContext).showSnackBar(
                 SnackBar(
-                  content: Text('Gasto actualizado: S/ ${updatedExpense.amountCents / 100} - ${updatedExpense.vendor}'),
+                  content: Text(
+                    'Gasto actualizado: S/ ${updatedExpense.amountCents / 100} - ${updatedExpense.vendor}',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -521,11 +547,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.savings,
-                color: Colors.white,
-                size: 40,
-              ),
+              child: const Icon(Icons.savings, color: Colors.white, size: 40),
             ),
             const SizedBox(height: 24),
             Text(
@@ -539,10 +561,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
             const SizedBox(height: 8),
             Text(
               'Inicializando...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.blue.shade600,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.blue.shade600),
             ),
             const SizedBox(height: 32),
             SizedBox(
