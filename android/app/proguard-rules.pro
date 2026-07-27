@@ -52,6 +52,15 @@
 # Keep Google Play Core classes
 -keep class com.google.android.play.core.** { *; }
 
+# Flutter references Play Core deferred-component APIs even when the app does
+# not declare deferred components. ML Kit likewise probes optional language
+# recognizers that are not bundled by this app.
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**
+
 # Keep all classes in the app package
 -keep class com.example.mis_gastos.** { *; }
 
