@@ -59,7 +59,7 @@ jobs:
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: build/app/outputs/bundle/release/app-release.aab
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           fail_on_unmatched_files: true
