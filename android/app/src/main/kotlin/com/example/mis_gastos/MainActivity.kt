@@ -1,4 +1,4 @@
-package com.example.mis_gastos
+package com.elahorrador.app
 
 import io.flutter.embedding.android.FlutterActivity
 

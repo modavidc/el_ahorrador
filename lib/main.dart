@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:share_handler/share_handler.dart';
 import 'package:uuid/uuid.dart';
@@ -9,6 +10,7 @@ import 'core/fast_parser.dart';
 import 'core/capture_validator.dart';
 import 'core/category_service.dart';
 import 'core/time_tracker.dart';
+import 'core/observability.dart';
 import 'features/capture/application/bounded_serial_queue.dart';
 import 'features/capture/application/attachment_batch_processor.dart';
 import 'data/app_database.dart';
@@ -18,18 +20,27 @@ import 'widgets/expense_edit_dialog.dart';
 import 'widgets/processing_animation.dart';
 import 'widgets/immediate_loading_overlay.dart';
 
-void main() {
+Future<void> main() async {
   final startTime = DateTime.now();
-  print('🚀 [STARTUP] main() called at ${startTime.toIso8601String()}');
-
   WidgetsFlutterBinding.ensureInitialized();
-  print(
-    '🚀 [STARTUP] WidgetsFlutterBinding initialized (${DateTime.now().difference(startTime).inMilliseconds}ms)',
-  );
-
-  runApp(const MisGastosApp());
-  print(
-    '🚀 [STARTUP] runApp() called (${DateTime.now().difference(startTime).inMilliseconds}ms)',
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    unawaited(
+      AppObservability.error(
+        'flutter_framework_failed',
+        details.exception,
+        details.stack ?? StackTrace.current,
+      ),
+    );
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(AppObservability.error('platform_dispatch_failed', error, stack));
+    return true;
+  };
+  await AppObservability.run(const MisGastosApp());
+  AppObservability.metric(
+    'startup_duration',
+    DateTime.now().difference(startTime).inMilliseconds,
   );
 }
 
