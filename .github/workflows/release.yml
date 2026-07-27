@@ -56,7 +56,7 @@ jobs:
           flutter build appbundle --release --build-name=${GITHUB_REF_NAME#v} --build-number=${{ github.run_number }} --dart-define=APP_ENV=production --dart-define=APP_REVISION=${{ github.sha }} --dart-define=SENTRY_DSN="$SENTRY_DSN" --dart-define=TELEMETRY_CONSENT=true
           jarsigner -verify -certs build/app/outputs/bundle/release/app-release.aab
           sha256sum build/app/outputs/bundle/release/app-release.aab > build/app/outputs/bundle/release/app-release.aab.sha256
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: build/app/outputs/bundle/release/app-release.aab
       - uses: softprops/action-gh-release@v2
