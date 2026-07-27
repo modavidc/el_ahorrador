@@ -9,6 +9,10 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # Generated Drift code is validated at its source/schema boundary.
+    - "lib/**/*.g.dart"
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
@@ -21,8 +25,29 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    avoid_print: true
+    cancel_subscriptions: true
+    conditional_uri_does_not_exist: true
+    deprecated_consistency: true
+    eol_at_end_of_file: true
+    implicit_call_tearoffs: true
+    invalid_case_patterns: true
+    no_adjacent_strings_in_list: true
+    no_literal_bool_comparisons: true
+    no_self_assignments: true
+    no_wildcard_variable_uses: true
+    prefer_final_fields: true
+    prefer_null_aware_method_calls: true
+    prefer_void_to_null: true
+    unnecessary_await_in_return: true
+    unnecessary_library_directive: true
+    unnecessary_library_name: true
+    unnecessary_to_list_in_spreads: true
+    use_enums: true
+    use_named_constants: true
+    use_setters_to_change_properties: true
+    use_test_throws_matchers: true
+    use_to_and_as_if_applicable: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

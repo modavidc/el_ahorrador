@@ -1,16 +1,50 @@
 import 'package:flutter/material.dart';
+import '../../core/financial_domain.dart';
 import '../../data/app_database.dart';
 import '../../data/daos.dart';
 
+FinancialSummary _summarizeExpenses(Iterable<Expense> expenses) {
+  return summarizeFinancialMovements(
+    expenses.map(
+      (expense) => FinancialMovement(
+        amountCents: expense.amountCents,
+        type: classifyFinancialMovement(expense.origination),
+      ),
+    ),
+  );
+}
+
 class TransactionsOverviewPage extends StatefulWidget {
-  const TransactionsOverviewPage({super.key});
+  const TransactionsOverviewPage({
+    super.key,
+    required this.database,
+    this.onSearch,
+    this.onFilter,
+    this.onAddTransaction,
+  });
+
+  final AppDatabase database;
+  final VoidCallback? onSearch;
+  final VoidCallback? onFilter;
+  final VoidCallback? onAddTransaction;
 
   @override
-  State<TransactionsOverviewPage> createState() => _TransactionsOverviewPageState();
+  State<TransactionsOverviewPage> createState() =>
+      _TransactionsOverviewPageState();
 }
 
 class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
-  final db = AppDatabase();
+  late Stream<List<Expense>> _expenses;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    _expenses = widget.database.watchExpenses();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,16 +55,14 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            tooltip: 'Buscar',
             icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implementar búsqueda
-            },
+            onPressed: widget.onSearch,
           ),
           IconButton(
+            tooltip: 'Filtrar',
             icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // TODO: Implementar filtros
-            },
+            onPressed: widget.onFilter,
           ),
         ],
       ),
@@ -39,21 +71,40 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
           // Resumen de ingresos y gastos
           _buildSummaryCard(),
           // Lista de transacciones
-          Expanded(
-            child: _buildTransactionsList(),
-          ),
+          Expanded(child: _buildTransactionsList()),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Implementar agregar transacción manual
-        },
+        tooltip: 'Agregar transacción',
+        onPressed: widget.onAddTransaction,
         backgroundColor: Colors.red[600],
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
+  Widget _loadingState() => Center(
+    child: Semantics(
+      label: 'Cargando transacciones',
+      liveRegion: true,
+      child: CircularProgressIndicator(),
+    ),
+  );
+
+  Widget _errorState() => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('No se pudieron cargar las transacciones.'),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: () => setState(_reload),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar'),
+        ),
+      ],
+    ),
+  );
   Widget _buildSummaryCard() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -63,33 +114,26 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: StreamBuilder<List<Expense>>(
-        stream: db.watchExpenses(),
+        stream: _expenses,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          if (snapshot.hasError) return _errorState();
+          if (!snapshot.hasData) return _loadingState();
 
-          final expenses = snapshot.data!;
-          double totalIncome = 0;
-          double totalExpenses = 0;
-
-          for (final expense in expenses) {
-            final amount = expense.amountCents / 100.0;
-            if (amount > 0) {
-              totalIncome += amount;
-            } else {
-              totalExpenses += amount.abs();
-            }
-          }
-
-          final balance = totalIncome - totalExpenses;
+          final summary = _summarizeExpenses(snapshot.data!);
+          final totalIncome = summary.income;
+          final totalExpenses = summary.expense;
+          final balance = summary.balance;
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildSummaryItem('Ingresos', totalIncome, Colors.green),
               _buildSummaryItem('Gastos', totalExpenses, Colors.red),
-              _buildSummaryItem('Balance', balance, balance >= 0 ? Colors.green : Colors.red),
+              _buildSummaryItem(
+                'Balance',
+                balance,
+                balance >= 0 ? Colors.green : Colors.red,
+              ),
             ],
           );
         },
@@ -102,10 +146,7 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(
@@ -122,14 +163,10 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
 
   Widget _buildTransactionsList() {
     return StreamBuilder<List<Expense>>(
-      stream: db.watchExpenses(),
+      stream: _expenses,
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (snapshot.hasError) return _errorState();
+        if (!snapshot.hasData) return _loadingState();
 
         final expenses = snapshot.data!;
         if (expenses.isEmpty) {
@@ -146,7 +183,8 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
         final groupedExpenses = <String, List<Expense>>{};
         for (final expense in expenses) {
           final date = DateTime.fromMillisecondsSinceEpoch(expense.date);
-          final dateKey = '${date.day} ${_getMonthName(date.month)} ${date.year}';
+          final dateKey =
+              '${date.day} ${_getMonthName(date.month)} ${date.year}';
           groupedExpenses.putIfAbsent(dateKey, () => []).add(expense);
         }
 
@@ -155,12 +193,12 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
           itemBuilder: (context, index) {
             final dateKey = groupedExpenses.keys.elementAt(index);
             final dayExpenses = groupedExpenses[dateKey]!;
-            
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildDateHeader(dateKey, dayExpenses),
-                ...dayExpenses.map((expense) => _buildTransactionItem(expense)),
+                ...dayExpenses.map(_buildTransactionItem),
                 const SizedBox(height: 8),
               ],
             );
@@ -171,9 +209,10 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
   }
 
   Widget _buildDateHeader(String dateKey, List<Expense> expenses) {
-    final dayIncome = expenses.where((e) => e.amountCents > 0).fold<double>(0, (sum, e) => sum + e.amountCents / 100);
-    final dayExpenses = expenses.where((e) => e.amountCents < 0).fold<double>(0, (sum, e) => sum + e.amountCents.abs() / 100);
-    
+    final summary = _summarizeExpenses(expenses);
+    final dayIncome = summary.income;
+    final dayExpenses = summary.expense;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -208,7 +247,7 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
   Widget _buildTransactionItem(Expense expense) {
     final amount = expense.amountCents / 100.0;
     final isIncome = amount > 0;
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       padding: const EdgeInsets.all(12),
@@ -218,7 +257,7 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
       ),
       child: Row(
         children: [
-          // Icono de categoría
+          // Icono de categorÃ­a
           Container(
             width: 40,
             height: 40,
@@ -233,7 +272,7 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
             ),
           ),
           const SizedBox(width: 12),
-          // Detalles de la transacción
+          // Detalles de la transacciÃ³n
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,19 +289,13 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
                   const SizedBox(height: 2),
                   Text(
                     expense.notes!,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 2),
                 Text(
                   expense.sourceApp ?? 'Manual',
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white60, fontSize: 11),
                 ),
               ],
             ),
@@ -283,8 +316,18 @@ class _TransactionsOverviewPageState extends State<TransactionsOverviewPage> {
 
   String _getMonthName(int month) {
     const months = [
-      'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-      'jul', 'ago', 'sep', 'oct', 'nov', 'dic'
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
     ];
     return months[month - 1];
   }
