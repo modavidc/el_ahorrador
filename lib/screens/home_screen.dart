@@ -220,11 +220,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       stream: widget.db.watchExpenses(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(child: Semantics(liveRegion: true, child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('No pudimos cargar tus transacciones.'),
+            const SizedBox(height: 8),
+            FilledButton.icon(onPressed: () => setState(() {}), icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
+          ])));
         }
         
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: Semantics(label: 'Cargando transacciones', liveRegion: true, child: const CircularProgressIndicator()));
         }
         
         final expenses = snapshot.data!;
