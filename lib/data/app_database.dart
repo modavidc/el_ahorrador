@@ -69,6 +69,8 @@ class Expenses extends Table {
 @DriftDatabase(tables: [Captures, Categories, Subcategories, Expenses])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
+  AppDatabase.forTesting(QueryExecutor executor) : super(executor);
+
   @override
   int get schemaVersion => 1;
   

@@ -6,12 +6,14 @@ extension CapturesDao on AppDatabase {
     required String id,
     required String imagePath,
     String? sourceApp,
+    String? hash,
   }) async {
     await into(captures).insert(CapturesCompanion.insert(
       id: id,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       imagePath: imagePath,
       sourceApp: Value(sourceApp),
+      hash: Value(hash),
       status: 'PENDING',
     ));
   }
