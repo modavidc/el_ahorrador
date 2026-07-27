@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
 import '../models/transaction.dart';
@@ -92,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Iconos de acción
           Row(
             children: [
-              IconButton(
+              if (kDebugMode) IconButton(
                 onPressed: () {
                   Navigator.push(
                     context,

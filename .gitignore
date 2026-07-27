@@ -28,6 +28,17 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
+
+# Local secrets and signing material
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+android/key.properties
+google-services.json
+GoogleService-Info.plist
 .pub-cache/
 .pub/
 /build/

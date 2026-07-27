@@ -1059,11 +1059,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   Future<void> _saveTransaction() async {
     // Debug: verificar que la base de datos esté disponible
-    print('DEBUG: widget.db = ${widget.db}');
-    if (widget.db == null) {
-      throw Exception('Base de datos no disponible');
-    }
-
     // Generar ID único
     const uuid = Uuid();
     final id = uuid.v4();
