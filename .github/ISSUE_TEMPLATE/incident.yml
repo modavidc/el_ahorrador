@@ -1,0 +1,31 @@
+name: Production incident
+description: Track detection, mitigation and follow-up without customer data.
+title: '[incident] '
+labels: [incident]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [P0, P1, P2]
+    validations:
+      required: true
+  - type: input
+    id: release
+    attributes:
+      label: Release and revision
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact (no PII)
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Mitigation or rollback
+    validations:
+      required: true
+

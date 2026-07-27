@@ -6,15 +6,18 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 
-import 'package:mis_gastos/main.dart';
+import 'package:el_ahorrador/main.dart';
 
 void main() {
   testWidgets('App loads correctly', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MisGastosApp());
 
-    // Verify that our app title is displayed.
-    expect(find.text('Mis Gastos 💸'), findsOneWidget);
+    // Bootstrap is asynchronous, so the first frame must expose a stable
+    // loading state instead of depending on platform plugins in this test.
+    expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 }
