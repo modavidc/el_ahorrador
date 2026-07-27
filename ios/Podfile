@@ -1,0 +1,27 @@
+platform :ios, '14.0'
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+project 'Runner', { 'Debug' => :debug, 'Profile' => :release, 'Release' => :release }
+
+def flutter_root
+  settings = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  raise "#{settings} must exist. Run flutter pub get first" unless File.exist?(settings)
+  File.foreach(settings) { |line| return line.match(/FLUTTER_ROOT\=(.*)/)[1].strip if line.match(/FLUTTER_ROOT\=(.*)/) }
+  raise "FLUTTER_ROOT not found in #{settings}"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'ShareExtension' do
+    inherit! :search_paths
+    pod 'share_handler_ios_models', path: '.symlinks/plugins/share_handler_ios/ios/Models'
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each { |target| flutter_additional_ios_build_settings(target) }
+end

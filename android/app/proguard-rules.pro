@@ -53,7 +53,18 @@
 -keep class com.google.android.play.core.** { *; }
 
 # Keep all classes in the app package
--keep class com.example.mis_gastos.** { *; }
+-keep class com.misgasticos.app.** { *; }
 
 # Keep Flutter embedding classes
 -keep class io.flutter.embedding.** { *; }
+
+# Flutter references Play Feature Delivery APIs even when this app does not
+# declare deferred components. Optional ML Kit recognizers are also referenced
+# by the plugin but are not packaged because El Ahorrador uses Latin OCR only.
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**

@@ -37,11 +37,7 @@ class TransactionTags extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Wrap(
-      spacing: 4.0,
-      runSpacing: 2.0,
-      children: tags,
-    );
+    return Wrap(spacing: 4.0, runSpacing: 2.0, children: tags);
   }
 
   Widget _buildSourceTag() {
@@ -93,10 +89,10 @@ class TransactionTags extends StatelessWidget {
 
   Widget _buildConfidenceTag() {
     final confidence = int.tryParse(ocrConfidence ?? '0') ?? 0;
-    
+
     Color backgroundColor;
     Color textColor;
-    
+
     if (confidence >= 80) {
       backgroundColor = Colors.green.shade100;
       textColor = Colors.green.shade800;
@@ -142,19 +138,12 @@ class TransactionTags extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(isSmall ? 8.0 : 12.0),
-        border: Border.all(
-          color: textColor.withOpacity(0.3),
-          width: 0.5,
-        ),
+        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: isSmall ? 10.0 : 12.0,
-            color: textColor,
-          ),
+          Icon(icon, size: isSmall ? 10.0 : 12.0, color: textColor),
           SizedBox(width: isSmall ? 2.0 : 4.0),
           Text(
             text,
@@ -184,7 +173,7 @@ class OcrConfidenceIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final confidence = int.tryParse(ocrConfidence ?? '0') ?? 0;
-    
+
     if (confidence == 0) {
       return const SizedBox.shrink();
     }
@@ -204,13 +193,10 @@ class OcrConfidenceIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white,
-          width: 1.0,
-        ),
+        border: Border.all(color: Colors.white, width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 2.0,
             offset: const Offset(0, 1),
           ),

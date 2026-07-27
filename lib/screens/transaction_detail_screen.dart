@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 import '../models/transaction.dart';
 import 'package:intl/intl.dart';
+import '../core/parser.dart';
+import '../core/category_service.dart';
+import '../core/file_store.dart';
+import '../data/app_database.dart';
+import '../data/daos.dart';
+import '../widgets/expense_edit_dialog.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
   final Transaction transaction;
+  final AppDatabase db;
+  final CategoryService categoryService;
 
-  const TransactionDetailScreen({super.key, required this.transaction});
+  const TransactionDetailScreen({
+    super.key,
+    required this.transaction,
+    required this.db,
+    required this.categoryService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +42,11 @@ class TransactionDetailScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.black),
-            onPressed: () {
-              // TODO: Implementar edición
-            },
+            onPressed: () => _editTransaction(context),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () {
-              // TODO: Implementar eliminación
-            },
+            onPressed: () => _deleteTransaction(context),
           ),
         ],
       ),
@@ -48,6 +57,68 @@ class TransactionDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _editTransaction(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ExpenseEditDialog(
+        categoryService: categoryService,
+        expense: ParsedExpense(
+          amountCents: (transaction.amount.abs() * 100).round(),
+          currency: transaction.currency,
+          dateEpochMs: transaction.date.millisecondsSinceEpoch,
+          category: transaction.category,
+          subcategory: transaction.subcategory,
+          account: transaction.account,
+          vendor: transaction.vendor,
+          description: transaction.description,
+          notes: transaction.notes,
+          sourceApp: 'Manual',
+        ),
+        onSave: (updated) async {
+          await db.updateExpenseFromParser(
+            id: transaction.id,
+            dateEpochMs: updated.dateEpochMs,
+            amountCents: updated.amountCents.abs(),
+            currency: updated.currency,
+            categoryId: updated.category,
+            subcategoryId: updated.subcategory,
+            account: updated.account,
+            vendor: updated.vendor,
+            description: updated.description,
+            notes: updated.notes,
+          );
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteTransaction(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar transacción'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await db.deleteExpenseWithCapture(
+      transaction.id,
+      deleteFile: FileStore.securelyDelete,
+    );
+    if (context.mounted) Navigator.of(context).pop();
   }
 
   Widget _buildGridLayout() {
@@ -119,9 +190,9 @@ class TransactionDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Segunda fila: Subcategoría, Cuenta, Hour, % OCR
             Row(
               children: [
@@ -165,9 +236,9 @@ class TransactionDetailScreen extends StatelessWidget {
                 const Expanded(flex: 1, child: SizedBox()),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Tercera fila: Vendor, SourceApp, LINKS
             Row(
               children: [
@@ -183,19 +254,13 @@ class TransactionDetailScreen extends StatelessWidget {
                 // SourceApp
                 Expanded(
                   flex: 1,
-                  child: _buildGridItem(
-                    label: 'SourceApp',
-                    value: 'Yape',
-                  ),
+                  child: _buildGridItem(label: 'SourceApp', value: 'Yape'),
                 ),
                 const SizedBox(width: 16),
                 // LINKS
                 Expanded(
                   flex: 1,
-                  child: _buildGridItem(
-                    label: 'LINKS',
-                    value: 'N/A',
-                  ),
+                  child: _buildGridItem(label: 'LINKS', value: 'N/A'),
                 ),
                 const SizedBox(width: 16),
                 // Espacios vacíos para alineación
@@ -252,6 +317,4 @@ class TransactionDetailScreen extends StatelessWidget {
       ],
     );
   }
-
-
 }

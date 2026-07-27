@@ -19,8 +19,11 @@ class Category {
 
 class CategoryManager {
   // Métodos estáticos que delegan al CategoryService dinámico
-  static Future<Category?> getCategoryByName(String name) async {
-    final category = await CategoryService().getCategoryByName(name);
+  static Future<Category?> getCategoryByName(
+    CategoryService service,
+    String name,
+  ) async {
+    final category = await service.getCategoryByName(name);
     if (category != null) {
       return Category(
         name: category.name,
@@ -32,26 +35,41 @@ class CategoryManager {
     return null;
   }
 
-  static Future<List<String>> getSubcategories(String categoryName) async {
-    return await CategoryService().getSubcategories(categoryName);
+  static Future<List<String>> getSubcategories(
+    CategoryService service,
+    String categoryName,
+  ) {
+    return service.getSubcategories(categoryName);
   }
 
-  static Future<String> getCategoryIcon(String categoryName) async {
-    return await CategoryService().getCategoryIcon(categoryName);
+  static Future<String> getCategoryIcon(
+    CategoryService service,
+    String categoryName,
+  ) {
+    return service.getCategoryIcon(categoryName);
   }
 
-  static Future<String> getCategoryColor(String categoryName) async {
-    return await CategoryService().getCategoryColor(categoryName);
+  static Future<String> getCategoryColor(
+    CategoryService service,
+    String categoryName,
+  ) {
+    return service.getCategoryColor(categoryName);
   }
 
   // Método para obtener todas las categorías como objetos Category (compatibilidad)
-  static Future<List<Category>> getAllCategories() async {
-    final categories = await CategoryService().getAllCategories();
-    return categories.map((cat) => Category(
-      name: cat.name,
-      icon: cat.icon,
-      color: cat.color,
-      subcategories: cat.subcategories.map((s) => s.name).toList(),
-    )).toList();
+  static Future<List<Category>> getAllCategories(
+    CategoryService service,
+  ) async {
+    final categories = await service.getAllCategories();
+    return categories
+        .map(
+          (cat) => Category(
+            name: cat.name,
+            icon: cat.icon,
+            color: cat.color,
+            subcategories: cat.subcategories.map((s) => s.name).toList(),
+          ),
+        )
+        .toList();
   }
 }

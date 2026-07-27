@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import '../core/parser.dart';
 import '../core/categories.dart';
+import '../core/category_service.dart';
 import '../core/ai_notes_generator.dart';
 
 class ExpenseEditDialog extends StatefulWidget {
   final ParsedExpense expense;
   final Function(ParsedExpense) onSave;
+  final CategoryService categoryService;
 
   const ExpenseEditDialog({
     super.key,
     required this.expense,
     required this.onSave,
+    required this.categoryService,
   });
 
   @override
@@ -21,6 +24,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
   late TextEditingController _vendorController;
   late TextEditingController _notesController;
   late TextEditingController _descriptionController;
+  late TextEditingController _amountController;
   late double _amount;
   late DateTime _date;
   String? _selectedCategory;
@@ -29,14 +33,20 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
   List<Category> _categories = [];
   List<String> _subcategories = [];
   bool _isLoading = true;
+  int _subcategoryRequest = 0;
 
   @override
   void initState() {
     super.initState();
-    _vendorController = TextEditingController(text: widget.expense.vendor ?? '');
+    _vendorController = TextEditingController(
+      text: widget.expense.vendor ?? '',
+    );
     _notesController = TextEditingController(text: widget.expense.notes ?? '');
-    _descriptionController = TextEditingController(text: widget.expense.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.expense.description ?? '',
+    );
     _amount = widget.expense.amountCents / 100.0;
+    _amountController = TextEditingController(text: _amount.toString());
     _date = DateTime.fromMillisecondsSinceEpoch(widget.expense.dateEpochMs);
     _selectedCategory = widget.expense.category;
     _selectedSubcategory = widget.expense.subcategory;
@@ -45,12 +55,15 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
   }
 
   Future<void> _loadCategories() async {
-    final categories = await CategoryManager.getAllCategories();
+    final categories = await CategoryManager.getAllCategories(
+      widget.categoryService,
+    );
+    if (!mounted) return;
     setState(() {
       _categories = categories;
       _isLoading = false;
     });
-    
+
     // Cargar subcategorías si hay una categoría seleccionada
     if (_selectedCategory != null) {
       await _loadSubcategories(_selectedCategory!);
@@ -58,7 +71,16 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
   }
 
   Future<void> _loadSubcategories(String categoryName) async {
-    final subcategories = await CategoryManager.getSubcategories(categoryName);
+    final request = ++_subcategoryRequest;
+    final subcategories = await CategoryManager.getSubcategories(
+      widget.categoryService,
+      categoryName,
+    );
+    if (!mounted ||
+        request != _subcategoryRequest ||
+        categoryName != _selectedCategory) {
+      return;
+    }
     setState(() {
       _subcategories = subcategories;
     });
@@ -69,6 +91,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
     _vendorController.dispose();
     _notesController.dispose();
     _descriptionController.dispose();
+    _amountController.dispose();
     super.dispose();
   }
 
@@ -91,43 +114,44 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                 onChanged: (value) {
                   _amount = double.tryParse(value) ?? 0.0;
                 },
-                controller: TextEditingController(text: _amount.toString()),
+                controller: _amountController,
               ),
               const SizedBox(height: 16),
-              
+
               // Categoría
-              _isLoading 
-                ? const CircularProgressIndicator()
-                : DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Categoría',
-                      border: OutlineInputBorder(),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Categoría',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: _selectedCategory,
+                      items: _categories.map((category) {
+                        return DropdownMenuItem(
+                          value: category.name,
+                          child: Row(
+                            children: [
+                              Text(category.icon),
+                              const SizedBox(width: 8),
+                              Text(category.name),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) async {
+                        setState(() {
+                          _selectedCategory = value;
+                          _selectedSubcategory = null; // Reset subcategory
+                          _subcategories = [];
+                        });
+                        if (value != null) {
+                          await _loadSubcategories(value);
+                        }
+                      },
                     ),
-                    value: _selectedCategory,
-                    items: _categories.map((category) {
-                      return DropdownMenuItem(
-                        value: category.name,
-                        child: Row(
-                          children: [
-                            Text(category.icon),
-                            const SizedBox(width: 8),
-                            Text(category.name),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) async {
-                      setState(() {
-                        _selectedCategory = value;
-                        _selectedSubcategory = null; // Reset subcategory
-                      });
-                      if (value != null) {
-                        await _loadSubcategories(value);
-                      }
-                    },
-                  ),
               const SizedBox(height: 16),
-              
+
               // Subcategoría
               if (_selectedCategory != null && _subcategories.isNotEmpty)
                 DropdownButtonFormField<String>(
@@ -135,12 +159,9 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                     labelText: 'Subcategoría',
                     border: OutlineInputBorder(),
                   ),
-                  value: _selectedSubcategory,
+                  initialValue: _selectedSubcategory,
                   items: _subcategories.map((sub) {
-                    return DropdownMenuItem(
-                      value: sub,
-                      child: Text(sub),
-                    );
+                    return DropdownMenuItem(value: sub, child: Text(sub));
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
@@ -149,17 +170,23 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                   },
                 ),
               const SizedBox(height: 16),
-              
+
               // Cuenta
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
                   labelText: 'Cuenta',
                   border: OutlineInputBorder(),
                 ),
-                value: _selectedAccount,
+                initialValue: _selectedAccount,
                 items: const [
-                  DropdownMenuItem(value: 'BCP Soles', child: Text('BCP Soles')),
-                  DropdownMenuItem(value: 'Visa Light', child: Text('Visa Light')),
+                  DropdownMenuItem(
+                    value: 'BCP Soles',
+                    child: Text('BCP Soles'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Visa Light',
+                    child: Text('Visa Light'),
+                  ),
                   DropdownMenuItem(value: 'Yape', child: Text('Yape')),
                   DropdownMenuItem(value: 'Binance', child: Text('Binance')),
                   DropdownMenuItem(value: 'Efectivo', child: Text('Efectivo')),
@@ -171,7 +198,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Destinatario/Vendor
               TextField(
                 decoration: const InputDecoration(
@@ -181,7 +208,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                 controller: _vendorController,
               ),
               const SizedBox(height: 16),
-              
+
               // Descripción
               TextField(
                 decoration: const InputDecoration(
@@ -192,7 +219,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
-              
+
               // Notas
               Row(
                 children: [
@@ -220,7 +247,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Fecha
               ListTile(
                 title: const Text('Fecha'),
@@ -233,7 +260,7 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now(),
                   );
-                  if (selectedDate != null) {
+                  if (selectedDate != null && mounted) {
                     setState(() {
                       _date = selectedDate;
                     });
@@ -258,9 +285,15 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
               category: _selectedCategory,
               subcategory: _selectedSubcategory,
               account: _selectedAccount,
-              vendor: _vendorController.text.trim().isEmpty ? null : _vendorController.text.trim(),
-              description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-              notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+              vendor: _vendorController.text.trim().isEmpty
+                  ? null
+                  : _vendorController.text.trim(),
+              description: _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
+              notes: _notesController.text.trim().isEmpty
+                  ? null
+                  : _notesController.text.trim(),
               sourceApp: widget.expense.sourceApp,
             );
             widget.onSave(updatedExpense);
@@ -282,11 +315,11 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
       amount: _amount,
       sourceApp: widget.expense.sourceApp,
     );
-    
+
     setState(() {
       _notesController.text = aiNote;
     });
-    
+
     // Mostrar feedback visual
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -303,11 +336,11 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
 
     // Estructura las notas con formato organizado
     final structuredNotes = _formatStructuredNotes(currentNotes);
-    
+
     setState(() {
       _notesController.text = structuredNotes;
     });
-    
+
     // Mostrar feedback visual
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -319,22 +352,29 @@ class _ExpenseEditDialogState extends State<ExpenseEditDialog> {
 
   /// Formatea las notas con estructura organizada
   String _formatStructuredNotes(String notes) {
-    final lines = notes.split('\n').where((line) => line.trim().isNotEmpty).toList();
-    
+    final lines = notes
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
+
     if (lines.length <= 1) {
       // Si es una sola línea, agregar estructura básica
       return '• $notes';
     }
-    
+
     // Si ya tiene múltiples líneas, estructurar mejor
-    final structured = lines.map((line) {
-      final trimmed = line.trim();
-      if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-        return trimmed; // Ya está estructurado
-      }
-      return '• $trimmed';
-    }).join('\n');
-    
+    final structured = lines
+        .map((line) {
+          final trimmed = line.trim();
+          if (trimmed.startsWith('•') ||
+              trimmed.startsWith('-') ||
+              trimmed.startsWith('*')) {
+            return trimmed; // Ya está estructurado
+          }
+          return '• $trimmed';
+        })
+        .join('\n');
+
     return structured;
   }
 }

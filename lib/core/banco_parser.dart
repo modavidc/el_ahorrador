@@ -75,7 +75,6 @@ class BancoParser {
         accountNumber: null,
       );
     } catch (e) {
-      print('Error parsing Banco transaction: $e');
       return null;
     }
   }

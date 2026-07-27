@@ -69,7 +69,6 @@ class BinanceParser {
         status: 'Completed',
       );
     } catch (e) {
-      print('Error parsing Binance transaction: $e');
       return null;
     }
   }

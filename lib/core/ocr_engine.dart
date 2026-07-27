@@ -42,18 +42,6 @@ class MlKitEngine implements OcrEngine {
       final averageConfidence = totalElements > 0 ? (totalConfidence / totalElements) * 100 : 0.0;
       final confidencePercentage = averageConfidence.round();
       
-      // Logging optimizado (solo en debug)
-      if (false) { // Cambiar a true para debug
-        print('=== OCR RESULT ===');
-        print('Image path: $imagePath');
-        print('Total blocks: $blocks');
-        print('Total lines: $lines');
-        print('Confidence: $confidencePercentage%');
-        print('--- RAW TEXT ---');
-        print(res.text);
-        print('--- END RAW TEXT ---');
-      }
-      
       return OcrResult(res.text, {
         'engine': 'mlkit', 
         'blocks': blocks, 

@@ -45,12 +45,20 @@ dependencies:
   
   # Database
   drift: ^2.14.1
-  sqlite3_flutter_libs: ^0.5.0
+  # SQLCipher replaces the plain SQLite native library. Keep this on the 0.6
+  # line while Drift uses sqlite3 2.x.
+  sqlcipher_flutter_libs: ^0.6.8
+  sqlite3: ^2.9.0
+  flutter_secure_storage: ^10.3.1
   
   # Utilities
   uuid: ^4.2.1
   crypto: ^3.0.3
+  cryptography: ^2.7.0
   intl: ^0.19.0
+  local_auth: ^2.3.0
+  package_info_plus: ^9.0.1
+  sentry_flutter: ^9.25.0
 
 dev_dependencies:
   flutter_test:

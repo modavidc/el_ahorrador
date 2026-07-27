@@ -1,39 +1,26 @@
 import '../models/category_model.dart';
 import '../data/category_repository.dart';
-import '../data/app_database.dart';
 
 class CategoryService {
-  static final CategoryService _instance = CategoryService._internal();
-  factory CategoryService() => _instance;
-  CategoryService._internal();
+  CategoryService(this._repository);
 
   // Cache de categorías para mejor rendimiento
   List<CategoryModel>? _cachedCategories;
   DateTime? _lastCacheUpdate;
-  CategoryRepository? _repository;
-
-  // Inicializar con la base de datos
-  void initialize(AppDatabase database) {
-    _repository = CategoryRepository(database);
-  }
-
-  CategoryRepository get _repo {
-    if (_repository == null) {
-      throw Exception('CategoryService not initialized. Call initialize() first.');
-    }
-    return _repository!;
-  }
+  final CategoryRepository _repository;
 
   // Obtener todas las categorías (con cache)
-  Future<List<CategoryModel>> getAllCategories({bool forceRefresh = false}) async {
-    if (!forceRefresh && 
-        _cachedCategories != null && 
+  Future<List<CategoryModel>> getAllCategories({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedCategories != null &&
         _lastCacheUpdate != null &&
         DateTime.now().difference(_lastCacheUpdate!).inMinutes < 5) {
       return _cachedCategories!;
     }
 
-    _cachedCategories = await _repo.getAllCategories();
+    _cachedCategories = await _repository.getAllCategories();
     _lastCacheUpdate = DateTime.now();
     return _cachedCategories!;
   }
@@ -46,8 +33,10 @@ class CategoryService {
     List<SubcategoryModel>? subcategories,
   }) async {
     final categories = await getAllCategories();
-    final maxOrder = categories.isEmpty ? 0 : categories.map((c) => c.order).reduce((a, b) => a > b ? a : b);
-    
+    final maxOrder = categories.isEmpty
+        ? 0
+        : categories.map((c) => c.order).reduce((a, b) => a > b ? a : b);
+
     final newCategory = CategoryModel(
       id: '', // Se asignará en el repositorio
       name: name,
@@ -59,7 +48,7 @@ class CategoryService {
       updatedAt: DateTime.now(),
     );
 
-    final result = await _repo.addCategory(newCategory);
+    final result = await _repository.addCategory(newCategory);
     if (result != null) {
       await _refreshCache();
     }
@@ -68,7 +57,7 @@ class CategoryService {
 
   // Actualizar categoría
   Future<bool> updateCategory(CategoryModel category) async {
-    final success = await _repo.updateCategory(category);
+    final success = await _repository.updateCategory(category);
     if (success) {
       await _refreshCache();
     }
@@ -77,7 +66,7 @@ class CategoryService {
 
   // Eliminar categoría
   Future<bool> deleteCategory(String categoryId) async {
-    final success = await _repo.deleteCategory(categoryId);
+    final success = await _repository.deleteCategory(categoryId);
     if (success) {
       await _refreshCache();
     }
@@ -88,9 +77,11 @@ class CategoryService {
   Future<bool> addSubcategory(String categoryId, String subcategoryName) async {
     final categories = await getAllCategories();
     final category = categories.firstWhere((c) => c.id == categoryId);
-    final maxOrder = category.subcategories.isEmpty 
-        ? 0 
-        : category.subcategories.map((s) => s.order).reduce((a, b) => a > b ? a : b);
+    final maxOrder = category.subcategories.isEmpty
+        ? 0
+        : category.subcategories
+              .map((s) => s.order)
+              .reduce((a, b) => a > b ? a : b);
 
     final newSubcategory = SubcategoryModel(
       id: '', // Se asignará en el repositorio
@@ -100,7 +91,10 @@ class CategoryService {
       updatedAt: DateTime.now(),
     );
 
-    final success = await _repo.addSubcategory(categoryId, newSubcategory);
+    final success = await _repository.addSubcategory(
+      categoryId,
+      newSubcategory,
+    );
     if (success) {
       await _refreshCache();
     }
@@ -108,8 +102,14 @@ class CategoryService {
   }
 
   // Actualizar subcategoría
-  Future<bool> updateSubcategory(String categoryId, SubcategoryModel subcategory) async {
-    final success = await _repo.updateSubcategory(categoryId, subcategory);
+  Future<bool> updateSubcategory(
+    String categoryId,
+    SubcategoryModel subcategory,
+  ) async {
+    final success = await _repository.updateSubcategory(
+      categoryId,
+      subcategory,
+    );
     if (success) {
       await _refreshCache();
     }
@@ -117,8 +117,14 @@ class CategoryService {
   }
 
   // Eliminar subcategoría
-  Future<bool> deleteSubcategory(String categoryId, String subcategoryId) async {
-    final success = await _repo.deleteSubcategory(categoryId, subcategoryId);
+  Future<bool> deleteSubcategory(
+    String categoryId,
+    String subcategoryId,
+  ) async {
+    final success = await _repository.deleteSubcategory(
+      categoryId,
+      subcategoryId,
+    );
     if (success) {
       await _refreshCache();
     }
@@ -126,8 +132,10 @@ class CategoryService {
   }
 
   // Reordenar categorías
-  Future<bool> reorderCategories(List<CategoryModel> reorderedCategories) async {
-    final success = await _repo.reorderCategories(reorderedCategories);
+  Future<bool> reorderCategories(
+    List<CategoryModel> reorderedCategories,
+  ) async {
+    final success = await _repository.reorderCategories(reorderedCategories);
     if (success) {
       await _refreshCache();
     }
@@ -135,8 +143,14 @@ class CategoryService {
   }
 
   // Reordenar subcategorías
-  Future<bool> reorderSubcategories(String categoryId, List<SubcategoryModel> reorderedSubcategories) async {
-    final success = await _repo.reorderSubcategories(categoryId, reorderedSubcategories);
+  Future<bool> reorderSubcategories(
+    String categoryId,
+    List<SubcategoryModel> reorderedSubcategories,
+  ) async {
+    final success = await _repository.reorderSubcategories(
+      categoryId,
+      reorderedSubcategories,
+    );
     if (success) {
       await _refreshCache();
     }
@@ -145,12 +159,15 @@ class CategoryService {
 
   // Buscar categoría por nombre
   Future<CategoryModel?> getCategoryByName(String name) async {
-    return await _repo.getCategoryByName(name);
+    return _repository.getCategoryByName(name);
   }
 
   // Buscar subcategoría por nombre
-  Future<SubcategoryModel?> getSubcategoryByName(String categoryName, String subcategoryName) async {
-    return await _repo.getSubcategoryByName(categoryName, subcategoryName);
+  Future<SubcategoryModel?> getSubcategoryByName(
+    String categoryName,
+    String subcategoryName,
+  ) async {
+    return _repository.getSubcategoryByName(categoryName, subcategoryName);
   }
 
   // Obtener subcategorías de una categoría
@@ -176,17 +193,17 @@ class CategoryService {
 
   // Obtener categoría por ID
   Future<CategoryModel?> getCategoryById(String categoryId) async {
-    return await _repo.getCategoryById(categoryId);
+    return _repository.getCategoryById(categoryId);
   }
 
   // Obtener subcategoría por ID
   Future<SubcategoryModel?> getSubcategoryById(String subcategoryId) async {
-    return await _repo.getSubcategoryById(subcategoryId);
+    return _repository.getSubcategoryById(subcategoryId);
   }
 
   // Refrescar cache
   Future<void> _refreshCache() async {
-    _cachedCategories = await _repo.getAllCategories();
+    _cachedCategories = await _repository.getAllCategories();
     _lastCacheUpdate = DateTime.now();
   }
 
@@ -198,7 +215,7 @@ class CategoryService {
 
   // Limpiar todas las categorías (para testing o reset)
   Future<bool> clearAllCategories() async {
-    final success = await _repo.clearAllCategories();
+    final success = await _repository.clearAllCategories();
     if (success) {
       clearCache();
     }
