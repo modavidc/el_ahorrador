@@ -19,16 +19,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  int _bottomNavigationIndex = 0;
   DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_handleTabSelection);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     super.dispose();
   }
@@ -38,25 +41,79 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildAppBar(),
-      body: Column(
+      body: _buildSelectedDestination(),
+      bottomNavigationBar: _buildBottomNavigation(),
+      floatingActionButton: _bottomNavigationIndex == 0
+          ? FloatingActionButton(
+              onPressed: _showAddTransactionDialog,
+              backgroundColor: Colors.red,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildSelectedDestination() {
+    if (_bottomNavigationIndex != 0) {
+      const destinations = [
+        ('', Icons.book),
+        ('Estadísticas', Icons.bar_chart),
+        ('Cuentas', Icons.account_balance_wallet),
+        ('Más', Icons.more_horiz),
+      ];
+      final destination = destinations[_bottomNavigationIndex];
+      return _buildComingSoon(destination.$1, destination.$2);
+    }
+
+    return Column(
+      children: [
+        _buildTabBar(),
+        Expanded(child: _buildSelectedTab()),
+      ],
+    );
+  }
+
+  Widget _buildSelectedTab() {
+    if (_tabController.index == 0) {
+      return Column(
         children: [
-          // Tabs de navegación
-          _buildTabBar(),
-
-          // Resumen financiero
           _buildFinancialSummary(),
-
-          // Lista de transacciones
           Expanded(child: _buildTransactionList()),
         ],
-      ),
-      bottomNavigationBar: _buildBottomNavigation(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTransactionDialog,
-        backgroundColor: Colors.red,
-        child: const Icon(Icons.add, color: Colors.white),
+      );
+    }
+
+    const tabs = [
+      ('', Icons.today),
+      ('Calendario', Icons.calendar_month),
+      ('Resumen mensual', Icons.date_range),
+      ('Resumen total', Icons.functions),
+      ('Notas', Icons.note_alt_outlined),
+    ];
+    final tab = tabs[_tabController.index];
+    return _buildComingSoon(tab.$1, tab.$2);
+  }
+
+  Widget _buildComingSoon(String title, IconData icon) {
+    return Center(
+      key: ValueKey('coming-soon-$title'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 56, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text('Próximamente'),
+        ],
       ),
     );
+  }
+
+  void _handleTabSelection() {
+    if (!_tabController.indexIsChanging && mounted) {
+      setState(() {});
+    }
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -93,18 +150,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Iconos de acción
           Row(
             children: [
-              if (kDebugMode) IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DebugOcrScreen(db: widget.db),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.bug_report, color: Colors.black),
-                tooltip: 'Debug OCR',
-              ),
+              if (kDebugMode)
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DebugOcrScreen(db: widget.db),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.bug_report, color: Colors.black),
+                  tooltip: 'Debug OCR',
+                ),
               IconButton(
                 onPressed: null,
                 icon: const Icon(Icons.star_border, color: Colors.black),
@@ -350,9 +408,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       type: BottomNavigationBarType.fixed,
       selectedItemColor: Colors.red,
       unselectedItemColor: Colors.grey,
-      currentIndex: 0,
+      currentIndex: _bottomNavigationIndex,
       onTap: (index) {
-        // TODO: Implementar navegación
+        setState(() => _bottomNavigationIndex = index);
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Trans.'),

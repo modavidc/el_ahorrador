@@ -14,7 +14,7 @@ SHA-256: `A2EF361E00EBC68D73B3925376BBE634A97D5333B54BC655AA2C56B090364F15`
 ### MOB-001 — Reautenticación demasiado frecuente
 
 Severidad: Alta  
-Estado: Confirmado en dispositivo
+Estado: Implementado, pendiente de verificación en dispositivo
 
 La aplicación solicita huella/PIN repetidamente, incluso pocos segundos después
 de un desbloqueo correcto. Debe mantener una sesión desbloqueada durante un
@@ -109,6 +109,16 @@ Criterios de aceptación:
 - Las funciones no implementadas se ocultan, aparecen deshabilitadas o muestran
   un mensaje explícito de “próximamente”.
 - Se agregan pruebas widget de navegación para cada destino disponible.
+
+Implementación del 28 de julio de 2026:
+
+- La barra inferior conserva el destino seleccionado y muestra una vista
+  explícita para Trans., Estadísticas, Cuentas y Más.
+- Los destinos y tabs todavía no implementados muestran “Próximamente” en vez
+  de ignorar el toque.
+- Al volver a Trans., se conserva el tab seleccionado.
+- Se añadió `home_screen_navigation_test.dart` para cubrir tabs y destinos de
+  la barra inferior.
 
 ### MOB-005 — La excepción persiste entre reinicios
 
