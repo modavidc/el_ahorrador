@@ -31,7 +31,7 @@ Criterios de aceptación:
 ### MOB-002 — Compartir hacia la app vuelve a autenticar y termina en negro
 
 Severidad: Crítica  
-Estado: Confirmado en dispositivo
+Estado: Corrección implementada; pendiente de validación en dispositivo
 
 Pasos observados:
 
@@ -43,9 +43,29 @@ Pasos observados:
 Resultado esperado: reutilizar la sesión todavía válida, procesar el intent
 compartido y mostrar progreso o un error recuperable; nunca una pantalla negra.
 
-Investigar la interacción entre `singleTask`, el intent compartido, el ciclo de
-vida, `AppLockGate`, los overlays de procesamiento y la inicialización de la
-base/servicio OCR.
+La interacción entre `singleTask`, el intent compartido, el ciclo de vida,
+`AppLockGate` y los overlays permitía retirar la ruta principal durante el
+arranque.
+
+Trabajo realizado (28 de julio de 2026):
+
+- `AppLockGate` reutiliza durante 30 segundos la sesión autenticada usando un
+  reloj monotónico. El paso breve por el selector de compartir cubre el
+  contenido, pero al volver no solicita otra autenticación.
+- Los intents iniciales y posteriores permanecen en la cola serial hasta que
+  termine el bootstrap y el `Navigator` esté montado tras el desbloqueo.
+- El diálogo fallback registra explícitamente si fue abierto. Finalizar un
+  share sin overlay ya no ejecuta `Navigator.pop()` sobre la ruta principal,
+  causa concreta que podía dejar la actividad con fondo negro.
+- Hay regresiones para la transición breve del ciclo de vida y para comprobar
+  que cerrar un diálogo inexistente conserva la pantalla principal.
+
+Pendiente:
+
+- Probar el share con la app cerrada, abierta/desbloqueada y abierta/bloqueada,
+  incluyendo un error de OCR recuperable.
+- Confirmar en HyperOS que `singleTask` entrega el intent inicial y los intents
+  posteriores sin duplicarlos.
 
 ### MOB-003 — Registro manual exitoso seguido de null-check fatal
 
