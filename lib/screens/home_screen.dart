@@ -7,6 +7,7 @@ import '../widgets/transaction_item.dart';
 import 'transaction_detail_screen.dart';
 import 'add_transaction_screen.dart';
 import 'debug_ocr_screen.dart';
+import 'account_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppDatabase db;
@@ -93,18 +94,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // Iconos de acción
           Row(
             children: [
-              if (kDebugMode) IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DebugOcrScreen(db: widget.db),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.bug_report, color: Colors.black),
-                tooltip: 'Debug OCR',
-              ),
+              if (kDebugMode)
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DebugOcrScreen(db: widget.db),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.bug_report, color: Colors.black),
+                  tooltip: 'Debug OCR',
+                ),
               IconButton(
                 onPressed: null,
                 icon: const Icon(Icons.star_border, color: Colors.black),
@@ -352,7 +354,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       unselectedItemColor: Colors.grey,
       currentIndex: 0,
       onTap: (index) {
-        // TODO: Implementar navegación
+        if (index == 2 || index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AccountSettingsScreen(db: widget.db),
+            ),
+          );
+        }
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Trans.'),

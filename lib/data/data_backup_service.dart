@@ -102,6 +102,9 @@ class DataBackupService {
       'subcategories': (await _db.select(_db.subcategories).get())
           .map((row) => row.toJson())
           .toList(),
+      'accounts': (await _db.select(_db.accounts).get())
+          .map((row) => row.toJson())
+          .toList(),
       'expenses': (await _db.select(_db.expenses).get())
           .map((row) => row.toJson())
           .toList(),
@@ -142,10 +145,28 @@ class DataBackupService {
       payload,
       'subcategories',
     ).map(Subcategory.fromJson).toList();
+    final accountRows = payload['accounts'];
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final accounts = accountRows == null
+        ? [
+            Account(
+              id: AppDatabase.defaultAccountId,
+              name: 'Efectivo',
+              currency: 'PEN',
+              icon: 'wallet',
+              order: 0,
+              isDefault: true,
+              isArchived: false,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          ]
+        : _rows(payload, 'accounts').map(Account.fromJson).toList();
     final expenses = _rows(payload, 'expenses').map(Expense.fromJson).toList();
 
     await _db.transaction(() async {
       await _db.delete(_db.expenses).go();
+      await _db.delete(_db.accounts).go();
       await _db.delete(_db.subcategories).go();
       await _db.delete(_db.categories).go();
       await _db.delete(_db.captures).go();
@@ -161,6 +182,10 @@ class DataBackupService {
         batch.insertAll(
           _db.subcategories,
           subcategories.map((row) => row.toCompanion(false)).toList(),
+        );
+        batch.insertAll(
+          _db.accounts,
+          accounts.map((row) => row.toCompanion(false)).toList(),
         );
         batch.insertAll(
           _db.expenses,
