@@ -71,4 +71,31 @@ void main() {
       expect(find.text('Desbloquear'), findsOneWidget);
     },
   );
+
+  testWidgets('brief share transition reuses the authenticated session', (
+    tester,
+  ) async {
+    final authenticator = _FakeAuthenticator([
+      LocalAuthenticationResult.authenticated,
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          authenticator: authenticator,
+          gracePeriod: const Duration(minutes: 1),
+          child: const Text('financial data'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('financial data'), findsOneWidget);
+    expect(authenticator.calls, 1);
+  });
 }

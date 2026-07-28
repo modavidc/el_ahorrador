@@ -19,12 +19,14 @@ class AppLockGate extends StatefulWidget {
     required this.child,
     this.authenticator,
     this.controller,
+    this.gracePeriod = const Duration(seconds: 30),
     super.key,
   });
 
   final Widget child;
   final LocalAuthenticator? authenticator;
   final AppLockController? controller;
+  final Duration gracePeriod;
 
   @override
   State<AppLockGate> createState() => _AppLockGateState();
@@ -36,11 +38,14 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _authenticating = false;
   LocalAuthenticationResult? _lastResult;
   int _authenticationGeneration = 0;
+  final Stopwatch _monotonicClock = Stopwatch();
+  Duration? _lastAuthenticatedAt;
 
   @override
   void initState() {
     super.initState();
     _authenticator = widget.authenticator ?? SystemLocalAuthenticator();
+    _monotonicClock.start();
     widget.controller?._lockCallback = _lock;
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_unlock()));
@@ -59,9 +64,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
-        _lock();
+        _coverForBackground();
       case AppLifecycleState.resumed:
-        if (_locked) unawaited(_unlock());
+        if (_locked) unawaited(_resume());
       case AppLifecycleState.inactive:
         // Native authentication prompts can make the app inactive. Locking on
         // this transition would invalidate a successful prompt.
@@ -70,6 +75,11 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   }
 
   void _lock() {
+    _lastAuthenticatedAt = null;
+    _coverForBackground();
+  }
+
+  void _coverForBackground() {
     _authenticationGeneration++;
     if (mounted) {
       setState(() {
@@ -78,6 +88,18 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         _lastResult = null;
       });
     }
+  }
+
+  Future<void> _resume() async {
+    final lastAuthenticatedAt = _lastAuthenticatedAt;
+    final graceIsValid =
+        lastAuthenticatedAt != null &&
+        _monotonicClock.elapsed - lastAuthenticatedAt <= widget.gracePeriod;
+    if (graceIsValid) {
+      if (mounted) setState(() => _locked = false);
+      return;
+    }
+    await _unlock();
   }
 
   Future<void> _unlock() async {
@@ -96,6 +118,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       _lastResult = result;
       if (result == LocalAuthenticationResult.authenticated) {
         _locked = false;
+        _lastAuthenticatedAt = _monotonicClock.elapsed;
       }
     });
   }

@@ -20,6 +20,7 @@ import 'screens/home_screen.dart';
 import 'widgets/expense_edit_dialog.dart';
 import 'widgets/processing_animation.dart';
 import 'widgets/immediate_loading_overlay.dart';
+import 'widgets/loading_dialog_tracker.dart';
 import 'security/app_lock_gate.dart';
 
 void _debugLog(Object? message) {
@@ -66,6 +67,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
   final _shareQueue = BoundedSerialQueue<SharedMedia, void>(maxPending: 10);
   bool _isInitialized = false;
   OverlayEntry? _spinnerEntry;
+  final _loadingDialog = LoadingDialogTracker();
 
   @override
   void initState() {
@@ -153,6 +155,11 @@ class _MisGastosAppState extends State<MisGastosApp> {
   }
 
   Future<void> _processSharedMedia(SharedMedia media) async {
+    // The initial share may arrive before bootstrap finishes or while
+    // AppLockGate keeps the Navigator out of the tree. Queue it until progress
+    // UI can be attached safely.
+    await _waitForShareUi();
+
     // ⏱️ INICIO DEL CRONÓMETRO TOTAL
     final shareStartTime = DateTime.now();
     _debugLog('⏱️  [TIMER] ========================================');
@@ -181,6 +188,16 @@ class _MisGastosAppState extends State<MisGastosApp> {
   }
 
   /// ✅ OPTIMIZACIÓN: Procesamiento asíncrono optimizado
+  Future<void> _waitForShareUi() async {
+    while (mounted &&
+        (!_isInitialized || _navigatorKey.currentState?.overlay == null)) {
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    if (!mounted) {
+      throw StateError('App disposed before shared media could be processed.');
+    }
+  }
+
   Future<void> _processSharedImage(
     SharedAttachment att,
     DateTime shareStartTime,
@@ -372,28 +389,34 @@ class _MisGastosAppState extends State<MisGastosApp> {
   void _showSimpleLoadingDialog() {
     final context = _navigatorKey.currentContext;
     if (context != null) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => WillPopScope(
-          onWillPop: () async => false,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Procesando captura...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ],
+      _loadingDialog.show(
+        () => showDialog<void>(
+          context: context,
+          useRootNavigator: true,
+          barrierDismissible: false,
+          builder: (context) => PopScope(
+            canPop: false,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Procesando captura...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -414,8 +437,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
     } else if (context != null) {
       // Si usamos diálogo fallback, cerrarlo
       try {
-        Navigator.of(context).pop();
-        _debugLog('🎨 [UI] Loading dialog closed');
+        if (_loadingDialog.dismiss(context)) {
+          _debugLog('🎨 [UI] Loading dialog closed');
+        }
       } catch (e) {
         // Si no hay diálogo, no pasa nada
       }
@@ -432,7 +456,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
           ? TimeTracker.formatDuration(totalTime)
           : 'N/A';
 
-      _debugLog('✅ [UI] Showing success animation (${totalTimeStr})');
+      _debugLog('✅ [UI] Showing success animation ($totalTimeStr)');
 
       showDialog(
         context: context,
