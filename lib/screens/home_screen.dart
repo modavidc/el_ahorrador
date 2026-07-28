@@ -9,6 +9,7 @@ import '../widgets/transaction_item.dart';
 import 'transaction_detail_screen.dart';
 import 'add_transaction_screen.dart';
 import 'debug_ocr_screen.dart';
+import 'account_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppDatabase db;
@@ -456,7 +457,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       unselectedItemColor: Colors.grey,
       currentIndex: _bottomNavigationIndex,
       onTap: (index) {
-        setState(() => _bottomNavigationIndex = index);
+        if (index == 2 || index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AccountSettingsScreen(db: widget.db),
+            ),
+          );
+        } else {
+          setState(() => _bottomNavigationIndex = index);
+        }
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Trans.'),

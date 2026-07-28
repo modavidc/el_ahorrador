@@ -74,12 +74,16 @@ extension CapturesDao on AppDatabase {
     String? categoryId,
     String? subcategoryId,
     String? account,
+    String? accountId,
     String? vendor,
     String? description,
     String? notes,
     String? sourceApp,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    accountId ??= (await (select(
+      accounts,
+    )..where((row) => row.isDefault.equals(true))).getSingle()).id;
     await into(expenses).insert(
       ExpensesCompanion.insert(
         id: id,
@@ -90,6 +94,7 @@ extension CapturesDao on AppDatabase {
         categoryId: Value(categoryId),
         subcategoryId: Value(subcategoryId),
         account: Value(account),
+        accountId: Value(accountId),
         vendor: Value(vendor),
         description: Value(description),
         notes: Value(notes),
@@ -111,6 +116,7 @@ extension CapturesDao on AppDatabase {
     String? categoryId,
     String? subcategoryId,
     String? account,
+    String? accountId,
     String? vendor,
     String? description,
     String? notes,
@@ -122,6 +128,7 @@ extension CapturesDao on AppDatabase {
       categoryId: Value(categoryId),
       subcategoryId: Value(subcategoryId),
       account: Value(account),
+      accountId: accountId == null ? const Value.absent() : Value(accountId),
       vendor: Value(vendor),
       description: Value(description),
       notes: Value(notes),

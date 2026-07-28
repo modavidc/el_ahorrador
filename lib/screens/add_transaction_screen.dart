@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
+import '../widgets/account_selector.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final AppDatabase db;
@@ -24,16 +25,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _showKeyboard = false; // Deshabilitado al inicio
   String? _selectedCategory;
   String? _selectedSubcategory;
+  Account? _selectedAccount;
 
   final TextEditingController _categoryController = TextEditingController();
-  final TextEditingController _accountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
   @override
   void dispose() {
     _categoryController.dispose();
-    _accountController.dispose();
     _noteController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -75,7 +75,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   const SizedBox(height: 12),
 
                   // Cuenta
-                  _buildSimpleField('Cuenta', _accountController),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: AccountSelector(
+                      db: widget.db,
+                      selectedId: _selectedAccount?.id,
+                      onSelected: (account) {
+                        if (mounted) setState(() => _selectedAccount = account);
+                      },
+                    ),
+                  ),
 
                   const SizedBox(height: 12),
 
@@ -1039,7 +1048,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     // Validar cuenta
-    if (_accountController.text.isEmpty) {
+    if (_selectedAccount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor seleccione una cuenta')),
       );
@@ -1087,7 +1096,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       dateEpochMs: dateTime.millisecondsSinceEpoch,
       amountCents: finalAmountCents,
       currency: _selectedCurrency,
-      account: _accountController.text,
+      account: _selectedAccount!.name,
+      accountId: _selectedAccount!.id,
       vendor: _selectedCategory,
       description: _noteController.text, // La nota es el título/detalle
       notes: _descriptionController.text.isNotEmpty

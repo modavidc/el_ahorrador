@@ -17,9 +17,11 @@ class Captures extends Table {
   TextColumn get imagePath => text()();
   TextColumn get hash => text().nullable()();
   TextColumn get lang => text().nullable()();
-  TextColumn get status => text()(); // PENDING | PROCESSING | PROCESSED | FAILED
+  TextColumn get status =>
+      text()(); // PENDING | PROCESSING | PROCESSED | FAILED
   TextColumn get ocrText => text().nullable()();
-  TextColumn get ocrConfidence => text().nullable()(); // Nivel de confianza del OCR (JSON)
+  TextColumn get ocrConfidence =>
+      text().nullable()(); // Nivel de confianza del OCR (JSON)
   TextColumn get metaJson => text().nullable()();
   @override
   Set<Column> get primaryKey => {id};
@@ -39,11 +41,27 @@ class Categories extends Table {
 
 class Subcategories extends Table {
   TextColumn get id => text()(); // uuid
-  TextColumn get categoryId => text().references(Categories, #id)(); // FK a Categories
+  TextColumn get categoryId =>
+      text().references(Categories, #id)(); // FK a Categories
   TextColumn get name => text()(); // Carnes, Taxi, etc.
   IntColumn get order => integer()(); // Para ordenar las subcategorías
   IntColumn get createdAt => integer()(); // epoch ms
   IntColumn get updatedAt => integer()(); // epoch ms
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Accounts extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get currency => text().withDefault(const Constant('PEN'))();
+  TextColumn get icon => text().withDefault(const Constant('wallet'))();
+  IntColumn get order => integer()();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -54,15 +72,20 @@ class Expenses extends Table {
   IntColumn get date => integer()(); // epoch ms
   IntColumn get amountCents => integer()(); // 1050 = S/10.50
   TextColumn get currency => text().withDefault(const Constant('PEN'))();
-  TextColumn get categoryId => text().nullable().references(Categories, #id)(); // FK a Categories
-  TextColumn get subcategoryId => text().nullable().references(Subcategories, #id)(); // FK a Subcategories
+  TextColumn get categoryId =>
+      text().nullable().references(Categories, #id)(); // FK a Categories
+  TextColumn get subcategoryId =>
+      text().nullable().references(Subcategories, #id)(); // FK a Subcategories
   TextColumn get account => text().nullable()(); // BCP Soles, Visa Light, etc.
+  TextColumn get accountId => text().nullable().references(Accounts, #id)();
   TextColumn get vendor => text().nullable()(); // Destinatario/Proveedor
   TextColumn get description => text().nullable()(); // Descripción detallada
   TextColumn get notes => text().nullable()(); // Notas generadas por IA
   TextColumn get sourceApp => text().nullable()(); // Yape, Binance, Banco, etc.
-  TextColumn get source => text().nullable()(); // De dónde viene el dinero (para ingresos)
-  TextColumn get destination => text().nullable()(); // A dónde va el dinero (para gastos)
+  TextColumn get source =>
+      text().nullable()(); // De dónde viene el dinero (para ingresos)
+  TextColumn get destination =>
+      text().nullable()(); // A dónde va el dinero (para gastos)
   TextColumn get origination => text().nullable()(); // Origen de la transacción
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
@@ -70,30 +93,51 @@ class Expenses extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Captures, Categories, Subcategories, Expenses])
+@DriftDatabase(
+  tables: [Captures, Categories, Subcategories, Accounts, Expenses],
+)
 class AppDatabase extends _$AppDatabase {
+  static const defaultAccountId = 'account_default';
   AppDatabase() : super(_open());
-  AppDatabase.forTesting(QueryExecutor executor) : super(executor);
+  AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
-  
+  int get schemaVersion => 2;
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
       await _initializeDefaultCategories();
+      await _initializeDefaultAccount();
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      // En desarrollo, simplemente recreamos todo
-      await m.drop(expenses);
-      await m.drop(subcategories);
-      await m.drop(categories);
-      await m.drop(captures);
-      await m.createAll();
-      await _initializeDefaultCategories();
+      if (from < 2) {
+        await m.createTable(accounts);
+        await m.addColumn(expenses, expenses.accountId);
+        await _initializeDefaultAccount();
+        await customStatement(
+          'UPDATE expenses SET account_id = ? WHERE account_id IS NULL',
+          [defaultAccountId],
+        );
+      }
     },
   );
+
+  Future<void> _initializeDefaultAccount() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(accounts).insert(
+      AccountsCompanion.insert(
+        id: defaultAccountId,
+        name: 'Efectivo',
+        order: 0,
+        isDefault: const Value(true),
+        createdAt: now,
+        updatedAt: now,
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
 
   // Inicializar categorías por defecto
   Future<void> _initializeDefaultCategories() async {
@@ -179,73 +223,394 @@ class AppDatabase extends _$AppDatabase {
     // Agregar subcategorías por defecto
     final defaultSubcategories = [
       // Comida
-      SubcategoriesCompanion.insert(id: 'sub_1', categoryId: 'cat_1', name: 'Carnes y pollo', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_2', categoryId: 'cat_1', name: 'Vegetales y verduras', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_3', categoryId: 'cat_1', name: 'Verduras y túbérculos', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_4', categoryId: 'cat_1', name: 'Frutas', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_5', categoryId: 'cat_1', name: 'Lácteos', order: 4, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_6', categoryId: 'cat_1', name: 'Pan y cereales', order: 5, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_7', categoryId: 'cat_1', name: 'Snacks', order: 6, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_8', categoryId: 'cat_1', name: 'Bebidas', order: 7, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_9', categoryId: 'cat_1', name: 'Comidas fuera', order: 8, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_10', categoryId: 'cat_1', name: 'Supermercado', order: 9, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_11', categoryId: 'cat_1', name: 'Otros', order: 10, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_1',
+        categoryId: 'cat_1',
+        name: 'Carnes y pollo',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_2',
+        categoryId: 'cat_1',
+        name: 'Vegetales y verduras',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_3',
+        categoryId: 'cat_1',
+        name: 'Verduras y túbérculos',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_4',
+        categoryId: 'cat_1',
+        name: 'Frutas',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_5',
+        categoryId: 'cat_1',
+        name: 'Lácteos',
+        order: 4,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_6',
+        categoryId: 'cat_1',
+        name: 'Pan y cereales',
+        order: 5,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_7',
+        categoryId: 'cat_1',
+        name: 'Snacks',
+        order: 6,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_8',
+        categoryId: 'cat_1',
+        name: 'Bebidas',
+        order: 7,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_9',
+        categoryId: 'cat_1',
+        name: 'Comidas fuera',
+        order: 8,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_10',
+        categoryId: 'cat_1',
+        name: 'Supermercado',
+        order: 9,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_11',
+        categoryId: 'cat_1',
+        name: 'Otros',
+        order: 10,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Transporte
-      SubcategoriesCompanion.insert(id: 'sub_12', categoryId: 'cat_2', name: 'Taxi', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_13', categoryId: 'cat_2', name: 'Uber/Didi', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_14', categoryId: 'cat_2', name: 'Bus', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_15', categoryId: 'cat_2', name: 'Metro', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_16', categoryId: 'cat_2', name: 'Gasolina', order: 4, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_17', categoryId: 'cat_2', name: 'Estacionamiento', order: 5, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_18', categoryId: 'cat_2', name: 'Otros', order: 6, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_12',
+        categoryId: 'cat_2',
+        name: 'Taxi',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_13',
+        categoryId: 'cat_2',
+        name: 'Uber/Didi',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_14',
+        categoryId: 'cat_2',
+        name: 'Bus',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_15',
+        categoryId: 'cat_2',
+        name: 'Metro',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_16',
+        categoryId: 'cat_2',
+        name: 'Gasolina',
+        order: 4,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_17',
+        categoryId: 'cat_2',
+        name: 'Estacionamiento',
+        order: 5,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_18',
+        categoryId: 'cat_2',
+        name: 'Otros',
+        order: 6,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Servicios
-      SubcategoriesCompanion.insert(id: 'sub_19', categoryId: 'cat_3', name: 'Luz', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_20', categoryId: 'cat_3', name: 'Agua', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_21', categoryId: 'cat_3', name: 'Internet', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_22', categoryId: 'cat_3', name: 'Teléfono', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_23', categoryId: 'cat_3', name: 'Streaming', order: 4, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_24', categoryId: 'cat_3', name: 'Software', order: 5, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_25', categoryId: 'cat_3', name: 'Otros', order: 6, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_19',
+        categoryId: 'cat_3',
+        name: 'Luz',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_20',
+        categoryId: 'cat_3',
+        name: 'Agua',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_21',
+        categoryId: 'cat_3',
+        name: 'Internet',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_22',
+        categoryId: 'cat_3',
+        name: 'Teléfono',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_23',
+        categoryId: 'cat_3',
+        name: 'Streaming',
+        order: 4,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_24',
+        categoryId: 'cat_3',
+        name: 'Software',
+        order: 5,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_25',
+        categoryId: 'cat_3',
+        name: 'Otros',
+        order: 6,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Salud
-      SubcategoriesCompanion.insert(id: 'sub_26', categoryId: 'cat_4', name: 'Medicinas', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_27', categoryId: 'cat_4', name: 'Doctor', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_28', categoryId: 'cat_4', name: 'Farmacia', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_29', categoryId: 'cat_4', name: 'Seguro', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_30', categoryId: 'cat_4', name: 'Otros', order: 4, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_26',
+        categoryId: 'cat_4',
+        name: 'Medicinas',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_27',
+        categoryId: 'cat_4',
+        name: 'Doctor',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_28',
+        categoryId: 'cat_4',
+        name: 'Farmacia',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_29',
+        categoryId: 'cat_4',
+        name: 'Seguro',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_30',
+        categoryId: 'cat_4',
+        name: 'Otros',
+        order: 4,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Entretenimiento
-      SubcategoriesCompanion.insert(id: 'sub_31', categoryId: 'cat_5', name: 'Cine', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_32', categoryId: 'cat_5', name: 'Música', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_33', categoryId: 'cat_5', name: 'Juegos', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_34', categoryId: 'cat_5', name: 'Deportes', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_35', categoryId: 'cat_5', name: 'Otros', order: 4, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_31',
+        categoryId: 'cat_5',
+        name: 'Cine',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_32',
+        categoryId: 'cat_5',
+        name: 'Música',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_33',
+        categoryId: 'cat_5',
+        name: 'Juegos',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_34',
+        categoryId: 'cat_5',
+        name: 'Deportes',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_35',
+        categoryId: 'cat_5',
+        name: 'Otros',
+        order: 4,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Educación
-      SubcategoriesCompanion.insert(id: 'sub_36', categoryId: 'cat_6', name: 'Cursos', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_37', categoryId: 'cat_6', name: 'Libros', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_38', categoryId: 'cat_6', name: 'Materiales', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_39', categoryId: 'cat_6', name: 'Otros', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_36',
+        categoryId: 'cat_6',
+        name: 'Cursos',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_37',
+        categoryId: 'cat_6',
+        name: 'Libros',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_38',
+        categoryId: 'cat_6',
+        name: 'Materiales',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_39',
+        categoryId: 'cat_6',
+        name: 'Otros',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Familia
-      SubcategoriesCompanion.insert(id: 'sub_40', categoryId: 'cat_7', name: 'Regalos', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_41', categoryId: 'cat_7', name: 'Ayuda económica', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_42', categoryId: 'cat_7', name: 'Actividades', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_43', categoryId: 'cat_7', name: 'Otros', order: 3, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      
+      SubcategoriesCompanion.insert(
+        id: 'sub_40',
+        categoryId: 'cat_7',
+        name: 'Regalos',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_41',
+        categoryId: 'cat_7',
+        name: 'Ayuda económica',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_42',
+        categoryId: 'cat_7',
+        name: 'Actividades',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_43',
+        categoryId: 'cat_7',
+        name: 'Otros',
+        order: 3,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+
       // Otros
-      SubcategoriesCompanion.insert(id: 'sub_44', categoryId: 'cat_8', name: 'Misceláneos', order: 0, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_45', categoryId: 'cat_8', name: 'Emergencias', order: 1, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
-      SubcategoriesCompanion.insert(id: 'sub_46', categoryId: 'cat_8', name: 'Otros', order: 2, createdAt: DateTime.now().millisecondsSinceEpoch, updatedAt: DateTime.now().millisecondsSinceEpoch),
+      SubcategoriesCompanion.insert(
+        id: 'sub_44',
+        categoryId: 'cat_8',
+        name: 'Misceláneos',
+        order: 0,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_45',
+        categoryId: 'cat_8',
+        name: 'Emergencias',
+        order: 1,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+      SubcategoriesCompanion.insert(
+        id: 'sub_46',
+        categoryId: 'cat_8',
+        name: 'Otros',
+        order: 2,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
     ];
 
     for (final subcategory in defaultSubcategories) {
       await into(subcategories).insert(subcategory);
     }
   }
-
 }
 
 LazyDatabase _open() {
