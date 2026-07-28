@@ -22,6 +22,16 @@ extension CapturesDao on AppDatabase {
       (update(captures)..where((t) => t.id.equals(id)))
           .write(CapturesCompanion(status: Value('PROCESSING')));
 
+  Future<void> setFailed(String id) =>
+      (update(captures)..where((t) => t.id.equals(id)))
+          .write(const CapturesCompanion(status: Value('FAILED')));
+
+  /// A PROCESSING row cannot belong to the new process: OCR runs in memory and
+  /// Android does not resume that Future after killing the application.
+  Future<int> failInterruptedCaptures() =>
+      (update(captures)..where((t) => t.status.equals('PROCESSING')))
+          .write(const CapturesCompanion(status: Value('FAILED')));
+
   Future<void> setOcrResult(
       {required String id,
       required String text,

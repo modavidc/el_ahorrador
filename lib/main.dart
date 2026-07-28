@@ -117,6 +117,13 @@ class _MisGastosAppState extends State<MisGastosApp> {
     // Inicializar el servicio de categorías (sincrónico, rápido)
     CategoryService().initialize(db);
 
+    final interruptedCaptures = await db.failInterruptedCaptures();
+    if (interruptedCaptures > 0) {
+      _debugLog(
+        '⚠️ [STARTUP] Recovered $interruptedCaptures interrupted OCR capture(s)',
+      );
+    }
+
     final duration = DateTime.now().difference(start).inMilliseconds;
     _debugLog('🚀 [STARTUP] Services initialized in ${duration}ms');
   }
@@ -202,6 +209,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
     SharedAttachment att,
     DateTime shareStartTime,
   ) async {
+    String? captureId;
     try {
       // Marcar inicio del procesamiento
       TimeTracker.startProcessing();
@@ -227,6 +235,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
 
       // Generar ID y timestamp
       final id = _uuid.v4();
+      captureId = id;
       final currentTime = DateTime.now().millisecondsSinceEpoch;
 
       // ✅ PASO 2: Operaciones de base de datos en transacción (más rápido)
@@ -356,6 +365,15 @@ class _MisGastosAppState extends State<MisGastosApp> {
       }
     } catch (e) {
       _debugLog('❌ [PROCESS] Error: $e');
+      if (captureId != null) {
+        try {
+          await db.setFailed(captureId);
+        } catch (statusError) {
+          _debugLog(
+            '❌ [PROCESS] Could not mark capture as failed: $statusError',
+          );
+        }
+      }
       TimeTracker.endProcessing();
       _hideSpinnerOverlay();
       _showErrorAnimation(

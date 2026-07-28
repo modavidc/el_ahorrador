@@ -154,7 +154,7 @@ Criterios de aceptación:
 ### MOB-006 — No se conserva el flujo en segundo plano
 
 Severidad: Alta  
-Estado: Requiere diagnóstico
+Estado: Recuperación OCR implementada; pendiente de validación en dispositivo
 
 En el Redmi 15C la app no preserva el estado al pasar a segundo plano. El mismo
 dispositivo presenta este comportamiento con otras aplicaciones, por lo que el
@@ -171,6 +171,29 @@ Criterios de aceptación:
   bloqueada indefinidamente.
 - Probar cierre desde recientes, restricción de batería, proceso terminado y
   reinicio completo del teléfono.
+
+Trabajo realizado (28 de julio de 2026):
+
+- Se confirmó por inspección que, mientras Android conserva el proceso, Flutter
+  mantiene la ruta y el estado en memoria del formulario abierto.
+- Al iniciar la aplicación, toda captura que haya quedado en `PROCESSING` se
+  marca como `FAILED`. El trabajo OCR es una operación en memoria y no puede
+  continuar después de que Android termina el proceso.
+- Si el procesamiento OCR falla después de persistir la captura, el mismo flujo
+  intenta marcarla inmediatamente como `FAILED` antes de retirar el indicador
+  de progreso y mostrar el error recuperable.
+- Se añadieron pruebas que comprueban que la recuperación sólo cambia capturas
+  `PROCESSING`, conserva `PENDING` y `PROCESSED`, y es idempotente en arranques
+  posteriores.
+
+Pendiente de validar en el Redmi 15C:
+
+- Confirmar que la misma pantalla y los campos sin confirmar se mantienen al
+  enviar la app a segundo plano sin matar el proceso.
+- Simular la muerte del proceso y verificar que las transacciones confirmadas
+  permanecen y que una captura interrumpida cambia a `FAILED` al reiniciar.
+- Ejecutar la matriz de cierre desde recientes, restricción de batería, proceso
+  terminado y reinicio completo del teléfono.
 
 ## Orden recomendado de corrección
 
