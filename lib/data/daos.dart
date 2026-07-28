@@ -8,35 +8,41 @@ extension CapturesDao on AppDatabase {
     String? sourceApp,
     String? hash,
   }) async {
-    await into(captures).insert(CapturesCompanion.insert(
-      id: id,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      imagePath: imagePath,
-      sourceApp: Value(sourceApp),
-      hash: Value(hash),
-      status: 'PENDING',
-    ));
+    await into(captures).insert(
+      CapturesCompanion.insert(
+        id: id,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        imagePath: imagePath,
+        sourceApp: Value(sourceApp),
+        hash: Value(hash),
+        status: 'PENDING',
+      ),
+    );
   }
 
   Future<void> setProcessing(String id) =>
-      (update(captures)..where((t) => t.id.equals(id)))
-          .write(CapturesCompanion(status: Value('PROCESSING')));
+      (update(captures)..where((t) => t.id.equals(id))).write(
+        CapturesCompanion(status: Value('PROCESSING')),
+      );
 
   Future<void> setFailed(String id) =>
-      (update(captures)..where((t) => t.id.equals(id)))
-          .write(const CapturesCompanion(status: Value('FAILED')));
+      (update(captures)..where((t) => t.id.equals(id))).write(
+        const CapturesCompanion(status: Value('FAILED')),
+      );
 
   /// A PROCESSING row cannot belong to the new process: OCR runs in memory and
   /// Android does not resume that Future after killing the application.
   Future<int> failInterruptedCaptures() =>
-      (update(captures)..where((t) => t.status.equals('PROCESSING')))
-          .write(const CapturesCompanion(status: Value('FAILED')));
+      (update(captures)..where((t) => t.status.equals('PROCESSING'))).write(
+        const CapturesCompanion(status: Value('FAILED')),
+      );
 
-  Future<void> setOcrResult(
-      {required String id,
-      required String text,
-      String? confidence,
-      String? metaJson}) async {
+  Future<void> setOcrResult({
+    required String id,
+    required String text,
+    String? confidence,
+    String? metaJson,
+  }) async {
     await (update(captures)..where((t) => t.id.equals(id))).write(
       CapturesCompanion(
         ocrText: Value(text),
@@ -48,12 +54,13 @@ extension CapturesDao on AppDatabase {
   }
 
   Stream<List<CaptureModel>> watchCaptures() =>
-      (select(captures)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch().map(
-        (rows) => rows.map((r) => CaptureModel.fromData(r)).toList(),
-      );
+      (select(captures)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch()
+          .map((rows) => rows.map((r) => CaptureModel.fromData(r)).toList());
 
   Future<List<CaptureWithOcr>> getAllCapturesWithOcr() async {
-    final query = select(captures)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    final query = select(captures)
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     final rows = await query.get();
     return rows.map((r) => CaptureWithOcr.fromData(r)).toList();
   }
@@ -73,11 +80,44 @@ extension CapturesDao on AppDatabase {
     String? sourceApp,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    await into(expenses).insert(ExpensesCompanion.insert(
-      id: id,
-      captureId: Value(captureId),
-      date: dateEpochMs,
-      amountCents: amountCents,
+    await into(expenses).insert(
+      ExpensesCompanion.insert(
+        id: id,
+        captureId: Value(captureId),
+        date: dateEpochMs,
+        amountCents: amountCents,
+        currency: Value(currency),
+        categoryId: Value(categoryId),
+        subcategoryId: Value(subcategoryId),
+        account: Value(account),
+        vendor: Value(vendor),
+        description: Value(description),
+        notes: Value(notes),
+        sourceApp: Value(sourceApp),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  Stream<List<Expense>> watchExpenses() =>
+      (select(expenses)..orderBy([(t) => OrderingTerm.desc(t.date)])).watch();
+
+  Future<int> updateExpenseFromParser({
+    required String id,
+    required int dateEpochMs,
+    required int amountCents,
+    required String currency,
+    String? categoryId,
+    String? subcategoryId,
+    String? account,
+    String? vendor,
+    String? description,
+    String? notes,
+  }) => (update(expenses)..where((row) => row.id.equals(id))).write(
+    ExpensesCompanion(
+      date: Value(dateEpochMs),
+      amountCents: Value(amountCents),
       currency: Value(currency),
       categoryId: Value(categoryId),
       subcategoryId: Value(subcategoryId),
@@ -85,14 +125,12 @@ extension CapturesDao on AppDatabase {
       vendor: Value(vendor),
       description: Value(description),
       notes: Value(notes),
-      sourceApp: Value(sourceApp),
-      createdAt: now,
-      updatedAt: now,
-    ));
-  }
+      updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+    ),
+  );
 
-  Stream<List<Expense>> watchExpenses() =>
-      (select(expenses)..orderBy([(t) => OrderingTerm.desc(t.date)])).watch();
+  Future<int> deleteExpense(String id) =>
+      (delete(expenses)..where((row) => row.id.equals(id))).go();
 }
 
 // Pequeño modelo de proyección para la UI (opcional)
@@ -100,9 +138,22 @@ class CaptureModel {
   final String id, imagePath, status;
   final String? ocrText, ocrConfidence;
   final int createdAt;
-  CaptureModel({required this.id, required this.imagePath, required this.status, required this.createdAt, this.ocrText, this.ocrConfidence});
-  factory CaptureModel.fromData(Capture d) =>
-      CaptureModel(id: d.id, imagePath: d.imagePath, status: d.status, createdAt: d.createdAt, ocrText: d.ocrText, ocrConfidence: d.ocrConfidence);
+  CaptureModel({
+    required this.id,
+    required this.imagePath,
+    required this.status,
+    required this.createdAt,
+    this.ocrText,
+    this.ocrConfidence,
+  });
+  factory CaptureModel.fromData(Capture d) => CaptureModel(
+    id: d.id,
+    imagePath: d.imagePath,
+    status: d.status,
+    createdAt: d.createdAt,
+    ocrText: d.ocrText,
+    ocrConfidence: d.ocrConfidence,
+  );
 }
 
 // Modelo para capturas con OCR para debug
@@ -110,7 +161,7 @@ class CaptureWithOcr {
   final String id, imagePath, status;
   final String? ocrText, ocrConfidence, metaJson, sourceApp;
   final int createdAtEpochMs;
-  
+
   CaptureWithOcr({
     required this.id,
     required this.imagePath,
@@ -121,7 +172,7 @@ class CaptureWithOcr {
     this.metaJson,
     this.sourceApp,
   });
-  
+
   factory CaptureWithOcr.fromData(Capture d) => CaptureWithOcr(
     id: d.id,
     imagePath: d.imagePath,

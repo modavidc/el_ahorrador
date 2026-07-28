@@ -101,12 +101,26 @@ Trabajo realizado (28 de julio de 2026):
   persistida, luego `vendor` y finalmente valores seguros para datos legacy.
 - Se añadió una prueba widget con el formato exacto del gasto manual de S/ 5
   para verificar que la pantalla inicial lo renderiza sin excepciones.
+- Los botones del detalle ahora actualizan y eliminan la fila persistida en vez
+  de ignorar el toque. La edición conserva el ID original y los campos de
+  categoría nulos propios del flujo manual.
+- La regresión abre el gasto incompleto, modifica su descripción, comprueba el
+  cambio en la base, lo elimina y confirma que desaparece de la pantalla.
+- Otra regresión cierra y vuelve a abrir una base persistente con ese registro,
+  y una lista con varias filas comprueba que un dato incompleto no oculta los
+  demás gastos.
 
 Pendiente de validar:
 
-- Abrir, editar y eliminar el gasto en el Redmi 15C.
-- Reiniciar el proceso con el gasto persistido y confirmar que la excepción no
-  reaparece.
+- Repetir en el Redmi 15C el ciclo de abrir, editar, eliminar y reiniciar el
+  proceso con una base afectada proveniente del dispositivo.
+
+Validación local:
+
+- `flutter analyze` finalizó sin incidencias sobre los archivos modificados.
+- El ejecutor inició `flutter_tester`, pero quedó bloqueado antes de comenzar
+  los casos y tuvo que cerrarse; las regresiones widget deben repetirse en un
+  entorno Flutter cuyo runner funcione correctamente.
 
 ### MOB-004 — Tabs y menús no navegan
 
