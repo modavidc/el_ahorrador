@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
+import '../core/parser.dart';
+import '../core/category_service.dart';
 import '../models/transaction.dart';
 import '../widgets/transaction_item.dart';
 import 'transaction_detail_screen.dart';
@@ -25,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    CategoryService().initialize(widget.db);
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_handleTabSelection);
   }
@@ -264,12 +267,53 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _showTransactionDetails(Transaction transaction) {
+  void _showTransactionDetails(Transaction transaction, Expense expense) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TransactionDetailScreen(transaction: transaction),
+        builder: (context) => TransactionDetailScreen(
+          transaction: transaction,
+          onEdit: (updated) => _updateTransaction(expense, updated),
+          onDelete: () => widget.db.deleteExpense(expense.id),
+        ),
       ),
+    );
+  }
+
+  Future<Transaction> _updateTransaction(
+    Expense expense,
+    ParsedExpense updated,
+  ) async {
+    final isManual = expense.sourceApp == 'Manual';
+    await widget.db.updateExpenseFromParser(
+      id: expense.id,
+      dateEpochMs: updated.dateEpochMs,
+      amountCents: updated.amountCents,
+      currency: updated.currency,
+      categoryId: isManual ? expense.categoryId : updated.category,
+      subcategoryId: isManual ? expense.subcategoryId : updated.subcategory,
+      account: updated.account,
+      vendor: isManual ? updated.category : updated.vendor,
+      description: updated.description,
+      notes: updated.notes,
+    );
+
+    return Transaction.fromDatabase(
+      id: expense.id,
+      date: DateTime.fromMillisecondsSinceEpoch(updated.dateEpochMs),
+      type: TransactionType.expense,
+      category: updated.category ?? updated.vendor ?? 'otro',
+      subcategory: updated.subcategory ?? '',
+      description: updated.description ?? 'Sin descripcion',
+      account: updated.account ?? '',
+      amount: updated.amountCents / 100.0,
+      currency: updated.currency,
+      notes: updated.notes,
+      vendor: isManual ? updated.category : updated.vendor,
+      source: expense.source,
+      destination: expense.destination,
+      icon: Icons.shopping_cart,
+      color: Colors.red,
     );
   }
 
@@ -394,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   return TransactionItem(
                     transaction: transaction,
-                    onTap: () => _showTransactionDetails(transaction),
+                    onTap: () => _showTransactionDetails(transaction, expense),
                   );
                 }),
               ],

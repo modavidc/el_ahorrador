@@ -1,11 +1,28 @@
 import 'package:flutter/material.dart';
+import '../core/parser.dart';
 import '../models/transaction.dart';
+import '../widgets/expense_edit_dialog.dart';
 import 'package:intl/intl.dart';
 
-class TransactionDetailScreen extends StatelessWidget {
+class TransactionDetailScreen extends StatefulWidget {
   final Transaction transaction;
+  final Future<Transaction> Function(ParsedExpense expense) onEdit;
+  final Future<int> Function() onDelete;
 
-  const TransactionDetailScreen({super.key, required this.transaction});
+  const TransactionDetailScreen({
+    super.key,
+    required this.transaction,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<TransactionDetailScreen> createState() =>
+      _TransactionDetailScreenState();
+}
+
+class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
+  late Transaction transaction = widget.transaction;
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +46,13 @@ class TransactionDetailScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.black),
-            onPressed: () {
-              // TODO: Implementar edición
-            },
+            tooltip: 'Editar transacción',
+            onPressed: _editTransaction,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () {
-              // TODO: Implementar eliminación
-            },
+            tooltip: 'Eliminar transacción',
+            onPressed: _deleteTransaction,
           ),
         ],
       ),
@@ -48,6 +63,56 @@ class TransactionDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _editTransaction() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => ExpenseEditDialog(
+        expense: ParsedExpense(
+          amountCents: (transaction.amount * 100).round(),
+          currency: transaction.currency,
+          dateEpochMs: transaction.date.millisecondsSinceEpoch,
+          category: transaction.category,
+          subcategory: transaction.subcategory.isEmpty
+              ? null
+              : transaction.subcategory,
+          account: transaction.account,
+          vendor: transaction.vendor,
+          description: transaction.description,
+          notes: transaction.notes,
+          sourceApp: 'Manual',
+        ),
+        onSave: (updated) async {
+          final saved = await widget.onEdit(updated);
+          if (mounted) setState(() => transaction = saved);
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteTransaction() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar transacción'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final deleted = await widget.onDelete();
+    if (mounted && deleted == 1) Navigator.pop(context);
   }
 
   Widget _buildGridLayout() {
@@ -119,9 +184,9 @@ class TransactionDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Segunda fila: Subcategoría, Cuenta, Hour, % OCR
             Row(
               children: [
@@ -165,9 +230,9 @@ class TransactionDetailScreen extends StatelessWidget {
                 const Expanded(flex: 1, child: SizedBox()),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Tercera fila: Vendor, SourceApp, LINKS
             Row(
               children: [
@@ -183,19 +248,13 @@ class TransactionDetailScreen extends StatelessWidget {
                 // SourceApp
                 Expanded(
                   flex: 1,
-                  child: _buildGridItem(
-                    label: 'SourceApp',
-                    value: 'Yape',
-                  ),
+                  child: _buildGridItem(label: 'SourceApp', value: 'Yape'),
                 ),
                 const SizedBox(width: 16),
                 // LINKS
                 Expanded(
                   flex: 1,
-                  child: _buildGridItem(
-                    label: 'LINKS',
-                    value: 'N/A',
-                  ),
+                  child: _buildGridItem(label: 'LINKS', value: 'N/A'),
                 ),
                 const SizedBox(width: 16),
                 // Espacios vacíos para alineación
@@ -252,6 +311,4 @@ class TransactionDetailScreen extends StatelessWidget {
       ],
     );
   }
-
-
 }
