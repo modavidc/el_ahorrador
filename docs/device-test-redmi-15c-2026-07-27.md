@@ -50,7 +50,7 @@ base/servicio OCR.
 ### MOB-003 — Registro manual exitoso seguido de null-check fatal
 
 Severidad: Crítica  
-Estado: Confirmado en dispositivo
+Estado: Corregido; pendiente de validación en dispositivo
 
 Pasos observados:
 
@@ -72,6 +72,21 @@ Criterios de aceptación:
 - Una fila incompleta no impide renderizar el resto de transacciones.
 - Añadir una prueba de regresión con los valores exactos permitidos por el flujo
   manual.
+
+Trabajo realizado (28 de julio de 2026):
+
+- Se confirmó que el flujo manual conserva la categoría seleccionada en
+  `vendor`, mientras `categoryId` y `subcategoryId` quedan nulos.
+- `HomeScreen` dejó de forzar con `!` las columnas opcionales: usa la categoría
+  persistida, luego `vendor` y finalmente valores seguros para datos legacy.
+- Se añadió una prueba widget con el formato exacto del gasto manual de S/ 5
+  para verificar que la pantalla inicial lo renderiza sin excepciones.
+
+Pendiente de validar:
+
+- Abrir, editar y eliminar el gasto en el Redmi 15C.
+- Reiniciar el proceso con el gasto persistido y confirmar que la excepción no
+  reaparece.
 
 ### MOB-004 — Tabs y menús no navegan
 

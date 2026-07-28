@@ -318,9 +318,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     id: expense.id,
                     date: DateTime.fromMillisecondsSinceEpoch(expense.date),
                     type: TransactionType.expense,
-                    category: expense.categoryId!,
-                    subcategory: expense.subcategoryId!,
-                    description: expense.description!,
+                    // Manual entries and legacy rows can legitimately leave
+                    // these nullable database columns empty.
+                    category: expense.categoryId ?? expense.vendor ?? 'otro',
+                    subcategory: expense.subcategoryId ?? '',
+                    description: expense.description ?? 'Sin descripcion',
                     account: expense.account ?? '',
                     amount: expense.amountCents / 100.0,
                     currency: expense.currency,
