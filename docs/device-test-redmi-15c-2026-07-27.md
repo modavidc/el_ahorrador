@@ -14,7 +14,7 @@ SHA-256: `A2EF361E00EBC68D73B3925376BBE634A97D5333B54BC655AA2C56B090364F15`
 ### MOB-001 — Reautenticación demasiado frecuente
 
 Severidad: Alta  
-Estado: Implementado, pendiente de verificación en dispositivo
+Estado: Confirmado en dispositivo
 
 La aplicación solicita huella/PIN repetidamente, incluso pocos segundos después
 de un desbloqueo correcto. Debe mantener una sesión desbloqueada durante un
@@ -96,7 +96,7 @@ Criterios de aceptación:
 ### MOB-004 — Tabs y menús no navegan
 
 Severidad: Alta  
-Estado: Confirmado en dispositivo
+Estado: Implementado, pendiente de verificación en dispositivo
 
 Los tabs y opciones de menú visibles no cambian de pantalla ni ofrecen feedback.
 Debe distinguirse entre controles todavía decorativos/deshabilitados y rutas
