@@ -1,0 +1,160 @@
+# Prueba en dispositivo — Redmi 15C
+
+Fecha: 27 de julio de 2026  
+Dispositivo: Redmi 15C (gama básica; gestión agresiva de procesos en segundo plano)  
+Build: `app-debug.apk`  
+SHA-256: `A2EF361E00EBC68D73B3925376BBE634A97D5333B54BC655AA2C56B090364F15`
+
+## Resultado positivo
+
+- La autenticación local funciona con huella y con el PIN del dispositivo.
+
+## Incidencias
+
+### MOB-001 — Reautenticación demasiado frecuente
+
+Severidad: Alta  
+Estado: Confirmado en dispositivo
+
+La aplicación solicita huella/PIN repetidamente, incluso pocos segundos después
+de un desbloqueo correcto. Debe mantener una sesión desbloqueada durante un
+periodo de gracia configurable y volver a bloquear únicamente al superar ese
+periodo o cuando exista una condición de seguridad explícita.
+
+Criterios de aceptación:
+
+- Un cambio breve de aplicación no vuelve a solicitar autenticación.
+- El tiempo de gracia se mide con reloj monotónico y no se amplía por accidente.
+- Tras vencer el tiempo o reiniciar el proceso se solicita autenticación.
+- El contenido continúa cubierto en el selector de aplicaciones.
+
+### MOB-002 — Compartir hacia la app vuelve a autenticar y termina en negro
+
+Severidad: Crítica  
+Estado: Confirmado en dispositivo
+
+Pasos observados:
+
+1. Desbloquear El Ahorrador.
+2. Aproximadamente cinco segundos después, compartir una imagen hacia la app.
+3. La app vuelve a solicitar PIN/huella.
+4. Después de autenticar, la pantalla queda negra.
+
+Resultado esperado: reutilizar la sesión todavía válida, procesar el intent
+compartido y mostrar progreso o un error recuperable; nunca una pantalla negra.
+
+Investigar la interacción entre `singleTask`, el intent compartido, el ciclo de
+vida, `AppLockGate`, los overlays de procesamiento y la inicialización de la
+base/servicio OCR.
+
+### MOB-003 — Registro manual exitoso seguido de null-check fatal
+
+Severidad: Crítica  
+Estado: Confirmado en dispositivo
+
+Pasos observados:
+
+1. Registrar manualmente un gasto de S/ 5.
+2. La app confirma que el registro fue correcto.
+3. En la pantalla inicial aparece `Null check operator used on a null value`.
+
+El error sigue apareciendo después de salir y volver a entrar en la aplicación,
+lo que indica que el registro persistido probablemente contiene un campo nulo
+que la pantalla de inicio fuerza con `!` durante lectura o presentación.
+
+Resultado esperado: el gasto se guarda y se renderiza sin excepciones. Los datos
+legacy o incompletos deben usar valores seguros o mostrar una validación clara.
+
+Criterios de aceptación:
+
+- El gasto de S/ 5 puede abrirse, editarse y eliminarse.
+- Reiniciar la app no reproduce la excepción.
+- Una fila incompleta no impide renderizar el resto de transacciones.
+- Añadir una prueba de regresión con los valores exactos permitidos por el flujo
+  manual.
+
+### MOB-004 — Tabs y menús no navegan
+
+Severidad: Alta  
+Estado: Confirmado en dispositivo
+
+Los tabs y opciones de menú visibles no cambian de pantalla ni ofrecen feedback.
+Debe distinguirse entre controles todavía decorativos/deshabilitados y rutas
+que deberían funcionar. Ningún control visualmente habilitado debe ignorar el
+toque silenciosamente.
+
+Criterios de aceptación:
+
+- Cada tab habilitado abre su contenido y conserva la selección.
+- Las funciones no implementadas se ocultan, aparecen deshabilitadas o muestran
+  un mensaje explícito de “próximamente”.
+- Se agregan pruebas widget de navegación para cada destino disponible.
+
+### MOB-005 — La excepción persiste entre reinicios
+
+Severidad: Crítica  
+Estado: Confirmado; probablemente relacionado con MOB-003
+
+Después de cerrar y abrir la app continúa apareciendo
+`Null check operator used on a null value`. Tratar inicialmente como consecuencia
+del registro persistido de MOB-003, pero verificar también migración SQLCipher,
+categoría, subcategoría, cuenta y campos opcionales.
+
+Resultado esperado: la app debe tolerar y reparar o aislar registros inválidos,
+sin quedar inutilizable en cada arranque.
+
+### UX-001 — Cuenta debe seleccionarse, no escribirse libremente
+
+Severidad: Media  
+Tipo: Mejora funcional/UX
+
+En el formulario, “Cuenta” debe ser un selector basado en cuentas previamente
+configuradas, siguiendo el patrón de Money Manager. Las cuentas se crean,
+editan, ordenan y archivan desde **Más > Configuración**.
+
+Criterios de aceptación:
+
+- El formulario sólo permite seleccionar una cuenta activa.
+- Existe una cuenta predeterminada claramente identificada.
+- Configuración permite crear, editar y archivar cuentas sin invalidar gastos
+  históricos.
+- Los registros existentes se migran a una cuenta predeterminada o conservan
+  una referencia válida.
+
+### MOB-006 — No se conserva el flujo en segundo plano
+
+Severidad: Alta  
+Estado: Requiere diagnóstico
+
+En el Redmi 15C la app no preserva el estado al pasar a segundo plano. El mismo
+dispositivo presenta este comportamiento con otras aplicaciones, por lo que el
+sistema puede estar terminando el proceso. Aun así, El Ahorrador debe restaurar
+el estado durable y completar o recuperar operaciones interrumpidas.
+
+Criterios de aceptación:
+
+- Si Android conserva el proceso, la app vuelve a la misma pantalla y mantiene
+  formularios no confirmados durante un periodo razonable.
+- Si Android mata el proceso, las transacciones confirmadas permanecen y la app
+  reinicia en una pantalla válida.
+- Una captura OCR interrumpida queda marcada como recuperable o fallida, nunca
+  bloqueada indefinidamente.
+- Probar cierre desde recientes, restricción de batería, proceso terminado y
+  reinicio completo del teléfono.
+
+## Orden recomendado de corrección
+
+1. MOB-003 y MOB-005: excepción persistente que inutiliza la pantalla principal.
+2. MOB-002: pantalla negra en el flujo principal de OCR compartido.
+3. MOB-001: sesión de autenticación con periodo de gracia.
+4. MOB-004: navegación de tabs y menús.
+5. MOB-006: restauración ante ciclo de vida y muerte del proceso.
+6. UX-001: modelo y selector de cuentas.
+
+## Evidencia pendiente
+
+- Captura o fotografía de la pantalla con la excepción.
+- Versión de Android/HyperOS y cantidad de RAM del dispositivo.
+- Confirmar si el gasto de S/ 5 usó categoría, subcategoría, fecha, nota y cuenta.
+- Confirmar qué tabs y opciones de menú se tocaron.
+- Repetir el share OCR con la app cerrada y con la app ya abierta.
