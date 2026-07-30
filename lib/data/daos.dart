@@ -81,6 +81,23 @@ extension CapturesDao on AppDatabase {
     String? sourceApp,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    final resolvedCategory = categoryId == null
+        ? null
+        : await (select(categories)..where(
+                (row) =>
+                    row.id.equals(categoryId) | row.name.equals(categoryId),
+              ))
+              .getSingleOrNull();
+    final resolvedSubcategory =
+        subcategoryId == null || resolvedCategory == null
+        ? null
+        : await (select(subcategories)..where(
+                (row) =>
+                    row.categoryId.equals(resolvedCategory.id) &
+                    (row.id.equals(subcategoryId) |
+                        row.name.equals(subcategoryId)),
+              ))
+              .getSingleOrNull();
     accountId ??= (await (select(
       accounts,
     )..where((row) => row.isDefault.equals(true))).getSingle()).id;
@@ -91,8 +108,8 @@ extension CapturesDao on AppDatabase {
         date: dateEpochMs,
         amountCents: amountCents,
         currency: Value(currency),
-        categoryId: Value(categoryId),
-        subcategoryId: Value(subcategoryId),
+        categoryId: Value(resolvedCategory?.id),
+        subcategoryId: Value(resolvedSubcategory?.id),
         account: Value(account),
         accountId: Value(accountId),
         vendor: Value(vendor),

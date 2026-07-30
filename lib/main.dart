@@ -221,10 +221,18 @@ class _MisGastosAppState extends State<MisGastosApp> {
       final uiDelay = DateTime.now().difference(shareStartTime).inMilliseconds;
       _debugLog('⏱️  [TIMER] UI shown after ${uiDelay}ms from share click');
 
-      // ✅ PASO 1: Persistir archivo (asíncrono, no bloquea UI)
+      // Persist the encrypted durable copy and OCR the incoming file in
+      // parallel. The shared path remains available during this callback.
       _debugLog('📁 [PROCESS] Persisting file...');
       final persistStart = DateTime.now();
-      final localPath = await FileStore.persistIncomingFile(att.path);
+      final persistFuture = FileStore.persistIncomingFile(att.path);
+
+      _debugLog('🔍 [PROCESS] Running OCR...');
+      final ocrStart = DateTime.now();
+      _ocr ??= MlKitEngine();
+      final ocrFuture = _ocr!.run(att.path);
+
+      final localPath = await persistFuture;
       final persistDuration = DateTime.now()
           .difference(persistStart)
           .inMilliseconds;
@@ -251,20 +259,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
         '⏱️  [TIMER] Elapsed: ${DateTime.now().difference(shareStartTime).inMilliseconds}ms',
       );
 
-      // ✅ PASO 3: OCR (asíncrono, la operación nativa es no-bloqueante)
-      _debugLog('🔍 [PROCESS] Running OCR...');
-      final ocrStart = DateTime.now();
-
-      // Inicializar OCR si no existe
-      _ocr ??= MlKitEngine();
-      final materializedPath = await FileStore.materializeForRead(localPath);
-      late final OcrResult res;
-      try {
-        res = await _ocr!.run(materializedPath);
-      } finally {
-        await FileStore.releaseMaterializedFile(materializedPath);
-      }
-
+      // OCR started alongside persistence; await the already-running work.
+      final res = await ocrFuture;
       final ocrDuration = DateTime.now().difference(ocrStart).inMilliseconds;
       _debugLog('🔍 [PROCESS] OCR completed in ${ocrDuration}ms');
       _debugLog(

@@ -35,6 +35,8 @@ void main() {
       ),
     );
     expect(find.text('financial data'), findsNothing);
+    expect(authenticator.calls, 0);
+    await tester.tap(find.text('Desbloquear'));
     await tester.pumpAndSettle();
     expect(find.text('financial data'), findsOneWidget);
 
@@ -64,6 +66,7 @@ void main() {
           ),
         ),
       );
+      await tester.tap(find.text('Desbloquear'));
       await tester.pumpAndSettle();
 
       expect(find.text('financial data'), findsNothing);
@@ -88,6 +91,7 @@ void main() {
         ),
       ),
     );
+    await tester.tap(find.text('Desbloquear'));
     await tester.pumpAndSettle();
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -97,5 +101,59 @@ void main() {
 
     expect(find.text('financial data'), findsOneWidget);
     expect(authenticator.calls, 1);
+  });
+
+  testWidgets('default session covers a normal share round trip', (
+    tester,
+  ) async {
+    final authenticator = _FakeAuthenticator([
+      LocalAuthenticationResult.authenticated,
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          authenticator: authenticator,
+          child: const Text('financial data'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Desbloquear'));
+    await tester.pumpAndSettle();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(minutes: 2));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('financial data'), findsOneWidget);
+    expect(authenticator.calls, 1);
+  });
+
+  testWidgets('a failed attempt shows feedback and the button retries', (
+    tester,
+  ) async {
+    final authenticator = _FakeAuthenticator([
+      LocalAuthenticationResult.error,
+      LocalAuthenticationResult.authenticated,
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          authenticator: authenticator,
+          child: const Text('financial data'),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Desbloquear'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No se pudo abrir'), findsOneWidget);
+
+    await tester.tap(find.text('Desbloquear'));
+    await tester.pumpAndSettle();
+    expect(find.text('financial data'), findsOneWidget);
+    expect(authenticator.calls, 2);
   });
 }

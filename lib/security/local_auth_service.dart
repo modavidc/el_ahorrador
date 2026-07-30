@@ -25,7 +25,9 @@ final class SystemLocalAuthenticator implements LocalAuthenticator {
         localizedReason: 'Confirma tu identidad para acceder a El Ahorrador',
         options: const AuthenticationOptions(
           biometricOnly: false,
-          stickyAuth: true,
+          // AppLockGate owns session restoration. Letting the plugin also
+          // restart authentication can strand the prompt on HyperOS.
+          stickyAuth: false,
           useErrorDialogs: true,
         ),
       );

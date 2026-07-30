@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'local_auth_service.dart';
@@ -19,7 +17,7 @@ class AppLockGate extends StatefulWidget {
     required this.child,
     this.authenticator,
     this.controller,
-    this.gracePeriod = const Duration(seconds: 30),
+    this.gracePeriod = const Duration(minutes: 5),
     super.key,
   });
 
@@ -48,7 +46,6 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     _monotonicClock.start();
     widget.controller?._lockCallback = _lock;
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_unlock()));
   }
 
   @override
@@ -64,9 +61,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
-        _coverForBackground();
+        if (!_authenticating) _coverForBackground();
       case AppLifecycleState.resumed:
-        if (_locked) unawaited(_resume());
+        if (_locked && !_authenticating) _restoreSessionWithinGracePeriod();
       case AppLifecycleState.inactive:
         // Native authentication prompts can make the app inactive. Locking on
         // this transition would invalidate a successful prompt.
@@ -90,16 +87,14 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _resume() async {
+  void _restoreSessionWithinGracePeriod() {
     final lastAuthenticatedAt = _lastAuthenticatedAt;
     final graceIsValid =
         lastAuthenticatedAt != null &&
         _monotonicClock.elapsed - lastAuthenticatedAt <= widget.gracePeriod;
     if (graceIsValid) {
       if (mounted) setState(() => _locked = false);
-      return;
     }
-    await _unlock();
   }
 
   Future<void> _unlock() async {
@@ -128,6 +123,8 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     if (!_locked) return widget.child;
 
     final unavailable = _lastResult == LocalAuthenticationResult.unavailable;
+    final failed = _lastResult == LocalAuthenticationResult.error;
+    final rejected = _lastResult == LocalAuthenticationResult.rejected;
     return Material(
       color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
@@ -154,6 +151,10 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                   Text(
                     unavailable
                         ? 'Configura una huella, Face ID o bloqueo de pantalla seguro en tu dispositivo para acceder.'
+                        : failed
+                        ? 'No se pudo abrir la autenticación del dispositivo. Inténtalo nuevamente.'
+                        : rejected
+                        ? 'La autenticación fue cancelada o rechazada. Puedes intentarlo nuevamente.'
                         : 'Usa tu biometría o la credencial segura del dispositivo para continuar.',
                     textAlign: TextAlign.center,
                   ),

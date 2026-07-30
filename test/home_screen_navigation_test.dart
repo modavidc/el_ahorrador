@@ -48,20 +48,20 @@ void main() {
   testWidgets('cada destino inferior responde al toque', (tester) async {
     await pumpHome(tester);
 
-    const destinations = {
-      'Estad.': 'Estadísticas',
-      'Cuentas': 'Cuentas',
-      'Más': 'Más',
-    };
+    await tester.tap(find.text('Estad.'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('coming-soon-Estadísticas')),
+      findsOneWidget,
+    );
+    expect(find.text('Próximamente'), findsOneWidget);
 
-    for (final destination in destinations.entries) {
-      await tester.tap(find.text(destination.key));
+    for (final destination in ['Cuentas', 'Más']) {
+      await tester.tap(find.text(destination));
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(ValueKey('coming-soon-${destination.value}')),
-        findsOneWidget,
-      );
-      expect(find.text('Próximamente'), findsOneWidget);
+      expect(find.text('Configuración · Cuentas'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
     }
 
     await tester.tap(find.text('Trans.'));
