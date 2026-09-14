@@ -1,6 +1,18 @@
 import 'package:drift/drift.dart';
 import 'app_database.dart';
 
+class ExpenseWithLabels {
+  const ExpenseWithLabels({
+    required this.expense,
+    this.categoryName,
+    this.subcategoryName,
+  });
+
+  final Expense expense;
+  final String? categoryName;
+  final String? subcategoryName;
+}
+
 extension CapturesDao on AppDatabase {
   Future<void> insertCapture({
     required String id,
@@ -79,6 +91,9 @@ extension CapturesDao on AppDatabase {
     String? description,
     String? notes,
     String? sourceApp,
+    String? source,
+    String? destination,
+    String? origination,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final resolvedCategory = categoryId == null
@@ -116,14 +131,94 @@ extension CapturesDao on AppDatabase {
         description: Value(description),
         notes: Value(notes),
         sourceApp: Value(sourceApp),
+        source: Value(source),
+        destination: Value(destination),
+        origination: Value(origination),
         createdAt: now,
         updatedAt: now,
       ),
     );
   }
 
+  /// Persists a transfer as two linked ledger entries. The outgoing entry is
+  /// negative and the incoming entry is positive, so the transfer is neutral
+  /// in the combined balance while remaining visible on each account.
+  Future<void> insertTransfer({
+    required String id,
+    required int dateEpochMs,
+    required int amountCents,
+    required String currency,
+    required String sourceAccountId,
+    required String destinationAccountId,
+    String? sourceAccount,
+    String? destinationAccount,
+    String? description,
+    String? notes,
+  }) async {
+    if (amountCents <= 0) {
+      throw ArgumentError.value(amountCents, 'amountCents', 'must be positive');
+    }
+    if (sourceAccountId == destinationAccountId) {
+      throw ArgumentError('Source and destination accounts must be different');
+    }
+
+    final transferId = id;
+    await transaction(() async {
+      await insertExpenseFromParser(
+        id: '${id}_out',
+        dateEpochMs: dateEpochMs,
+        amountCents: -amountCents,
+        currency: currency,
+        accountId: sourceAccountId,
+        vendor: 'Transferencia',
+        description: description,
+        notes: notes,
+        sourceApp: 'Manual',
+        source: sourceAccount,
+        destination: destinationAccount,
+        origination: transferId,
+      );
+      await insertExpenseFromParser(
+        id: '${id}_in',
+        dateEpochMs: dateEpochMs,
+        amountCents: amountCents,
+        currency: currency,
+        accountId: destinationAccountId,
+        vendor: 'Transferencia',
+        description: description,
+        notes: notes,
+        sourceApp: 'Manual',
+        source: sourceAccount,
+        destination: destinationAccount,
+        origination: transferId,
+      );
+    });
+  }
+
   Stream<List<Expense>> watchExpenses() =>
       (select(expenses)..orderBy([(t) => OrderingTerm.desc(t.date)])).watch();
+
+  Stream<List<ExpenseWithLabels>> watchExpensesWithLabels() {
+    final query = select(expenses).join([
+      leftOuterJoin(categories, categories.id.equalsExp(expenses.categoryId)),
+      leftOuterJoin(
+        subcategories,
+        subcategories.id.equalsExp(expenses.subcategoryId),
+      ),
+    ])..orderBy([OrderingTerm.desc(expenses.date)]);
+
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => ExpenseWithLabels(
+              expense: row.readTable(expenses),
+              categoryName: row.readTableOrNull(categories)?.name,
+              subcategoryName: row.readTableOrNull(subcategories)?.name,
+            ),
+          )
+          .toList(),
+    );
+  }
 
   Future<int> updateExpenseFromParser({
     required String id,

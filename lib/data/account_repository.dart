@@ -3,6 +3,20 @@ import 'package:uuid/uuid.dart';
 
 import 'app_database.dart';
 
+class AccountBalance {
+  const AccountBalance({
+    required this.accountId,
+    required this.startingBalanceCents,
+    required this.balanceCents,
+    this.startingBalanceDate,
+  });
+
+  final String accountId;
+  final int startingBalanceCents;
+  final int balanceCents;
+  final int? startingBalanceDate;
+}
+
 class AccountRepository {
   AccountRepository(this._db, {Uuid uuid = const Uuid()}) : _uuid = uuid;
 
@@ -21,6 +35,74 @@ class AccountRepository {
             (row) => OrderingTerm.asc(row.order),
           ]))
           .watch();
+
+  Future<AccountBalance> balance(String accountId) async {
+    final rows = await _balanceQuery(accountId: accountId).get();
+    if (rows.isEmpty) throw StateError('La cuenta no existe.');
+    return _readBalance(rows.single);
+  }
+
+  Stream<AccountBalance> watchBalance(String accountId) =>
+      _balanceQuery(accountId: accountId).watch().map((rows) {
+        if (rows.isEmpty) throw StateError('La cuenta no existe.');
+        return _readBalance(rows.single);
+      });
+
+  Future<List<AccountBalance>> balances() async => _balanceQuery().get().then(
+    (rows) => rows.map<AccountBalance>(_readBalance).toList(),
+  );
+
+  Stream<List<AccountBalance>> watchBalances() => _balanceQuery().watch().map(
+    (rows) => rows.map<AccountBalance>(_readBalance).toList(),
+  );
+
+  Future<void> setStartingBalance(
+    String accountId, {
+    required int startingBalanceCents,
+    int? startingBalanceDate,
+  }) async {
+    final changed = await _db.customUpdate(
+      'UPDATE accounts SET starting_balance_cents = ?, '
+      'starting_balance_date = ?, updated_at = ? WHERE id = ?',
+      variables: [
+        Variable.withInt(startingBalanceCents),
+        startingBalanceDate == null
+            ? const Variable<Object>(null)
+            : Variable.withInt(startingBalanceDate),
+        Variable.withInt(DateTime.now().millisecondsSinceEpoch),
+        Variable.withString(accountId),
+      ],
+      updates: {_db.accounts},
+    );
+    if (changed == 0) throw StateError('La cuenta no existe.');
+  }
+
+  Selectable<QueryRow> _balanceQuery({String? accountId}) {
+    final where = accountId == null ? '' : ' WHERE a.id = ?';
+    return _db.customSelect(
+      'SELECT a.id AS account_id, a.starting_balance_cents, '
+      'a.starting_balance_date, COALESCE(SUM(e.amount_cents), 0) AS movement_cents '
+      'FROM accounts a LEFT JOIN expenses e ON e.account_id = a.id '
+      'AND (a.starting_balance_date IS NULL OR e.date >= a.starting_balance_date)'
+      '$where '
+      'GROUP BY a.id, a.starting_balance_cents, a.starting_balance_date '
+      'ORDER BY a.is_archived ASC, a."order" ASC',
+      variables: accountId == null
+          ? const []
+          : [Variable.withString(accountId)],
+      readsFrom: {_db.accounts, _db.expenses},
+    );
+  }
+
+  AccountBalance _readBalance(QueryRow row) {
+    final starting = row.read<int>('starting_balance_cents') ?? 0;
+    return AccountBalance(
+      accountId: row.read<String>('account_id')!,
+      startingBalanceCents: starting,
+      balanceCents: starting + (row.read<int>('movement_cents') ?? 0),
+      startingBalanceDate: row.readNullable<int>('starting_balance_date'),
+    );
+  }
 
   Future<Account> defaultAccount() async {
     final account = await (_db.select(

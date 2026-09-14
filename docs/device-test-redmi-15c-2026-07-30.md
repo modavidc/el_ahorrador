@@ -25,10 +25,10 @@ Documentos anteriores:
 
 | Issue | Prueba de esta sesión | Estado inicial |
 | --- | --- | --- |
-| MOB-001 | Volver antes y después del periodo de gracia | Repetir en develop |
+| MOB-001 | Volver antes y después del periodo de gracia | Falló en develop |
 | MOB-002 | Compartir con app cerrada, abierta y bloqueada | Pendiente |
 | MOB-003 | Crear, abrir, editar y eliminar un gasto manual | Pendiente |
-| MOB-004 | Tocar todos los tabs y destinos inferiores | Repetir en develop |
+| MOB-004 | Tocar todos los tabs y destinos inferiores | Aprobado parcialmente en develop |
 | MOB-005 | Reiniciar con gastos existentes e incompletos | Pendiente |
 | MOB-006 | Interrumpir OCR y comprobar recuperación | Pendiente |
 | MOB-007 | Cancelar, rechazar y reintentar autenticación | Aprobado parcialmente |
@@ -38,7 +38,7 @@ Documentos anteriores:
 
 ## Ronda 1 — Navegación (MOB-004)
 
-Estado: **Prueba invalidada; ejecución no corresponde a develop `a703a63`**
+Estado: **Aprobado parcialmente en develop**
 
 1. Tocar `Diario`.
 2. Tocar `Calendario`.
@@ -59,10 +59,13 @@ Resultado observado:
   `Cuentas` y `Más` deben abrir `Configuración · Cuentas`. La conducta observada
   coincide con los cambios locales de `main`.
 - Repetir toda la ronda después de iniciar Flutter desde el worktree correcto.
+- **Aprobado en la ejecución correcta de `develop`:** la navegación inferior
+  responde y `Cuentas` muestra la administración de cuentas.
+- Pendiente: repetir los tabs superiores y confirmar el regreso a `Trans.`.
 
 ## Ronda 2 — Autenticación y sesión (MOB-001/MOB-007)
 
-Estado: **Prueba invalidada; repetir en develop `a703a63`**
+Estado: **Falló en develop**
 
 1. Abrir la app y confirmar que la autenticación comienza únicamente al tocar
    `Desbloquear`.
@@ -83,6 +86,10 @@ Resultado observado:
   estado de MOB-001.
 - Pendiente: regreso dentro y después de cinco minutos, cancelación, rechazo y
   reintento.
+- **Revalidación en `develop` (continuación del 31 de julio): falló.** Después
+  de permanecer menos de un minuto en segundo plano, la app volvió a solicitar
+  desbloqueo. Falta determinar mediante logs si el proceso permaneció vivo o
+  si HyperOS lo terminó y provocó un arranque nuevo.
 
 ## Ronda 3 — Registro manual y persistencia (MOB-003/MOB-005)
 
@@ -174,9 +181,18 @@ Registrar cada hallazgo con pasos exactos, resultado esperado, resultado
 observado, frecuencia y líneas relevantes de `flutter run`. No incluir datos
 financieros reales, capturas, texto OCR completo ni información sensible.
 
-### NEW-001 — Sin registrar
+### NEW-001 — Build nativo falla por ruta Unicode del caché de Pub
 
-Estado: **No reportado**
+Estado: **Causa identificada; configuración de sesión corregida**
+
+El build de `jni 0.14.2` intentó usar
+`C:\Users\Moisés Cedeño\AppData\Local\Pub\Cache`; Ninja recibió la ruta
+corrompida como `Mois�s Cede�o` y no pudo entrar al directorio `.cxx`.
+
+Se regeneraron las dependencias con `PUB_CACHE=Z:\tmp\pub-cache`. El
+`package_config.json` del worktree ahora resuelve `jni-0.14.2` desde una ruta
+ASCII. La misma variable debe permanecer configurada en la terminal que ejecuta
+`flutter run`.
 
 ## Criterio para generar una APK de prueba identificable
 

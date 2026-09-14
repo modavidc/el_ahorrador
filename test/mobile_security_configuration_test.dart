@@ -12,13 +12,28 @@ void main() {
     expect(manifest, contains('android:usesCleartextTraffic="false"'));
   });
 
-  test('Android protects app content from screenshots and recents', () {
+  test('Android screenshot protection is controlled by configuration', () {
     final activity = source(
       'android/app/src/main/kotlin/com/example/mis_gastos/MainActivity.kt',
     );
+    final config = source(
+      'android/app/src/main/res/values/security_config.xml',
+    );
     expect(activity, contains('WindowManager.LayoutParams.FLAG_SECURE'));
-    expect(activity, contains('window.addFlags'));
+    expect(activity, contains('R.bool.block_screenshots'));
+    expect(config, contains('<bool name="block_screenshots">false</bool>'));
   });
+
+  test(
+    'local authentication is disabled by default and build-configurable',
+    () {
+      final config = source('lib/config/security_config.dart');
+      final main = source('lib/main.dart');
+      expect(config, contains("'ENABLE_APP_LOCK'"));
+      expect(config, contains('defaultValue: false'));
+      expect(main, contains('SecurityConfig.enableAppLock'));
+    },
+  );
 
   test('iOS installs a privacy shield before becoming inactive', () {
     final delegate = source('ios/Runner/AppDelegate.swift');
@@ -45,8 +60,9 @@ void main() {
     for (final file in files) {
       final contents = file.readAsStringSync();
       expect(
-        RegExp(r'https://[^\s@]+@[^\s]+\.ingest\.sentry\.io/\d+')
-            .hasMatch(contents),
+        RegExp(
+          r'https://[^\s@]+@[^\s]+\.ingest\.sentry\.io/\d+',
+        ).hasMatch(contents),
         isFalse,
         reason: 'Hard-coded telemetry credential in ${file.path}',
       );

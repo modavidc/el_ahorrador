@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'database_key_store.dart';
 import 'sqlcipher_migrator.dart';
 import 'sqlcipher_runtime.dart';
+import 'money_manager_taxonomy.dart';
 
 part 'app_database.g.dart';
 
@@ -102,13 +103,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
-      await _initializeDefaultCategories();
+      await _addAccountBalanceColumns();
+      await _initializeMoneyManagerCategories();
       await _initializeDefaultAccount();
     },
     onUpgrade: (Migrator m, int from, int to) async {
@@ -121,8 +123,66 @@ class AppDatabase extends _$AppDatabase {
           [defaultAccountId],
         );
       }
+      if (from < 3) {
+        if (await _hasColumn('expenses', 'category_id')) {
+          await customStatement(
+            'UPDATE expenses SET category_id = NULL, subcategory_id = NULL',
+          );
+        }
+        if (await _hasTable('subcategories')) await delete(subcategories).go();
+        if (await _hasTable('categories')) {
+          await delete(categories).go();
+          await _initializeMoneyManagerCategories();
+        }
+      }
+      if (from < 4) {
+        // Remove any approximate categories created by older import builds.
+        if (await _hasColumn('expenses', 'category_id')) {
+          await customStatement(
+            'UPDATE expenses SET category_id = NULL, subcategory_id = NULL',
+          );
+        }
+        if (await _hasTable('subcategories')) await delete(subcategories).go();
+        if (await _hasTable('categories')) {
+          await delete(categories).go();
+          await _initializeMoneyManagerCategories();
+        }
+      }
+      if (from < 5) {
+        await _addAccountBalanceColumns();
+      }
     },
   );
+
+  /// These columns are intentionally added with SQL because this worktree's
+  /// generated Drift file is outside the feature's permitted write scope.
+  Future<void> _addAccountBalanceColumns() async {
+    final columns = await customSelect('PRAGMA table_info(accounts)').get();
+    final names = columns.map((row) => row.read<String>('name')).toSet();
+    if (!names.contains('starting_balance_cents')) {
+      await customStatement(
+        'ALTER TABLE accounts ADD COLUMN starting_balance_cents INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+    if (!names.contains('starting_balance_date')) {
+      await customStatement(
+        'ALTER TABLE accounts ADD COLUMN starting_balance_date INTEGER NULL',
+      );
+    }
+  }
+
+  Future<bool> _hasColumn(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.any((row) => row.read<String>('name') == column);
+  }
+
+  Future<bool> _hasTable(String table) async {
+    final rows = await customSelect(
+      'SELECT name FROM sqlite_master WHERE type = \'table\' AND name = ?',
+      variables: [Variable.withString(table)],
+    ).get();
+    return rows.isNotEmpty;
+  }
 
   Future<void> _initializeDefaultAccount() async {
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -140,6 +200,55 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Inicializar categorías por defecto
+  Future<void> _initializeMoneyManagerCategories() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (
+      var categoryIndex = 0;
+      categoryIndex < moneyManagerCategorySeeds.length;
+      categoryIndex++
+    ) {
+      final seed = moneyManagerCategorySeeds[categoryIndex];
+      final categoryId = 'mm_cat_${categoryIndex + 1}';
+      await into(categories).insert(
+        CategoriesCompanion.insert(
+          id: categoryId,
+          name: seed.name,
+          icon: seed.icon,
+          color: _moneyManagerColor(categoryIndex),
+          order: categoryIndex,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      for (var subIndex = 0; subIndex < seed.subcategories.length; subIndex++) {
+        await into(subcategories).insert(
+          SubcategoriesCompanion.insert(
+            id: 'mm_sub_${categoryIndex + 1}_${subIndex + 1}',
+            categoryId: categoryId,
+            name: seed.subcategories[subIndex],
+            order: subIndex,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+      }
+    }
+  }
+
+  String _moneyManagerColor(int index) => const [
+    'orange',
+    'blue',
+    'teal',
+    'green',
+    'purple',
+    'red',
+    'indigo',
+    'pink',
+    'amber',
+    'grey',
+  ][index % 10];
+
+  // ignore: unused_element
   Future<void> _initializeDefaultCategories() async {
     final defaultCategories = [
       CategoriesCompanion.insert(

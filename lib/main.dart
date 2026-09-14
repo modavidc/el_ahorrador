@@ -16,12 +16,14 @@ import 'features/capture/application/bounded_serial_queue.dart';
 import 'features/capture/application/attachment_batch_processor.dart';
 import 'data/app_database.dart';
 import 'data/daos.dart';
+import 'data/historical_import.dart';
 import 'screens/home_screen.dart';
 import 'widgets/expense_edit_dialog.dart';
 import 'widgets/processing_animation.dart';
 import 'widgets/immediate_loading_overlay.dart';
 import 'widgets/loading_dialog_tracker.dart';
 import 'security/app_lock_gate.dart';
+import 'config/security_config.dart';
 
 void _debugLog(Object? message) {
   if (kDebugMode) debugPrint(message?.toString());
@@ -67,6 +69,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
   final _shareQueue = BoundedSerialQueue<SharedMedia, void>(maxPending: 10);
   bool _isInitialized = false;
   OverlayEntry? _spinnerEntry;
+  String _spinnerMessage = 'Procesando captura...';
   final _loadingDialog = LoadingDialogTracker();
 
   @override
@@ -117,6 +120,14 @@ class _MisGastosAppState extends State<MisGastosApp> {
     // Inicializar el servicio de categorías (sincrónico, rápido)
     CategoryService().initialize(db);
 
+    const importHistoricalCsv = bool.fromEnvironment(
+      'IMPORT_HISTORICAL_CSV',
+      defaultValue: false,
+    );
+    if (kDebugMode && importHistoricalCsv) {
+      await runHistoricalImport(db, _debugLog);
+    }
+
     final interruptedCaptures = await db.failInterruptedCaptures();
     if (interruptedCaptures > 0) {
       _debugLog(
@@ -162,9 +173,13 @@ class _MisGastosAppState extends State<MisGastosApp> {
   }
 
   Future<void> _processSharedMedia(SharedMedia media) async {
-    // The initial share may arrive before bootstrap finishes or while
-    // AppLockGate keeps the Navigator out of the tree. Queue it until progress
-    // UI can be attached safely.
+    // Acknowledge the Android share as soon as Flutter has a Navigator. Startup
+    // maintenance may continue behind this UI; the user should never interpret
+    // an incoming capture as a fresh application initialization.
+    await _waitForNavigatorUi();
+    _showSpinnerOverlay(message: 'Captura recibida');
+
+    // Database/share services still need to be ready before OCR can begin.
     await _waitForShareUi();
 
     // ⏱️ INICIO DEL CRONÓMETRO TOTAL
@@ -205,6 +220,15 @@ class _MisGastosAppState extends State<MisGastosApp> {
     }
   }
 
+  Future<void> _waitForNavigatorUi() async {
+    while (mounted && _navigatorKey.currentState?.overlay == null) {
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    if (!mounted) {
+      throw StateError('App disposed before shared media could be displayed.');
+    }
+  }
+
   Future<void> _processSharedImage(
     SharedAttachment att,
     DateTime shareStartTime,
@@ -215,7 +239,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
       TimeTracker.startProcessing();
 
       // ✅ Mostrar UI de carga
-      _showSpinnerOverlay();
+      _showSpinnerOverlay(message: 'Procesando captura...');
 
       // ⏱️ Tiempo desde que se compartió hasta aquí
       final uiDelay = DateTime.now().difference(shareStartTime).inMilliseconds;
@@ -309,7 +333,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
             id: _uuid.v4(),
             captureId: id,
             dateEpochMs: parsed.dateEpochMs,
-            amountCents: parsed.amountCents,
+            // ParsedExpense exposes the detected magnitude. Daily stores
+            // expenses as negative values and income as positive values.
+            amountCents: -parsed.amountCents.abs(),
             currency: parsed.currency,
             categoryId: parsed.category,
             subcategoryId: parsed.subcategory,
@@ -379,15 +405,19 @@ class _MisGastosAppState extends State<MisGastosApp> {
   }
 
   /// ✅ Mostrar overlay liviano para procesamiento (no modal, no bloquea)
-  void _showSpinnerOverlay() {
+  void _showSpinnerOverlay({required String message}) {
+    _spinnerMessage = message;
     final context = _navigatorKey.currentContext;
-    if (context != null && _spinnerEntry == null) {
+    if (_spinnerEntry != null) {
+      _spinnerEntry!.markNeedsBuild();
+      return;
+    }
+    if (context != null) {
       try {
         // Intentar obtener el overlay - puede no estar listo aún
         final overlay = Overlay.of(context, rootOverlay: true);
         _spinnerEntry = OverlayEntry(
-          builder: (_) =>
-              const ImmediateLoadingOverlay(message: 'Procesando captura...'),
+          builder: (_) => ImmediateLoadingOverlay(message: _spinnerMessage),
         );
         overlay.insert(_spinnerEntry!);
         _debugLog('🎨 [UI] Spinner overlay shown');
@@ -464,7 +494,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
   void _showSuccessAnimation(ParsedExpense expense) {
     final context = _navigatorKey.currentContext;
     if (context != null) {
-      final timeSaved = TimeTracker.generateShortTimeSavedMessage();
+      final manualSaved = TimeTracker.getTimeSavedVsManual();
+      final delayedSaved = TimeTracker.getTimeSavedVsDelayed();
       final totalTime = TimeTracker.getTotalProcessingTime();
       final totalTimeStr = totalTime != null
           ? TimeTracker.formatDuration(totalTime)
@@ -478,9 +509,14 @@ class _MisGastosAppState extends State<MisGastosApp> {
         builder: (context) => SuccessAnimation(
           title: '¡Registrado!',
           message:
-              'Transacción de ${expense.sourceApp} procesada en $totalTimeStr\n'
+              'Pago de ${expense.sourceApp} registrado\n'
               'Monto: S/ ${(expense.amountCents / 100).toStringAsFixed(2)}',
-          timeSaved: timeSaved,
+          manualTimeSaved: manualSaved == null
+              ? null
+              : TimeTracker.formatDuration(manualSaved),
+          delayedTimeSaved: delayedSaved == null
+              ? null
+              : TimeTracker.formatDuration(delayedSaved),
           onClose: () {
             Navigator.of(context).pop();
             // Mostrar snackbar con opción de editar
@@ -524,7 +560,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
     // Mostrar snackbar con opción de editar usando el navigator key
     final context = _navigatorKey.currentContext;
     if (context != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -539,7 +577,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
             ],
           ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: 'Editar',
             textColor: Colors.white,
@@ -563,7 +601,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
               id: const Uuid().v4(),
               captureId: null, // No asociar con captura específica
               dateEpochMs: updatedExpense.dateEpochMs,
-              amountCents: updatedExpense.amountCents,
+              amountCents: -updatedExpense.amountCents.abs(),
               currency: updatedExpense.currency,
               categoryId: updatedExpense.category,
               subcategoryId: updatedExpense.subcategory,
@@ -591,58 +629,6 @@ class _MisGastosAppState extends State<MisGastosApp> {
     }
   }
 
-  Widget _buildInstantLoadingScreen() {
-    return Scaffold(
-      backgroundColor: Colors.blue.shade50,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.blue.shade600,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.shade200,
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.savings, color: Colors.white, size: 40),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'El Ahorrador',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Inicializando...',
-              style: TextStyle(fontSize: 16, color: Colors.blue.shade600),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _sub?.cancel();
@@ -657,7 +643,8 @@ class _MisGastosAppState extends State<MisGastosApp> {
     _debugLog('🚀 [STARTUP] build() called, _isInitialized=$_isInitialized');
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      builder: (context, child) => AppLockGate(child: child!),
+      builder: (context, child) =>
+          SecurityConfig.enableAppLock ? AppLockGate(child: child!) : child!,
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -675,7 +662,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
         ),
       ),
       themeMode: ThemeMode.system, // Sigue el tema del sistema
-      home: _isInitialized ? HomeScreen(db: db) : _buildInstantLoadingScreen(),
+      // The home remains usable while optional startup maintenance finishes.
+      // Incoming shares are already queued until bootstrap is ready.
+      home: HomeScreen(db: db),
     );
   }
 }

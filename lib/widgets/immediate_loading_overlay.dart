@@ -12,7 +12,8 @@ class ImmediateLoadingOverlay extends StatefulWidget {
   });
 
   @override
-  State<ImmediateLoadingOverlay> createState() => _ImmediateLoadingOverlayState();
+  State<ImmediateLoadingOverlay> createState() =>
+      _ImmediateLoadingOverlayState();
 }
 
 class _ImmediateLoadingOverlayState extends State<ImmediateLoadingOverlay>
@@ -27,7 +28,7 @@ class _ImmediateLoadingOverlayState extends State<ImmediateLoadingOverlay>
   @override
   void initState() {
     super.initState();
-    
+
     _rotationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -43,29 +44,17 @@ class _ImmediateLoadingOverlayState extends State<ImmediateLoadingOverlay>
       vsync: this,
     )..repeat(reverse: true);
 
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 2 * math.pi,
-    ).animate(CurvedAnimation(
-      parent: _rotationController,
-      curve: Curves.linear,
-    ));
+    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.linear),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
 
-    _pulseAnimation = Tween<double>(
-      begin: 0.9,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
     _scaleController.forward();
   }
@@ -117,10 +106,7 @@ class _ImmediateLoadingOverlayState extends State<ImmediateLoadingOverlay>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
-                            colors: [
-                              Colors.red.shade400,
-                              Colors.red.shade600,
-                            ],
+                            colors: [Colors.red.shade400, Colors.red.shade600],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -142,9 +128,9 @@ class _ImmediateLoadingOverlayState extends State<ImmediateLoadingOverlay>
                   );
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Mensaje
               Text(
                 widget.message,
@@ -154,27 +140,31 @@ class _ImmediateLoadingOverlayState extends State<ImmediateLoadingOverlay>
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Indicador de progreso
               SizedBox(
                 width: 200,
                 child: LinearProgressIndicator(
                   backgroundColor: Colors.grey.shade300,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.red.shade400),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.red.shade400,
+                  ),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Texto de estado
               Text(
-                'Procesando...',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
+                widget.message == 'Captura recibida'
+                    ? 'Preparando procesamiento...'
+                    : 'Procesando...',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -197,10 +187,7 @@ class ImmediateLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ImmediateLoadingOverlay(
-        message: message,
-        duration: duration,
-      ),
+      body: ImmediateLoadingOverlay(message: message, duration: duration),
     );
   }
 }

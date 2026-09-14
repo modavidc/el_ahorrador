@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
+import '../data/account_repository.dart';
 import '../widgets/account_selector.dart';
 
 class AddTransactionScreen extends StatefulWidget {
@@ -24,8 +25,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final List<String> _currencies = ['\$', 'S/.', 'Bs.S'];
   bool _showKeyboard = false; // Deshabilitado al inicio
   String? _selectedCategory;
-  String? _selectedSubcategory;
   Account? _selectedAccount;
+  Account? _selectedDestinationAccount;
 
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -81,10 +82,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       db: widget.db,
                       selectedId: _selectedAccount?.id,
                       onSelected: (account) {
-                        if (mounted) setState(() => _selectedAccount = account);
+                        if (!mounted) return;
+                        setState(() {
+                          _selectedAccount = account;
+                          if (_selectedDestinationAccount?.id == account.id) {
+                            _selectedDestinationAccount = null;
+                          }
+                        });
                       },
                     ),
                   ),
+
+                  if (_isTransfer) ...[
+                    const SizedBox(height: 12),
+                    _buildDestinationAccountSelector(),
+                  ],
 
                   const SizedBox(height: 12),
 
@@ -167,6 +179,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 onTap: () {
                   setState(() {
                     _selectedTypeIndex = index;
+                    if (!_isTransfer) _selectedDestinationAccount = null;
                   });
                 },
                 child: Container(
@@ -209,6 +222,46 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
           );
         }),
+      ),
+    );
+  }
+
+  bool get _isTransfer => _selectedTypeIndex == 2;
+
+  Widget _buildDestinationAccountSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: StreamBuilder<List<Account>>(
+        stream: AccountRepository(widget.db).watchActive(),
+        builder: (context, snapshot) {
+          final accounts = snapshot.data ?? const <Account>[];
+          final valid = accounts.any(
+            (account) => account.id == _selectedDestinationAccount?.id,
+          );
+          return DropdownButtonFormField<String>(
+            key: ValueKey(_selectedDestinationAccount?.id),
+            initialValue: valid ? _selectedDestinationAccount!.id : null,
+            decoration: const InputDecoration(labelText: 'Cuenta destino'),
+            hint: const Text('Selecciona una cuenta destino'),
+            items: accounts
+                .where((account) => account.id != _selectedAccount?.id)
+                .map(
+                  (account) => DropdownMenuItem(
+                    value: account.id,
+                    child: Text(account.name),
+                  ),
+                )
+                .toList(),
+            onChanged: (id) {
+              if (id == null) return;
+              setState(() {
+                _selectedDestinationAccount = accounts.firstWhere(
+                  (account) => account.id == id,
+                );
+              });
+            },
+          );
+        },
       ),
     );
   }
@@ -1039,8 +1092,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       return false;
     }
 
-    // Validar categoría
-    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+    // Transferencias no tienen categoría: son movimientos entre cuentas.
+    if (!_isTransfer &&
+        (_selectedCategory == null || _selectedCategory!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor seleccione una categoría')),
       );
@@ -1051,6 +1105,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (_selectedAccount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor seleccione una cuenta')),
+      );
+      return false;
+    }
+
+    if (_isTransfer && _selectedDestinationAccount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor seleccione una cuenta destino'),
+        ),
+      );
+      return false;
+    }
+
+    if (_isTransfer &&
+        _selectedDestinationAccount!.id == _selectedAccount!.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La cuenta origen y destino deben ser distintas'),
+        ),
       );
       return false;
     }
@@ -1085,24 +1158,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final amount = double.parse(_amount);
     final amountCents = (amount * 100).round();
 
-    // Determinar el signo según el tipo
-    final finalAmountCents = _selectedTypeIndex == 0
-        ? amountCents
-        : -amountCents;
+    final notes = _descriptionController.text.isNotEmpty
+        ? _descriptionController.text
+        : null;
+    if (_isTransfer) {
+      await widget.db.insertTransfer(
+        id: id,
+        dateEpochMs: dateTime.millisecondsSinceEpoch,
+        amountCents: amountCents,
+        currency: _selectedCurrency,
+        sourceAccountId: _selectedAccount!.id,
+        destinationAccountId: _selectedDestinationAccount!.id,
+        sourceAccount: _selectedAccount!.name,
+        destinationAccount: _selectedDestinationAccount!.name,
+        description: _noteController.text,
+        notes: notes,
+      );
+      return;
+    }
 
-    // Guardar en la base de datos
     await widget.db.insertExpenseFromParser(
       id: id,
       dateEpochMs: dateTime.millisecondsSinceEpoch,
-      amountCents: finalAmountCents,
+      amountCents: _selectedTypeIndex == 0 ? amountCents : -amountCents,
       currency: _selectedCurrency,
       account: _selectedAccount!.name,
       accountId: _selectedAccount!.id,
       vendor: _selectedCategory,
-      description: _noteController.text, // La nota es el título/detalle
-      notes: _descriptionController.text.isNotEmpty
-          ? _descriptionController.text
-          : null, // La descripción va en notes
+      description: _noteController.text,
+      notes: notes,
       sourceApp: 'Manual',
     );
   }

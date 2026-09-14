@@ -29,7 +29,7 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
   @override
   void initState() {
     super.initState();
-    
+
     _rotationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -45,32 +45,20 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
       vsync: this,
     )..repeat(reverse: true);
 
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 2 * math.pi,
-    ).animate(CurvedAnimation(
-      parent: _rotationController,
-      curve: Curves.linear,
-    ));
+    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.linear),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
 
-    _pulseAnimation = Tween<double>(
-      begin: 0.9,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
     _scaleController.forward();
-    
+
     // Llamar onComplete después de la duración especificada
     Future.delayed(widget.duration, () {
       if (mounted && widget.onComplete != null) {
@@ -125,10 +113,7 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [
-                            Colors.red.shade400,
-                            Colors.red.shade600,
-                          ],
+                          colors: [Colors.red.shade400, Colors.red.shade600],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -150,9 +135,9 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
                 );
               },
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Mensaje
             Text(
               widget.message,
@@ -162,9 +147,9 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Indicador de progreso
             SizedBox(
               width: 200,
@@ -174,15 +159,15 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Texto de estado
             Text(
               'Procesando...',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -194,14 +179,16 @@ class _ProcessingAnimationState extends State<ProcessingAnimation>
 class SuccessAnimation extends StatefulWidget {
   final String title;
   final String message;
-  final String timeSaved;
+  final String? manualTimeSaved;
+  final String? delayedTimeSaved;
   final VoidCallback? onClose;
 
   const SuccessAnimation({
     super.key,
     required this.title,
     required this.message,
-    required this.timeSaved,
+    this.manualTimeSaved,
+    this.delayedTimeSaved,
     this.onClose,
   });
 
@@ -221,7 +208,7 @@ class _SuccessAnimationState extends State<SuccessAnimation>
   @override
   void initState() {
     super.initState();
-    
+
     _checkController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -237,34 +224,23 @@ class _SuccessAnimationState extends State<SuccessAnimation>
       vsync: this,
     );
 
-    _checkAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(
-      parent: _checkController,
-      curve: Curves.easeInOut,
-    ));
+    _checkAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _checkController, curve: Curves.easeInOut),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
     // Iniciar animaciones
     _scaleController.forward();
     _fadeController.forward();
-    
+
     // Delay para la animación del check
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
@@ -286,10 +262,7 @@ class _SuccessAnimationState extends State<SuccessAnimation>
     return Dialog(
       backgroundColor: Colors.transparent,
       child: AnimatedBuilder(
-        animation: Listenable.merge([
-          _scaleAnimation,
-          _fadeAnimation,
-        ]),
+        animation: Listenable.merge([_scaleAnimation, _fadeAnimation]),
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
@@ -356,21 +329,22 @@ class _SuccessAnimationState extends State<SuccessAnimation>
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Título
                     Text(
                       widget.title,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
                       textAlign: TextAlign.center,
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Mensaje principal
                     Text(
                       widget.message,
@@ -379,45 +353,54 @@ class _SuccessAnimationState extends State<SuccessAnimation>
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
-                    // Tiempo ahorrado
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.green.shade200,
-                          width: 1,
+
+                    // Explicit estimates, kept on separate rows so narrow
+                    // Android screens never overflow horizontally.
+                    if (widget.manualTimeSaved != null &&
+                        widget.delayedTimeSaved != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Tiempo estimado ahorrado',
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: Colors.green.shade800,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(width: 8),
+                            const SizedBox(height: 8),
+                            _EstimatedSavingRow(
+                              label: 'Frente a registro manual',
+                              value: widget.manualTimeSaved!,
+                            ),
+                            const SizedBox(height: 6),
+                            _EstimatedSavingRow(
+                              label: 'Frente a registro tardío',
+                              value: widget.delayedTimeSaved!,
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.timer,
-                            color: Colors.green.shade600,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.timeSaved,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.green.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
+
+                    SizedBox(height: widget.manualTimeSaved == null ? 8 : 24),
+
                     // Botón de cerrar
                     SizedBox(
                       width: double.infinity,
@@ -452,6 +435,39 @@ class _SuccessAnimationState extends State<SuccessAnimation>
   }
 }
 
+class _EstimatedSavingRow extends StatelessWidget {
+  const _EstimatedSavingRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.timer_outlined, color: Colors.green.shade600, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.green.shade700),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.green.shade800,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class CheckPainter extends CustomPainter {
   final double progress;
 
@@ -466,7 +482,7 @@ class CheckPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final path = Path();
-    
+
     // Dibujar el check
     final startX = size.width * 0.25;
     final startY = size.height * 0.5;
@@ -482,7 +498,7 @@ class CheckPainter extends CustomPainter {
     // Animar el check
     final animatedPath = Path();
     final pathMetrics = path.computeMetrics();
-    
+
     for (final pathMetric in pathMetrics) {
       final length = pathMetric.length;
       final animatedLength = length * progress;

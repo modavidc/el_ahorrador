@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Set to true to block screenshots and hide content in Android recents. -->
+    <bool name="block_screenshots">false</bool>
+</resources>
