@@ -6,6 +6,7 @@ import '../data/app_database.dart';
 import '../data/daos.dart';
 import '../theme/app_styles.dart';
 import 'account_detail_screen.dart';
+import 'add_account_screen.dart';
 
 /// Contenido de la pestaña Cuentas, embebido directamente en el body de
 /// HomeScreen (sin Scaffold/AppBar/FAB propios) para que se comporte como
@@ -127,19 +128,23 @@ class _AccountsTabBodyState extends State<AccountsTabBody> {
           ),
         ),
         IconButton(
-          onPressed: null,
-          tooltip: 'Estadísticas de cuentas (próximamente)',
+          onPressed: () =>
+              ScaffoldMessenger.of(context).showSnackBar(comingSoonSnackBar),
+          tooltip: 'Estadísticas de cuentas',
           icon: const Icon(Icons.bar_chart_outlined, color: Colors.black),
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.black),
           onSelected: (value) {
             if (value == 'add') {
-              _showAccountDialog();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Próximamente')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AddAccountScreen(db: widget.db),
+                ),
               );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(comingSoonSnackBar);
             }
           },
           itemBuilder: (_) => const [
@@ -159,95 +164,6 @@ class _AccountsTabBodyState extends State<AccountsTabBody> {
       builder: (_) => AccountDetailScreen(db: widget.db, account: account),
     ),
   );
-
-  Future<void> _showAccountDialog({Account? account}) async {
-    final groups = await _groupRepository.watchAll().first;
-    if (groups.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Primero creá un grupo de cuentas.')),
-        );
-      }
-      return;
-    }
-    final controller = TextEditingController(text: account?.name);
-    String groupId =
-        account?.groupId ??
-        (groups.any((g) => g.id == AppDatabase.defaultAccountGroupId)
-            ? AppDatabase.defaultAccountGroupId
-            : groups.first.id);
-    if (!groups.any((g) => g.id == groupId)) groupId = groups.first.id;
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(account == null ? 'Nueva cuenta' : 'Editar cuenta'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Nombre'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: groupId,
-                decoration: const InputDecoration(labelText: 'Grupo'),
-                items: groups
-                    .map(
-                      (g) => DropdownMenuItem(value: g.id, child: Text(g.name)),
-                    )
-                    .toList(),
-                onChanged: (value) =>
-                    setDialogState(() => groupId = value ?? groupId),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (saved != true) return;
-    final name = controller.text;
-    await _run(() async {
-      if (account == null) {
-        await _repository.create(name: name, groupId: groupId);
-      } else {
-        await _repository.rename(account.id, name);
-        if (groupId != account.groupId) {
-          await _repository.setGroup(account.id, groupId);
-        }
-      }
-    });
-  }
-
-  Future<void> _run(Future<Object?> Function() action) async {
-    try {
-      await action();
-    } catch (error) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              error.toString().replaceFirst('Invalid argument(s): ', ''),
-            ),
-          ),
-        );
-    }
-  }
 }
 
 class _Dashboard extends StatelessWidget {

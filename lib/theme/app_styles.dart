@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// Mismo texto en toda la app para cualquier acción todavía no
+/// implementada — un solo SnackBar reusable, nunca un mensaje inventado
+/// por pantalla.
+const comingSoonSnackBar = SnackBar(content: Text('Próximamente'));
+
 /// Paleta y estilos de texto sacados literalmente de `home_screen.dart`
 /// (la pantalla de gastos ya validada visualmente). Cualquier pantalla nueva
 /// debe reusar estas constantes en vez de inventar su propia paleta o
@@ -61,5 +66,8 @@ abstract final class AppTextStyles {
   );
 
   /// Igual a _buildSummaryItem de home_screen.dart (Income/Expenses/Total).
-  static const summaryValue = TextStyle(fontSize: 14, fontWeight: FontWeight.w400);
+  static const summaryValue = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+  );
 }
