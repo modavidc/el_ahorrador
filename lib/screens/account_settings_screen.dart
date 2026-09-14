@@ -8,94 +8,151 @@ import '../theme/app_styles.dart';
 import 'account_detail_screen.dart';
 import 'account_group_settings_screen.dart';
 
-class AccountSettingsScreen extends StatefulWidget {
+/// Contenido de la pestaña Cuentas, embebido directamente en el body de
+/// HomeScreen (sin Scaffold/AppBar/FAB propios) para que se comporte como
+/// un tab más de la barra inferior — sin botón de back ni pila de
+/// navegación extra.
+class AccountsTabBody extends StatefulWidget {
+  const AccountsTabBody({
+    super.key,
+    required this.db,
+    this.showBackButton = false,
+  });
+  final AppDatabase db;
+
+  /// true solo cuando se llega acá empujada desde otra pantalla (Backup,
+  /// Settings) en vez de desde la barra inferior principal.
+  final bool showBackButton;
+  @override
+  State<AccountsTabBody> createState() => _AccountsTabBodyState();
+}
+
+/// Wrapper con Scaffold para los pocos lugares que todavía empujan a
+/// Cuentas como sub-pantalla (backup_screen.dart, settings_screen.dart)
+/// en vez de llegar por la barra inferior principal de HomeScreen.
+class AccountSettingsScreen extends StatelessWidget {
   const AccountSettingsScreen({super.key, required this.db});
   final AppDatabase db;
   @override
-  State<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.background,
+    body: AccountsTabBody(db: db, showBackButton: true),
+  );
 }
 
-class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+class _AccountsTabBodyState extends State<AccountsTabBody> {
   late final AccountRepository _repository = AccountRepository(widget.db);
   late final AccountGroupRepository _groupRepository = AccountGroupRepository(
     widget.db,
   );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.background,
-    appBar: AppBar(
-      title: const Text('Cuentas'),
-      actions: [
-        IconButton(
-          tooltip: 'Grupos de cuentas',
-          icon: const Icon(Icons.folder_outlined),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AccountGroupSettingsScreen(db: widget.db),
-            ),
+  Widget build(BuildContext context) => SafeArea(
+    bottom: false,
+    child: Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: StreamBuilder<List<AccountGroup>>(
+            stream: _groupRepository.watchAll(),
+            builder: (context, groupsSnapshot) {
+              if (groupsSnapshot.hasError)
+                return const _Message('No pudimos cargar los grupos.');
+              if (!groupsSnapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
+              return StreamBuilder<List<Account>>(
+                stream: _repository.watchAll(),
+                builder: (context, accountsSnapshot) {
+                  if (accountsSnapshot.hasError)
+                    return const _Message('No pudimos cargar las cuentas.');
+                  if (!accountsSnapshot.hasData)
+                    return const Center(child: CircularProgressIndicator());
+                  return StreamBuilder<List<Expense>>(
+                    stream: widget.db.watchExpenses(),
+                    builder: (context, expensesSnapshot) {
+                      if (expensesSnapshot.hasError)
+                        return const _Message(
+                          'No pudimos cargar los movimientos.',
+                        );
+                      if (!expensesSnapshot.hasData)
+                        return const Center(child: CircularProgressIndicator());
+                      return StreamBuilder<List<AccountBalance>>(
+                        stream: _repository.watchBalances(),
+                        builder: (context, balanceSnapshot) {
+                          if (balanceSnapshot.hasError)
+                            return const _Message(
+                              'No pudimos calcular los saldos.',
+                            );
+                          if (!balanceSnapshot.hasData)
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          return _Dashboard(
+                            groups: groupsSnapshot.data!,
+                            accounts: accountsSnapshot.data!,
+                            expenses: expensesSnapshot.data!,
+                            balances: {
+                              for (final item in balanceSnapshot.data!)
+                                item.accountId: item,
+                            },
+                            onOpen: _openDetail,
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+            },
           ),
-        ),
-        IconButton(
-          tooltip: 'Administrar cuentas',
-          icon: const Icon(Icons.tune_rounded),
-          onPressed: _showManagementDialog,
         ),
       ],
     ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _showAccountDialog(),
-      backgroundColor: AppColors.accent,
-      foregroundColor: Colors.white,
-      icon: const Icon(Icons.add),
-      label: const Text('Nueva cuenta'),
-    ),
-    body: StreamBuilder<List<AccountGroup>>(
-      stream: _groupRepository.watchAll(),
-      builder: (context, groupsSnapshot) {
-        if (groupsSnapshot.hasError)
-          return const _Message('No pudimos cargar los grupos.');
-        if (!groupsSnapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
-        return StreamBuilder<List<Account>>(
-          stream: _repository.watchAll(),
-          builder: (context, accountsSnapshot) {
-            if (accountsSnapshot.hasError)
-              return const _Message('No pudimos cargar las cuentas.');
-            if (!accountsSnapshot.hasData)
-              return const Center(child: CircularProgressIndicator());
-            return StreamBuilder<List<Expense>>(
-              stream: widget.db.watchExpenses(),
-              builder: (context, expensesSnapshot) {
-                if (expensesSnapshot.hasError)
-                  return const _Message('No pudimos cargar los movimientos.');
-                if (!expensesSnapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
-                return StreamBuilder<List<AccountBalance>>(
-                  stream: _repository.watchBalances(),
-                  builder: (context, balanceSnapshot) {
-                    if (balanceSnapshot.hasError)
-                      return const _Message('No pudimos calcular los saldos.');
-                    if (!balanceSnapshot.hasData)
-                      return const Center(child: CircularProgressIndicator());
-                    return _Dashboard(
-                      groups: groupsSnapshot.data!,
-                      accounts: accountsSnapshot.data!,
-                      expenses: expensesSnapshot.data!,
-                      balances: {
-                        for (final item in balanceSnapshot.data!)
-                          item.accountId: item,
-                      },
-                      onOpen: _openDetail,
-                    );
-                  },
-                );
-              },
-            );
+  );
+
+  Widget _buildHeader() => Container(
+    height: 56,
+    color: Colors.white,
+    padding: EdgeInsets.only(left: widget.showBackButton ? 4 : 16, right: 4),
+    child: Row(
+      children: [
+        if (widget.showBackButton)
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        const Expanded(
+          child: Text(
+            'Cuentas',
+            style: TextStyle(fontSize: 20, color: Colors.black),
+          ),
+        ),
+        IconButton(
+          onPressed: null,
+          tooltip: 'Estadísticas de cuentas (próximamente)',
+          icon: const Icon(Icons.bar_chart_outlined, color: Colors.black),
+        ),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.black),
+          onSelected: (value) {
+            if (value == 'new') _showAccountDialog();
+            if (value == 'groups') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AccountGroupSettingsScreen(db: widget.db),
+                ),
+              );
+            }
+            if (value == 'manage') _showManagementDialog();
           },
-        );
-      },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'new', child: Text('Nueva cuenta')),
+            PopupMenuItem(value: 'groups', child: Text('Grupos de cuentas')),
+            PopupMenuItem(value: 'manage', child: Text('Administrar cuentas')),
+          ],
+        ),
+      ],
     ),
   );
 
@@ -289,8 +346,26 @@ class _Dashboard extends StatelessWidget {
           .where((e) => e.accountId == a.id)
           .fold(0, (s, e) => s + e.amountCents);
 
-  String _money(int cents, String currency) =>
-      '${currency == 'PEN' ? 'S/' : currency} ${(cents.abs() / 100).toStringAsFixed(2)}';
+  String _money(int cents, String currency) {
+    final symbol = switch (currency) {
+      'PEN' => 'S/.',
+      'USD' => '\$',
+      _ => currency,
+    };
+    return '$symbol ${(cents.abs() / 100).toStringAsFixed(2)}';
+  }
+
+  /// En la referencia de Money Manager, toda cuenta de un grupo "activo"
+  /// con saldo distinto de cero se pinta azul (nunca rojo) — el rojo ahí
+  /// queda reservado a Liabilities. No usamos el signo real de
+  /// balanceCents acá: algunas cuentas ya migradas tienen saldo negativo
+  /// internamente (siempre se mostró con .abs(), nunca se expuso el signo
+  /// en la UI hasta ahora), y colorear eso de rojo sería inventar una
+  /// semántica de "deuda" que esa cuenta no tiene — es un grupo activo.
+  Color? _valueColor(int cents, bool isLiability) {
+    if (isLiability || cents == 0) return null;
+    return AppColors.income;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -323,7 +398,7 @@ class _Dashboard extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(bottom: 24),
       children: [
         _SummaryRow(
           assets: assetTotals,
@@ -339,7 +414,7 @@ class _Dashboard extends StatelessWidget {
           active.where((a) => !groupById.containsKey(a.groupId)),
         ),
         if (archived.isNotEmpty) ...[
-          _GroupBand(title: 'Archivadas', trailing: ''),
+          const _GroupBand(title: 'Archivadas', trailing: ''),
           for (final account in archived)
             _AccountRow(
               name: account.name,
@@ -355,18 +430,21 @@ class _Dashboard extends StatelessWidget {
   List<Widget> _groupSection(AccountGroup? group, Iterable<Account> rows) {
     final list = rows.toList();
     if (list.isEmpty) return const [];
+    final isLiability = group?.type == accountGroupTypeLiability;
     final currency = list.first.currency;
     final subtotal = list.fold<int>(0, (s, a) => s + _balance(a));
     return [
       _GroupBand(
         title: group?.name ?? 'Sin grupo',
         trailing: _money(subtotal, currency),
+        trailingColor: _valueColor(subtotal, isLiability),
       ),
       for (final account in list)
         _AccountRow(
           name: account.name,
           value: _money(_balance(account), account.currency),
           muted: _balance(account) == 0,
+          valueColor: _valueColor(_balance(account), isLiability),
           onTap: () => onOpen(account),
         ),
     ];
@@ -439,9 +517,14 @@ class _SummaryItem extends StatelessWidget {
 }
 
 class _GroupBand extends StatelessWidget {
-  const _GroupBand({required this.title, required this.trailing});
+  const _GroupBand({
+    required this.title,
+    required this.trailing,
+    this.trailingColor,
+  });
   final String title;
   final String trailing;
+  final Color? trailingColor;
   @override
   Widget build(BuildContext context) => Container(
     color: AppColors.groupBand,
@@ -457,7 +540,7 @@ class _GroupBand extends StatelessWidget {
           Text(
             trailing,
             style: AppTextStyles.amountMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: trailingColor ?? AppColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -472,11 +555,13 @@ class _AccountRow extends StatelessWidget {
     required this.value,
     required this.muted,
     required this.onTap,
+    this.valueColor,
   });
   final String name;
   final String value;
   final bool muted;
   final VoidCallback? onTap;
+  final Color? valueColor;
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
@@ -497,7 +582,9 @@ class _AccountRow extends StatelessWidget {
             Text(
               value,
               style: AppTextStyles.amountMedium.copyWith(
-                color: muted ? AppColors.textMuted : AppColors.textPrimary,
+                color: muted
+                    ? AppColors.textMuted
+                    : (valueColor ?? AppColors.textPrimary),
               ),
             ),
         ],

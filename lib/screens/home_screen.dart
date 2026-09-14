@@ -6,7 +6,7 @@ import '../core/category_service.dart';
 import '../models/transaction.dart';
 import 'transaction_detail_screen.dart';
 import 'add_transaction_screen.dart';
-import 'account_settings_screen.dart';
+import 'account_settings_screen.dart' show AccountsTabBody;
 import 'settings_screen.dart';
 import 'stats_screen.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfffaf9fd),
-      appBar: _buildAppBar(),
+      appBar: _bottomNavigationIndex == 0 ? _buildAppBar() : null,
       body: _buildSelectedDestination(),
       bottomNavigationBar: _buildBottomNavigation(),
       floatingActionButton: _bottomNavigationIndex == 0
@@ -64,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildSelectedDestination() {
+    if (_bottomNavigationIndex == 2) {
+      return AccountsTabBody(db: widget.db);
+    }
     if (_bottomNavigationIndex != 0) {
       const destinations = [
         ('', Icons.book),
@@ -989,11 +992,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => StatsScreen(db: widget.db)),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => AccountSettingsScreen(db: widget.db)),
       );
     } else if (index == 3) {
       Navigator.push(
