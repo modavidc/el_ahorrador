@@ -6,7 +6,6 @@ import '../data/app_database.dart';
 import '../data/daos.dart';
 import '../theme/app_styles.dart';
 import 'account_detail_screen.dart';
-import 'account_group_settings_screen.dart';
 
 /// Contenido de la pestaña Cuentas, embebido directamente en el body de
 /// HomeScreen (sin Scaffold/AppBar/FAB propios) para que se comporte como
@@ -135,21 +134,19 @@ class _AccountsTabBodyState extends State<AccountsTabBody> {
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.black),
           onSelected: (value) {
-            if (value == 'new') _showAccountDialog();
-            if (value == 'groups') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AccountGroupSettingsScreen(db: widget.db),
-                ),
+            if (value == 'add') {
+              _showAccountDialog();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Próximamente')),
               );
             }
-            if (value == 'manage') _showManagementDialog();
           },
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 'new', child: Text('Nueva cuenta')),
-            PopupMenuItem(value: 'groups', child: Text('Grupos de cuentas')),
-            PopupMenuItem(value: 'manage', child: Text('Administrar cuentas')),
+            PopupMenuItem(value: 'add', child: Text('Agregar')),
+            PopupMenuItem(value: 'show_hide', child: Text('Mostrar/Ocultar')),
+            PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+            PopupMenuItem(value: 'order', child: Text('Modificar orden')),
           ],
         ),
       ],
@@ -160,79 +157,6 @@ class _AccountsTabBodyState extends State<AccountsTabBody> {
     context,
     MaterialPageRoute(
       builder: (_) => AccountDetailScreen(db: widget.db, account: account),
-    ),
-  );
-
-  Future<void> _showManagementDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => StreamBuilder<List<Account>>(
-        stream: _repository.watchAll(),
-        builder: (context, snapshot) => AlertDialog(
-          title: const Text('Administrar cuentas'),
-          content: SizedBox(
-            width: 420,
-            child: snapshot.hasData
-                ? SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: snapshot.data!.map(_manageTile).toList(),
-                    ),
-                  )
-                : const SizedBox(
-                    height: 80,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _manageTile(Account account) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    leading: Icon(
-      account.isArchived
-          ? Icons.archive_outlined
-          : Icons.account_balance_wallet_outlined,
-    ),
-    title: Text(account.name),
-    subtitle: Text(
-      account.isDefault
-          ? 'Predeterminada'
-          : account.isArchived
-          ? 'Archivada'
-          : account.currency,
-    ),
-    trailing: PopupMenuButton<String>(
-      onSelected: (value) async {
-        if (value == 'edit') await _showAccountDialog(account: account);
-        if (value == 'default')
-          await _run(() => _repository.setDefault(account.id));
-        if (value == 'archive')
-          await _run(
-            () => _repository.setArchived(account.id, !account.isArchived),
-          );
-      },
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: 'edit', child: Text('Editar')),
-        if (!account.isDefault && !account.isArchived)
-          const PopupMenuItem(
-            value: 'default',
-            child: Text('Hacer predeterminada'),
-          ),
-        if (!account.isDefault)
-          PopupMenuItem(
-            value: 'archive',
-            child: Text(account.isArchived ? 'Restaurar' : 'Archivar'),
-          ),
-      ],
     ),
   );
 
