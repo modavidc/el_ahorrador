@@ -432,11 +432,8 @@ class _SummaryItem extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
       Text(label, style: AppTextStyles.label),
-      const SizedBox(height: 4),
-      Text(
-        value,
-        style: AppTextStyles.amountMedium.copyWith(color: color, fontSize: 16),
-      ),
+      const SizedBox(height: 2),
+      Text(value, style: AppTextStyles.summaryValue.copyWith(color: color)),
     ],
   );
 }
@@ -452,11 +449,14 @@ class _GroupBand extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(color: AppColors.textSecondary)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
         if (trailing.isNotEmpty)
           Text(
             trailing,
-            style: const TextStyle(
+            style: AppTextStyles.amountMedium.copyWith(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
@@ -489,13 +489,14 @@ class _AccountRow extends StatelessWidget {
           Text(
             name,
             style: TextStyle(
+              fontSize: 14,
               color: muted ? AppColors.textMuted : AppColors.textPrimary,
             ),
           ),
           if (value.isNotEmpty)
             Text(
               value,
-              style: TextStyle(
+              style: AppTextStyles.amountMedium.copyWith(
                 color: muted ? AppColors.textMuted : AppColors.textPrimary,
               ),
             ),

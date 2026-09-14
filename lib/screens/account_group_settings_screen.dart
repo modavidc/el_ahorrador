@@ -64,13 +64,13 @@ class _AccountGroupSettingsScreenState
               ),
               title: Text(
                 group.name,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
               ),
               subtitle: Text(
                 group.type == accountGroupTypeLiability
                     ? 'Tarjeta de crédito'
                     : 'Cuenta normal',
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,

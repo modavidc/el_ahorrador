@@ -26,26 +26,40 @@ abstract final class AppColors {
   static const textPrimary = Color(0xff333333);
   static const textSecondary = Color(0xff888888);
   static const textMuted = Color(0xff9b9b9b);
+
+  /// Gris de las etiquetas (Income/Expenses/Total, PEN, etc.) en
+  /// home_screen.dart — más oscuro que textSecondary, no confundir.
+  static const textCaption = Color(0xff4d4d4d);
 }
 
+/// Tamaños y pesos sacados literalmente de home_screen.dart: label de
+/// _buildSummaryItem (fontSize 12, w400 implícito) y montos de fila
+/// (_buildDayHeader / _buildDailyTransactionItem, fontSize 15, w400 — NO
+/// bold). Antes esta clase tenía valores inventados (13/17 bold) que no
+/// coincidían con la pantalla principal; de ahí el desajuste reportado.
 abstract final class AppTextStyles {
   static const cardTitle = TextStyle(
     fontSize: 18,
     color: Color(0xff222222),
     fontWeight: FontWeight.w600,
   );
-  static const label = TextStyle(
-    fontSize: 13,
-    color: AppColors.textSecondary,
-    fontWeight: FontWeight.w500,
-  );
+
+  /// Etiqueta chica sobre un monto (Assets/Liabilities/Total, PEN...).
+  static const label = TextStyle(fontSize: 12, color: AppColors.textCaption);
+
   static const amountLarge = TextStyle(
     fontSize: 28,
     color: AppColors.textPrimary,
     fontWeight: FontWeight.bold,
   );
+
+  /// Monto de fila (listas, filas de cuenta) — home_screen.dart nunca usa
+  /// bold acá, solo color para distinguir ingreso/gasto.
   static const amountMedium = TextStyle(
-    fontSize: 17,
-    fontWeight: FontWeight.bold,
+    fontSize: 15,
+    fontWeight: FontWeight.w400,
   );
+
+  /// Igual a _buildSummaryItem de home_screen.dart (Income/Expenses/Total).
+  static const summaryValue = TextStyle(fontSize: 14, fontWeight: FontWeight.w400);
 }
