@@ -14,7 +14,10 @@ void main() {
   tearDown(() => db.close());
 
   test('stores a transfer as linked outgoing and incoming movements', () async {
-    final savingsId = await AccountRepository(db).create(name: 'Ahorros');
+    final savingsId = await AccountRepository(db).create(
+      name: 'Ahorros',
+      groupId: AppDatabase.defaultAccountGroupId,
+    );
     await db.insertTransfer(
       id: 'transfer-1',
       dateEpochMs: 1000,

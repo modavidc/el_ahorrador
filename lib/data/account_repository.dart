@@ -123,7 +123,11 @@ class AccountRepository {
     return first.copyWith(isDefault: true);
   }
 
-  Future<String> create({required String name, String currency = 'PEN'}) async {
+  Future<String> create({
+    required String name,
+    required String groupId,
+    String currency = 'PEN',
+  }) async {
     final cleanName = await _validateName(name);
     final maxOrder = _db.accounts.order.max();
     final result = await (_db.selectOnly(
@@ -139,12 +143,22 @@ class AccountRepository {
             id: id,
             name: cleanName,
             currency: Value(currency),
+            groupId: Value(groupId),
             order: nextOrder,
             createdAt: now,
             updatedAt: now,
           ),
         );
     return id;
+  }
+
+  Future<void> setGroup(String id, String groupId) async {
+    await (_db.update(_db.accounts)..where((row) => row.id.equals(id))).write(
+      AccountsCompanion(
+        groupId: Value(groupId),
+        updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+      ),
+    );
   }
 
   Future<void> rename(String id, String name) async {

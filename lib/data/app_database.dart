@@ -57,9 +57,25 @@ class Accounts extends Table {
   TextColumn get name => text()();
   TextColumn get currency => text().withDefault(const Constant('PEN'))();
   TextColumn get icon => text().withDefault(const Constant('wallet'))();
+  TextColumn get groupId => text().nullable()();
   IntColumn get order => integer()();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class AccountGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+
+  /// 'asset' | 'liability' — determina si el subtotal del grupo suma a
+  /// Assets o a Liabilities en la pantalla de Cuentas.
+  TextColumn get type => text().withDefault(const Constant('asset'))();
+  IntColumn get order => integer()();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
 
@@ -95,15 +111,17 @@ class Expenses extends Table {
 }
 
 @DriftDatabase(
-  tables: [Captures, Categories, Subcategories, Accounts, Expenses],
+  tables: [Captures, Categories, Subcategories, Accounts, AccountGroups, Expenses],
 )
 class AppDatabase extends _$AppDatabase {
   static const defaultAccountId = 'account_default';
   AppDatabase() : super(_open());
   AppDatabase.forTesting(super.executor);
 
+  static const defaultAccountGroupId = 'group_default';
+
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -111,6 +129,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await _addAccountBalanceColumns();
       await _initializeMoneyManagerCategories();
+      await _initializeDefaultAccountGroup();
       await _initializeDefaultAccount();
     },
     onUpgrade: (Migrator m, int from, int to) async {
@@ -151,6 +170,19 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await _addAccountBalanceColumns();
       }
+      if (from < 6) {
+        if (!await _hasTable('account_groups')) {
+          await m.createTable(accountGroups);
+        }
+        if (!await _hasColumn('accounts', 'group_id')) {
+          await customStatement('ALTER TABLE accounts ADD COLUMN group_id TEXT');
+        }
+        await _initializeDefaultAccountGroup();
+        await customStatement(
+          'UPDATE accounts SET group_id = ? WHERE group_id IS NULL',
+          [defaultAccountGroupId],
+        );
+      }
     },
   );
 
@@ -184,6 +216,20 @@ class AppDatabase extends _$AppDatabase {
     return rows.isNotEmpty;
   }
 
+  Future<void> _initializeDefaultAccountGroup() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(accountGroups).insert(
+      AccountGroupsCompanion.insert(
+        id: defaultAccountGroupId,
+        name: 'Cuentas',
+        order: 0,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
   Future<void> _initializeDefaultAccount() async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await into(accounts).insert(
@@ -191,6 +237,7 @@ class AppDatabase extends _$AppDatabase {
         id: defaultAccountId,
         name: 'Efectivo',
         order: 0,
+        groupId: const Value(defaultAccountGroupId),
         isDefault: const Value(true),
         createdAt: now,
         updatedAt: now,

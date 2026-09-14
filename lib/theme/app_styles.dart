@@ -10,6 +10,9 @@ abstract final class AppColors {
   static const cardBackground = Colors.white;
   static const border = Color(0xffdddddd);
 
+  /// Banda de encabezado de grupo en listas planas (ej. Cuentas agrupadas).
+  static const groupBand = Color(0xfff2f2f5);
+
   /// Acento principal (FAB, botones primarios).
   static const accent = Color(0xfff45b55);
   static const tabIndicator = Color(0xffef625d);

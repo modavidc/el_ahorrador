@@ -16,8 +16,8 @@ void main() {
   tearDown(() => db.close());
 
   test('creates, renames and orders active accounts', () async {
-    final firstId = await repository.create(name: 'BCP');
-    final secondId = await repository.create(name: 'Yape');
+    final firstId = await repository.create(name: 'BCP', groupId: AppDatabase.defaultAccountGroupId);
+    final secondId = await repository.create(name: 'Yape', groupId: AppDatabase.defaultAccountGroupId);
 
     await repository.rename(firstId, 'BCP Soles');
     await repository.reorder([secondId, firstId, AppDatabase.defaultAccountId]);
@@ -33,7 +33,7 @@ void main() {
   test(
     'default account cannot be archived and a new default is active',
     () async {
-      final id = await repository.create(name: 'Tarjeta');
+      final id = await repository.create(name: 'Tarjeta', groupId: AppDatabase.defaultAccountGroupId);
 
       expect(
         () => repository.setArchived(AppDatabase.defaultAccountId, true),
@@ -61,7 +61,7 @@ void main() {
   });
 
   test('archived accounts disappear from selectors', () async {
-    final id = await repository.create(name: 'Ahorros');
+    final id = await repository.create(name: 'Ahorros', groupId: AppDatabase.defaultAccountGroupId);
     await repository.setArchived(id, true);
 
     final active = await repository.watchActive().first;
@@ -71,7 +71,7 @@ void main() {
   test(
     'calculates account balance from starting balance and signed movements',
     () async {
-      final id = await repository.create(name: 'BCP');
+      final id = await repository.create(name: 'BCP', groupId: AppDatabase.defaultAccountGroupId);
       await repository.setStartingBalance(id, startingBalanceCents: 10000);
       await db.insertExpenseFromParser(
         id: 'income-1',
@@ -95,7 +95,7 @@ void main() {
   );
 
   test('observes balance changes', () async {
-    final id = await repository.create(name: 'Yape');
+    final id = await repository.create(name: 'Yape', groupId: AppDatabase.defaultAccountGroupId);
     final values = <int>[];
     final subscription = repository
         .watchBalance(id)

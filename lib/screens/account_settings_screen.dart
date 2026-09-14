@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../data/account_group_repository.dart';
 import '../data/account_repository.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
 import '../theme/app_styles.dart';
 import 'account_detail_screen.dart';
+import 'account_group_settings_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key, required this.db});
@@ -15,6 +17,9 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   late final AccountRepository _repository = AccountRepository(widget.db);
+  late final AccountGroupRepository _groupRepository = AccountGroupRepository(
+    widget.db,
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -23,6 +28,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       title: const Text('Cuentas'),
       actions: [
         IconButton(
+          tooltip: 'Grupos de cuentas',
+          icon: const Icon(Icons.folder_outlined),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AccountGroupSettingsScreen(db: widget.db),
+            ),
+          ),
+        ),
+        IconButton(
           tooltip: 'Administrar cuentas',
           icon: const Icon(Icons.tune_rounded),
           onPressed: _showManagementDialog,
@@ -30,41 +45,51 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       ],
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: _showNameDialog,
+      onPressed: () => _showAccountDialog(),
       backgroundColor: AppColors.accent,
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add),
       label: const Text('Nueva cuenta'),
     ),
-    body: StreamBuilder<List<Account>>(
-      stream: _repository.watchAll(),
-      builder: (context, accountsSnapshot) {
-        if (accountsSnapshot.hasError)
-          return const _Message('No pudimos cargar las cuentas.');
-        if (!accountsSnapshot.hasData)
+    body: StreamBuilder<List<AccountGroup>>(
+      stream: _groupRepository.watchAll(),
+      builder: (context, groupsSnapshot) {
+        if (groupsSnapshot.hasError)
+          return const _Message('No pudimos cargar los grupos.');
+        if (!groupsSnapshot.hasData)
           return const Center(child: CircularProgressIndicator());
-        return StreamBuilder<List<Expense>>(
-          stream: widget.db.watchExpenses(),
-          builder: (context, expensesSnapshot) {
-            if (expensesSnapshot.hasError)
-              return const _Message('No pudimos cargar los movimientos.');
-            if (!expensesSnapshot.hasData)
+        return StreamBuilder<List<Account>>(
+          stream: _repository.watchAll(),
+          builder: (context, accountsSnapshot) {
+            if (accountsSnapshot.hasError)
+              return const _Message('No pudimos cargar las cuentas.');
+            if (!accountsSnapshot.hasData)
               return const Center(child: CircularProgressIndicator());
-            return StreamBuilder<List<AccountBalance>>(
-              stream: _repository.watchBalances(),
-              builder: (context, balanceSnapshot) {
-                if (balanceSnapshot.hasError)
-                  return const _Message('No pudimos calcular los saldos.');
-                if (!balanceSnapshot.hasData)
+            return StreamBuilder<List<Expense>>(
+              stream: widget.db.watchExpenses(),
+              builder: (context, expensesSnapshot) {
+                if (expensesSnapshot.hasError)
+                  return const _Message('No pudimos cargar los movimientos.');
+                if (!expensesSnapshot.hasData)
                   return const Center(child: CircularProgressIndicator());
-                return _Dashboard(
-                  accounts: accountsSnapshot.data!,
-                  expenses: expensesSnapshot.data!,
-                  balances: {
-                    for (final item in balanceSnapshot.data!)
-                      item.accountId: item,
+                return StreamBuilder<List<AccountBalance>>(
+                  stream: _repository.watchBalances(),
+                  builder: (context, balanceSnapshot) {
+                    if (balanceSnapshot.hasError)
+                      return const _Message('No pudimos calcular los saldos.');
+                    if (!balanceSnapshot.hasData)
+                      return const Center(child: CircularProgressIndicator());
+                    return _Dashboard(
+                      groups: groupsSnapshot.data!,
+                      accounts: accountsSnapshot.data!,
+                      expenses: expensesSnapshot.data!,
+                      balances: {
+                        for (final item in balanceSnapshot.data!)
+                          item.accountId: item,
+                      },
+                      onOpen: _openDetail,
+                    );
                   },
-                  onOpen: _openDetail,
                 );
               },
             );
@@ -130,7 +155,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     ),
     trailing: PopupMenuButton<String>(
       onSelected: (value) async {
-        if (value == 'edit') await _showNameDialog(account: account);
+        if (value == 'edit') await _showAccountDialog(account: account);
         if (value == 'default')
           await _run(() => _repository.setDefault(account.id));
         if (value == 'archive')
@@ -154,37 +179,78 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     ),
   );
 
-  Future<void> _showNameDialog({Account? account}) async {
+  Future<void> _showAccountDialog({Account? account}) async {
+    final groups = await _groupRepository.watchAll().first;
+    if (groups.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Primero creá un grupo de cuentas.')),
+        );
+      }
+      return;
+    }
     final controller = TextEditingController(text: account?.name);
-    final name = await showDialog<String>(
+    String groupId =
+        account?.groupId ??
+        (groups.any((g) => g.id == AppDatabase.defaultAccountGroupId)
+            ? AppDatabase.defaultAccountGroupId
+            : groups.first.id);
+    if (!groups.any((g) => g.id == groupId)) groupId = groups.first.id;
+
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(account == null ? 'Nueva cuenta' : 'Editar cuenta'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Nombre'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(account == null ? 'Nueva cuenta' : 'Editar cuenta'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: groupId,
+                decoration: const InputDecoration(labelText: 'Grupo'),
+                items: groups
+                    .map(
+                      (g) => DropdownMenuItem(value: g.id, child: Text(g.name)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setDialogState(() => groupId = value ?? groupId),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Guardar'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
       ),
     );
-    controller.dispose();
-    if (name == null) return;
-    await _run(
-      () => account == null
-          ? _repository.create(name: name)
-          : _repository.rename(account.id, name),
-    );
+    if (saved != true) return;
+    final name = controller.text;
+    await _run(() async {
+      if (account == null) {
+        await _repository.create(name: name, groupId: groupId);
+      } else {
+        await _repository.rename(account.id, name);
+        if (groupId != account.groupId) {
+          await _repository.setGroup(account.id, groupId);
+        }
+      }
+    });
   }
 
   Future<void> _run(Future<Object?> Function() action) async {
@@ -205,27 +271,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
 class _Dashboard extends StatelessWidget {
   const _Dashboard({
+    required this.groups,
     required this.accounts,
     required this.expenses,
     required this.balances,
     required this.onOpen,
   });
+  final List<AccountGroup> groups;
   final List<Account> accounts;
   final List<Expense> expenses;
   final Map<String, AccountBalance> balances;
   final ValueChanged<Account> onOpen;
+
   int _balance(Account a) =>
       balances[a.id]?.balanceCents ??
       expenses
           .where((e) => e.accountId == a.id)
           .fold(0, (s, e) => s + e.amountCents);
-  bool _liability(Account a) {
-    final n = a.name.toLowerCase();
-    return n.contains('tarjeta') ||
-        n.contains('card') ||
-        n.contains('crédito') ||
-        n.contains('credito');
-  }
 
   String _money(int cents, String currency) =>
       '${currency == 'PEN' ? 'S/' : currency} ${(cents.abs() / 100).toStringAsFixed(2)}';
@@ -233,212 +295,224 @@ class _Dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = accounts.where((a) => !a.isArchived).toList();
-    final assets = active.where((a) => !_liability(a)).toList();
-    final debts = active.where(_liability).toList();
-    final totals = _byCurrency(active);
-    final assetTotals = _byCurrency(assets);
-    final debtTotals = _byCurrency(debts);
+    final archived = accounts.where((a) => a.isArchived).toList();
+    final groupById = {for (final g in groups) g.id: g};
+
+    final assetTotals = <String, int>{};
+    final liabilityTotals = <String, int>{};
+    final netTotals = <String, int>{};
+    for (final account in active) {
+      final balance = _balance(account);
+      final group = groupById[account.groupId];
+      final isLiability = group?.type == accountGroupTypeLiability;
+      netTotals.update(
+        account.currency,
+        (v) => v + balance,
+        ifAbsent: () => balance,
+      );
+      final bucket = isLiability ? liabilityTotals : assetTotals;
+      bucket.update(
+        account.currency,
+        (v) => v + balance,
+        ifAbsent: () => balance,
+      );
+    }
+
+    if (active.isEmpty && archived.isEmpty) {
+      return const _EmptyAccounts();
+    }
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      padding: const EdgeInsets.only(bottom: 100),
       children: [
-        _TotalsCard(
-          total: totals,
+        _SummaryRow(
           assets: assetTotals,
-          debts: debtTotals,
+          liabilities: liabilityTotals,
+          total: netTotals,
           money: _money,
         ),
-        const SizedBox(height: 24),
-        if (active.isEmpty)
-          const _EmptyAccounts()
-        else ...[
-          if (assets.isNotEmpty)
-            _AccountGroup(
-              title: 'Activos',
-              icon: Icons.account_balance_wallet_outlined,
-              accounts: assets,
-              balance: _balance,
-              money: _money,
-              onOpen: onOpen,
+        const Divider(height: 1, color: AppColors.border),
+        for (final group in groups)
+          ..._groupSection(group, active.where((a) => a.groupId == group.id)),
+        ..._groupSection(
+          null,
+          active.where((a) => !groupById.containsKey(a.groupId)),
+        ),
+        if (archived.isNotEmpty) ...[
+          _GroupBand(title: 'Archivadas', trailing: ''),
+          for (final account in archived)
+            _AccountRow(
+              name: account.name,
+              value: '',
+              muted: true,
+              onTap: null,
             ),
-          if (debts.isNotEmpty)
-            _AccountGroup(
-              title: 'Tarjetas y deudas',
-              icon: Icons.credit_card_outlined,
-              accounts: debts,
-              balance: _balance,
-              money: _money,
-              onOpen: onOpen,
-            ),
-        ],
-        if (accounts.any((a) => a.isArchived)) ...[
-          const SizedBox(height: 12),
-          Text(
-            'Archivadas',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          ...accounts
-              .where((a) => a.isArchived)
-              .map(
-                (a) => ListTile(
-                  leading: const Icon(Icons.archive_outlined),
-                  title: Text(a.name),
-                  subtitle: const Text('Historial conservado'),
-                ),
-              ),
         ],
       ],
     );
   }
 
-  Map<String, int> _byCurrency(List<Account> rows) => {
-    for (final currency in rows.map((a) => a.currency).toSet())
-      currency: rows
-          .where((a) => a.currency == currency)
-          .fold(0, (s, a) => s + _balance(a)),
-  };
+  List<Widget> _groupSection(AccountGroup? group, Iterable<Account> rows) {
+    final list = rows.toList();
+    if (list.isEmpty) return const [];
+    final currency = list.first.currency;
+    final subtotal = list.fold<int>(0, (s, a) => s + _balance(a));
+    return [
+      _GroupBand(
+        title: group?.name ?? 'Sin grupo',
+        trailing: _money(subtotal, currency),
+      ),
+      for (final account in list)
+        _AccountRow(
+          name: account.name,
+          value: _money(_balance(account), account.currency),
+          muted: _balance(account) == 0,
+          onTap: () => onOpen(account),
+        ),
+    ];
+  }
 }
 
-class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({
-    required this.total,
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
     required this.assets,
-    required this.debts,
+    required this.liabilities,
+    required this.total,
     required this.money,
   });
-  final Map<String, int> total, assets, debts;
+  final Map<String, int> assets, liabilities, total;
   final String Function(int, String) money;
+
+  String _format(Map<String, int> values) => values.isEmpty
+      ? money(0, 'PEN')
+      : values.entries.map((e) => money(e.value, e.key)).join(' · ');
+
   @override
-  Widget build(BuildContext context) => Card(
-    elevation: 0,
-    color: AppColors.cardBackground,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(24),
-      side: const BorderSide(color: AppColors.border),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    child: Row(
+      children: [
+        Expanded(
+          child: _SummaryItem(
+            label: 'Assets',
+            value: _format(assets),
+            color: AppColors.income,
+          ),
+        ),
+        Expanded(
+          child: _SummaryItem(
+            label: 'Liabilities',
+            value: _format(liabilities),
+            color: AppColors.expense,
+          ),
+        ),
+        Expanded(
+          child: _SummaryItem(
+            label: 'Total',
+            value: _format(total),
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
     ),
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  );
+}
+
+class _SummaryItem extends StatelessWidget {
+  const _SummaryItem({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Text(label, style: AppTextStyles.label),
+      const SizedBox(height: 4),
+      Text(
+        value,
+        style: AppTextStyles.amountMedium.copyWith(color: color, fontSize: 16),
+      ),
+    ],
+  );
+}
+
+class _GroupBand extends StatelessWidget {
+  const _GroupBand({required this.title, required this.trailing});
+  final String title;
+  final String trailing;
+  @override
+  Widget build(BuildContext context) => Container(
+    color: AppColors.groupBand,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(color: AppColors.textSecondary)),
+        if (trailing.isNotEmpty)
+          Text(
+            trailing,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _AccountRow extends StatelessWidget {
+  const _AccountRow({
+    required this.name,
+    required this.value,
+    required this.muted,
+    required this.onTap,
+  });
+  final String name;
+  final String value;
+  final bool muted;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Container(
+      color: AppColors.cardBackground,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('BALANCE TOTAL', style: AppTextStyles.label),
-          const SizedBox(height: 6),
-          ...total.entries.map(
-            (entry) =>
-                Text(money(entry.value, entry.key), style: AppTextStyles.amountLarge),
+          Text(
+            name,
+            style: TextStyle(
+              color: muted ? AppColors.textMuted : AppColors.textPrimary,
+            ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _Metric('Activos', _format(assets), AppColors.income),
-              const SizedBox(width: 28),
-              _Metric('Deudas', _format(debts), AppColors.expense),
-            ],
-          ),
+          if (value.isNotEmpty)
+            Text(
+              value,
+              style: TextStyle(
+                color: muted ? AppColors.textMuted : AppColors.textPrimary,
+              ),
+            ),
         ],
       ),
     ),
-  );
-
-  String _format(Map<String, int> values) =>
-      values.entries.map((e) => money(e.value, e.key)).join(' · ');
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric(this.label, this.value, this.color);
-  final String label, value;
-  final Color color;
-  @override
-  Widget build(BuildContext c) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: AppTextStyles.label),
-      Text(value, style: AppTextStyles.amountMedium.copyWith(color: color)),
-    ],
-  );
-}
-
-class _AccountGroup extends StatelessWidget {
-  const _AccountGroup({
-    required this.title,
-    required this.icon,
-    required this.accounts,
-    required this.balance,
-    required this.money,
-    required this.onOpen,
-  });
-  final String title;
-  final IconData icon;
-  final List<Account> accounts;
-  final int Function(Account) balance;
-  final String Function(int, String) money;
-  final ValueChanged<Account> onOpen;
-  @override
-  Widget build(BuildContext c) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: Theme.of(
-          c,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 8),
-      Card(
-        elevation: 0,
-        color: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.border),
-        ),
-        child: Column(
-          children: accounts
-              .map(
-                (a) => ListTile(
-                  onTap: () => onOpen(a),
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xffedf0f7),
-                    child: Icon(icon, color: const Color(0xff475569)),
-                  ),
-                  title: Text(
-                    a.name,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                  ),
-                  subtitle: Text(
-                    a.isDefault ? 'Predeterminada · ${a.currency}' : a.currency,
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                  trailing: Text(
-                    money(balance(a), a.currency),
-                    style: AppTextStyles.amountMedium.copyWith(
-                      fontSize: 16,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ),
-      const SizedBox(height: 20),
-    ],
   );
 }
 
 class _EmptyAccounts extends StatelessWidget {
   const _EmptyAccounts();
   @override
-  Widget build(BuildContext c) => Card(
-    elevation: 0,
-    color: AppColors.cardBackground,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: const BorderSide(color: AppColors.border),
-    ),
+  Widget build(BuildContext c) => Center(
     child: Padding(
       padding: const EdgeInsets.all(28),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
             Icons.account_balance_wallet_outlined,
