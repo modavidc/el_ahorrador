@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/account_repository.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
+import '../theme/app_styles.dart';
 import 'account_detail_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xfff8f7fb),
+    backgroundColor: AppColors.background,
     appBar: AppBar(
       title: const Text('Cuentas'),
       actions: [
@@ -30,6 +31,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _showNameDialog,
+      backgroundColor: AppColors.accent,
+      foregroundColor: Colors.white,
       icon: const Icon(Icons.add),
       label: const Text('Nueva cuenta'),
     ),
@@ -309,38 +312,28 @@ class _TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     elevation: 0,
-    color: const Color(0xff20242d),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    color: AppColors.cardBackground,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: const BorderSide(color: AppColors.border),
+    ),
     child: Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'BALANCE TOTAL',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          const Text('BALANCE TOTAL', style: AppTextStyles.label),
           const SizedBox(height: 6),
           ...total.entries.map(
-            (entry) => Text(
-              money(entry.value, entry.key),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            (entry) =>
+                Text(money(entry.value, entry.key), style: AppTextStyles.amountLarge),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              _Metric('Activos', _format(assets), const Color(0xff8ed6a5)),
+              _Metric('Activos', _format(assets), AppColors.income),
               const SizedBox(width: 28),
-              _Metric('Deudas', _format(debts), const Color(0xffffa39d)),
+              _Metric('Deudas', _format(debts), AppColors.expense),
             ],
           ),
         ],
@@ -360,15 +353,8 @@ class _Metric extends StatelessWidget {
   Widget build(BuildContext c) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label, style: const TextStyle(color: Colors.white60)),
-      Text(
-        value,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 17,
-        ),
-      ),
+      Text(label, style: AppTextStyles.label),
+      Text(value, style: AppTextStyles.amountMedium.copyWith(color: color)),
     ],
   );
 }
@@ -401,6 +387,11 @@ class _AccountGroup extends StatelessWidget {
       const SizedBox(height: 8),
       Card(
         elevation: 0,
+        color: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border),
+        ),
         child: Column(
           children: accounts
               .map(
@@ -410,15 +401,19 @@ class _AccountGroup extends StatelessWidget {
                     backgroundColor: const Color(0xffedf0f7),
                     child: Icon(icon, color: const Color(0xff475569)),
                   ),
-                  title: Text(a.name),
+                  title: Text(
+                    a.name,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                  ),
                   subtitle: Text(
                     a.isDefault ? 'Predeterminada · ${a.currency}' : a.currency,
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                   trailing: Text(
                     money(balance(a), a.currency),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.amountMedium.copyWith(
                       fontSize: 16,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -435,6 +430,12 @@ class _EmptyAccounts extends StatelessWidget {
   const _EmptyAccounts();
   @override
   Widget build(BuildContext c) => Card(
+    elevation: 0,
+    color: AppColors.cardBackground,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: const BorderSide(color: AppColors.border),
+    ),
     child: Padding(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -442,15 +443,18 @@ class _EmptyAccounts extends StatelessWidget {
           const Icon(
             Icons.account_balance_wallet_outlined,
             size: 48,
-            color: Colors.grey,
+            color: AppColors.textMuted,
           ),
           const SizedBox(height: 12),
-          const Text('Aún no tienes cuentas'),
+          const Text(
+            'Aún no tienes cuentas',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
           const SizedBox(height: 6),
-          Text(
+          const Text(
             'Crea una cuenta para saber dónde está tu dinero.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
         ],
       ),

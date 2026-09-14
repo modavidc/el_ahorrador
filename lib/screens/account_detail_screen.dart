@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/app_database.dart';
 import '../data/daos.dart';
 import '../data/account_repository.dart';
+import '../theme/app_styles.dart';
 
 class AccountDetailScreen extends StatelessWidget {
   const AccountDetailScreen({
@@ -23,7 +24,7 @@ class AccountDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xfff8f7fb),
+    backgroundColor: AppColors.background,
     appBar: AppBar(
       title: Text(account.name),
       actions: [
@@ -61,14 +62,14 @@ class AccountDetailScreen extends StatelessWidget {
             .map(
               (row) => ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: row.amountCents >= 0
-                      ? const Color(0xffe5f5ea)
-                      : const Color(0xffffe9e7),
+                  backgroundColor: const Color(0xffedf0f7),
                   child: Icon(
                     row.amountCents >= 0
                         ? Icons.arrow_downward
                         : Icons.arrow_upward,
-                    color: row.amountCents >= 0 ? Colors.green : Colors.red,
+                    color: row.amountCents >= 0
+                        ? AppColors.income
+                        : AppColors.expense,
                     size: 19,
                   ),
                 ),
@@ -78,14 +79,18 @@ class AccountDetailScreen extends StatelessWidget {
                       : (row.description?.trim().isNotEmpty == true
                             ? row.description!
                             : 'Movimiento'),
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
-                subtitle: Text(_date(row.date)),
+                subtitle: Text(
+                  _date(row.date),
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
                 trailing: Text(
                   '${row.amountCents >= 0 ? '+' : '-'}${_money(row.amountCents)}',
                   style: TextStyle(
                     color: row.amountCents >= 0
-                        ? Colors.green.shade700
-                        : Colors.red.shade700,
+                        ? AppColors.income
+                        : AppColors.expense,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -114,6 +119,11 @@ class AccountDetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Card(
               elevation: 0,
+              color: AppColors.cardBackground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.border),
+              ),
               child: SizedBox(
                 height: 170,
                 child: Padding(
@@ -134,23 +144,38 @@ class AccountDetailScreen extends StatelessWidget {
                 ),
                 Text(
                   '${rows.length}',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             rows.isEmpty
-                ? const Card(
-                    child: Padding(
+                ? Card(
+                    elevation: 0,
+                    color: AppColors.cardBackground,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    child: const Padding(
                       padding: EdgeInsets.all(24),
                       child: Center(
                         child: Text(
                           'Todavía no hay movimientos en esta cuenta.',
+                          style: TextStyle(color: AppColors.textSecondary),
                         ),
                       ),
                     ),
                   )
-                : Card(elevation: 0, child: Column(children: movementWidgets)),
+                : Card(
+                    elevation: 0,
+                    color: AppColors.cardBackground,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    child: Column(children: movementWidgets),
+                  ),
           ],
         );
       },
@@ -217,33 +242,28 @@ class AccountDetailScreen extends StatelessWidget {
     int? balanceCents,
   }) => Card(
     elevation: 0,
-    color: const Color(0xff20242d),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    color: AppColors.cardBackground,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: const BorderSide(color: AppColors.border),
+    ),
     child: Padding(
       padding: const EdgeInsets.all(22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(account.currency, style: const TextStyle(color: Colors.white60)),
+          Text(account.currency, style: AppTextStyles.label),
           const SizedBox(height: 4),
           Text(
             _money(balanceCents ?? _balance(rows)),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 31,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTextStyles.amountLarge.copyWith(fontSize: 31),
           ),
           const SizedBox(height: 18),
           Row(
             children: [
-              _DetailMetric(
-                'Ingresos',
-                _money(income),
-                const Color(0xff8ed6a5),
-              ),
+              _DetailMetric('Ingresos', _money(income), AppColors.income),
               const SizedBox(width: 24),
-              _DetailMetric('Gastos', _money(spent), const Color(0xffffa39d)),
+              _DetailMetric('Gastos', _money(spent), AppColors.expense),
             ],
           ),
         ],
@@ -260,15 +280,8 @@ class _DetailMetric extends StatelessWidget {
   Widget build(BuildContext c) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label, style: const TextStyle(color: Colors.white60)),
-      Text(
-        value,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
+      Text(label, style: AppTextStyles.label),
+      Text(value, style: AppTextStyles.amountMedium.copyWith(color: color)),
     ],
   );
 }
@@ -305,11 +318,11 @@ class _ChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final line = Paint()
-      ..color = const Color(0xff536dfe)
+      ..color = AppColors.income
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
     final fill = Paint()
-      ..color = const Color(0xff536dfe).withOpacity(.1)
+      ..color = AppColors.income.withOpacity(.1)
       ..style = PaintingStyle.fill;
     final minV = values.reduce(math.min).toDouble();
     final maxV = values.reduce(math.max).toDouble();
