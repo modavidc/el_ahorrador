@@ -1,21 +1,27 @@
 # Instrucciones de trabajo del repositorio
 
-## Worktree obligatorio
+## Ramas
 
-Todos los cambios de código, documentación, configuración, pruebas y demás
-archivos del proyecto deben realizarse exclusivamente en este worktree:
+- La rama principal es `main`. No existe `develop`.
+- Cada cambio se hace en una rama corta y entra a `main` por PR con CI en verde.
 
-`Z:\el_ahorrador\.worktrees\develop`
+## Alcance
 
-La rama de trabajo es `develop`.
+- El objetivo es la v1 descrita en `README.md` y en `design/`.
+- `design/tokens.json` es la fuente de verdad visual: nada de colores, fontSize,
+  paddings o radios literales en pantallas nuevas.
+- Las ideas fuera de la v1 van a `docs/ideas.md`, no a código ni a nuevos `.md`
+  en la raíz.
 
-Antes de editar archivos o ejecutar comandos que puedan modificar el proyecto,
-se debe confirmar que:
+## Documentación
 
-1. El directorio de trabajo es `Z:\el_ahorrador\.worktrees\develop`.
-2. `git branch --show-current` devuelve `develop`.
+- Specs vigentes en `docs/specs/`. No crear `.md` sueltos en la raíz.
+- `assets/import/` contiene datos financieros personales y está en `.gitignore`:
+  nunca commitear su contenido.
 
-El worktree principal `Z:\el_ahorrador`, correspondiente a `main`, puede
-inspeccionarse cuando sea necesario, pero no debe modificarse salvo que el
-usuario lo autorice expresamente.
+## Validación antes de subir
 
+```bash
+flutter analyze --no-fatal-infos --no-fatal-warnings
+flutter test
+```
