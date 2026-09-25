@@ -56,4 +56,5 @@ app.*.map.json
 /android/app/release
 
 # Personal financial data (import CSV) - never commit, contains real transactions
-/assets/import/
+/assets/import/*
+!/assets/import/.gitkeep
