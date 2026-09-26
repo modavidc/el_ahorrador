@@ -18,6 +18,7 @@ class AppLockGate extends StatefulWidget {
     this.authenticator,
     this.controller,
     this.gracePeriod = const Duration(minutes: 5),
+    this.startUnlocked = false,
     super.key,
   });
 
@@ -25,6 +26,10 @@ class AppLockGate extends StatefulWidget {
   final LocalAuthenticator? authenticator;
   final AppLockController? controller;
   final Duration gracePeriod;
+
+  /// True when the user has just authenticated elsewhere (for example to turn
+  /// the lock on from Ajustes), so the gate must not prompt again right away.
+  final bool startUnlocked;
 
   @override
   State<AppLockGate> createState() => _AppLockGateState();
@@ -44,6 +49,10 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     super.initState();
     _authenticator = widget.authenticator ?? SystemLocalAuthenticator();
     _monotonicClock.start();
+    if (widget.startUnlocked) {
+      _locked = false;
+      _lastAuthenticatedAt = Duration.zero;
+    }
     widget.controller?._lockCallback = _lock;
     WidgetsBinding.instance.addObserver(this);
   }

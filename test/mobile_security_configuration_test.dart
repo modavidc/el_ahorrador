@@ -24,16 +24,14 @@ void main() {
     expect(config, contains('<bool name="block_screenshots">false</bool>'));
   });
 
-  test(
-    'local authentication is disabled by default and build-configurable',
-    () {
-      final config = source('lib/config/security_config.dart');
-      final main = source('lib/main.dart');
-      expect(config, contains("'ENABLE_APP_LOCK'"));
-      expect(config, contains('defaultValue: false'));
-      expect(main, contains('SecurityConfig.enableAppLock'));
-    },
-  );
+  test('local authentication is a user setting, disabled by default', () {
+    final settings = source('lib/security/app_lock_settings.dart');
+    final main = source('lib/main.dart');
+    expect(settings, contains('AppLockSettings.disabled()'));
+    expect(settings, contains('FlutterSecureStorage'));
+    expect(main, contains('AppLockSettings.load('));
+    expect(main, contains('AppLockGate('));
+  });
 
   test('iOS installs a privacy shield before becoming inactive', () {
     final delegate = source('ios/Runner/AppDelegate.swift');
