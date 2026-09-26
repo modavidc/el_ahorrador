@@ -1,0 +1,87 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+
+import '../features/ledger/ledger.dart';
+
+/// Everything the v1 screens read, kept up to date from the database.
+final class LedgerData {
+  const LedgerData({
+    required this.repository,
+    required this.movements,
+    required this.accounts,
+    required this.budgets,
+    required this.loaded,
+  });
+
+  final LedgerRepository repository;
+  final List<Movement> movements;
+  final List<LedgerAccount> accounts;
+  final Map<String, int> budgets;
+  final bool loaded;
+}
+
+/// Subscribes once to the ledger streams and exposes the latest snapshot to
+/// every screen below it.
+class LedgerProvider extends StatefulWidget {
+  const LedgerProvider({
+    super.key,
+    required this.repository,
+    required this.child,
+  });
+
+  final LedgerRepository repository;
+  final Widget child;
+
+  @override
+  State<LedgerProvider> createState() => _LedgerProviderState();
+}
+
+class _LedgerProviderState extends State<LedgerProvider> {
+  final _subscriptions = <StreamSubscription<Object>>[];
+  List<Movement>? _movements;
+  List<LedgerAccount>? _accounts;
+  Map<String, int>? _budgets;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.repository;
+    _subscriptions
+      ..add(r.watchMovements().listen((v) => setState(() => _movements = v)))
+      ..add(r.watchAccounts().listen((v) => setState(() => _accounts = v)))
+      ..add(r.watchBudgets().listen((v) => setState(() => _budgets = v)));
+  }
+
+  @override
+  void dispose() {
+    for (final s in _subscriptions) {
+      s.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LedgerScope(
+    data: LedgerData(
+      repository: widget.repository,
+      movements: _movements ?? const [],
+      accounts: _accounts ?? const [],
+      budgets: _budgets ?? const {},
+      loaded: _movements != null && _accounts != null && _budgets != null,
+    ),
+    child: widget.child,
+  );
+}
+
+class LedgerScope extends InheritedWidget {
+  const LedgerScope({super.key, required this.data, required super.child});
+
+  final LedgerData data;
+
+  static LedgerData of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<LedgerScope>()!.data;
+
+  @override
+  bool updateShouldNotify(LedgerScope oldWidget) => data != oldWidget.data;
+}

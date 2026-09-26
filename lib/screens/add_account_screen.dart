@@ -235,10 +235,12 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
 
     setState(() => _saving = true);
     try {
+      final accountDescription = _descriptionController.text.trim();
       final id = await _repository.create(
         name: name,
         groupId: _groupId!,
         currency: _currency,
+        description: accountDescription.isEmpty ? null : accountDescription,
       );
       if (recordAsIncome) {
         // El monto ya queda reflejado por el movimiento en sí — si

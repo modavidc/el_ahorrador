@@ -3,6 +3,214 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $AppSettingsTable extends AppSettings
+    with TableInfo<$AppSettingsTable, AppSetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppSetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  AppSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppSetting(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $AppSettingsTable createAlias(String alias) {
+    return $AppSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class AppSetting extends DataClass implements Insertable<AppSetting> {
+  final String key;
+  final String value;
+  const AppSetting({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  AppSettingsCompanion toCompanion(bool nullToAbsent) {
+    return AppSettingsCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory AppSetting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppSetting(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  AppSetting copyWith({String? key, String? value}) =>
+      AppSetting(key: key ?? this.key, value: value ?? this.value);
+  AppSetting copyWithCompanion(AppSettingsCompanion data) {
+    return AppSetting(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSetting(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppSetting &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const AppSettingsCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AppSettingsCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<AppSetting> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AppSettingsCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return AppSettingsCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSettingsCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CapturesTable extends Captures with TableInfo<$CapturesTable, Capture> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1590,6 +1798,28 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _creditLimitCentsMeta = const VerificationMeta(
+    'creditLimitCents',
+  );
+  @override
+  late final GeneratedColumn<int> creditLimitCents = GeneratedColumn<int>(
+    'credit_limit_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1602,6 +1832,8 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     isArchived,
     createdAt,
     updatedAt,
+    description,
+    creditLimitCents,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1682,6 +1914,24 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('credit_limit_cents')) {
+      context.handle(
+        _creditLimitCentsMeta,
+        creditLimitCents.isAcceptableOrUnknown(
+          data['credit_limit_cents']!,
+          _creditLimitCentsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1731,6 +1981,14 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      creditLimitCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}credit_limit_cents'],
+      ),
     );
   }
 
@@ -1751,6 +2009,12 @@ class Account extends DataClass implements Insertable<Account> {
   final bool isArchived;
   final int createdAt;
   final int updatedAt;
+
+  /// Subtitle shown under the account ("Cuenta sueldo").
+  final String? description;
+
+  /// Credit line of a card account, shown as "Por pagar · línea S/. X".
+  final int? creditLimitCents;
   const Account({
     required this.id,
     required this.name,
@@ -1762,6 +2026,8 @@ class Account extends DataClass implements Insertable<Account> {
     required this.isArchived,
     required this.createdAt,
     required this.updatedAt,
+    this.description,
+    this.creditLimitCents,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1778,6 +2044,12 @@ class Account extends DataClass implements Insertable<Account> {
     map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || creditLimitCents != null) {
+      map['credit_limit_cents'] = Variable<int>(creditLimitCents);
+    }
     return map;
   }
 
@@ -1795,6 +2067,12 @@ class Account extends DataClass implements Insertable<Account> {
       isArchived: Value(isArchived),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      creditLimitCents: creditLimitCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(creditLimitCents),
     );
   }
 
@@ -1814,6 +2092,8 @@ class Account extends DataClass implements Insertable<Account> {
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      description: serializer.fromJson<String?>(json['description']),
+      creditLimitCents: serializer.fromJson<int?>(json['creditLimitCents']),
     );
   }
   @override
@@ -1830,6 +2110,8 @@ class Account extends DataClass implements Insertable<Account> {
       'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'description': serializer.toJson<String?>(description),
+      'creditLimitCents': serializer.toJson<int?>(creditLimitCents),
     };
   }
 
@@ -1844,6 +2126,8 @@ class Account extends DataClass implements Insertable<Account> {
     bool? isArchived,
     int? createdAt,
     int? updatedAt,
+    Value<String?> description = const Value.absent(),
+    Value<int?> creditLimitCents = const Value.absent(),
   }) => Account(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -1855,6 +2139,10 @@ class Account extends DataClass implements Insertable<Account> {
     isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    description: description.present ? description.value : this.description,
+    creditLimitCents: creditLimitCents.present
+        ? creditLimitCents.value
+        : this.creditLimitCents,
   );
   Account copyWithCompanion(AccountsCompanion data) {
     return Account(
@@ -1870,6 +2158,12 @@ class Account extends DataClass implements Insertable<Account> {
           : this.isArchived,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      creditLimitCents: data.creditLimitCents.present
+          ? data.creditLimitCents.value
+          : this.creditLimitCents,
     );
   }
 
@@ -1885,7 +2179,9 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('isDefault: $isDefault, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('description: $description, ')
+          ..write('creditLimitCents: $creditLimitCents')
           ..write(')'))
         .toString();
   }
@@ -1902,6 +2198,8 @@ class Account extends DataClass implements Insertable<Account> {
     isArchived,
     createdAt,
     updatedAt,
+    description,
+    creditLimitCents,
   );
   @override
   bool operator ==(Object other) =>
@@ -1916,7 +2214,9 @@ class Account extends DataClass implements Insertable<Account> {
           other.isDefault == this.isDefault &&
           other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.description == this.description &&
+          other.creditLimitCents == this.creditLimitCents);
 }
 
 class AccountsCompanion extends UpdateCompanion<Account> {
@@ -1930,6 +2230,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<bool> isArchived;
   final Value<int> createdAt;
   final Value<int> updatedAt;
+  final Value<String?> description;
+  final Value<int?> creditLimitCents;
   final Value<int> rowid;
   const AccountsCompanion({
     this.id = const Value.absent(),
@@ -1942,6 +2244,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.description = const Value.absent(),
+    this.creditLimitCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AccountsCompanion.insert({
@@ -1955,6 +2259,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.isArchived = const Value.absent(),
     required int createdAt,
     required int updatedAt,
+    this.description = const Value.absent(),
+    this.creditLimitCents = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1972,6 +2278,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<bool>? isArchived,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? description,
+    Expression<int>? creditLimitCents,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1985,6 +2293,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (description != null) 'description': description,
+      if (creditLimitCents != null) 'credit_limit_cents': creditLimitCents,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2000,6 +2310,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<bool>? isArchived,
     Value<int>? createdAt,
     Value<int>? updatedAt,
+    Value<String?>? description,
+    Value<int?>? creditLimitCents,
     Value<int>? rowid,
   }) {
     return AccountsCompanion(
@@ -2013,6 +2325,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      description: description ?? this.description,
+      creditLimitCents: creditLimitCents ?? this.creditLimitCents,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2050,6 +2364,12 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (creditLimitCents.present) {
+      map['credit_limit_cents'] = Variable<int>(creditLimitCents.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2069,6 +2389,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('description: $description, ')
+          ..write('creditLimitCents: $creditLimitCents, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3513,29 +3835,442 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   }
 }
 
+class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthlyCapCentsMeta = const VerificationMeta(
+    'monthlyCapCents',
+  );
+  @override
+  late final GeneratedColumn<int> monthlyCapCents = GeneratedColumn<int>(
+    'monthly_cap_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [category, monthlyCapCents, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budgets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Budget> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('monthly_cap_cents')) {
+      context.handle(
+        _monthlyCapCentsMeta,
+        monthlyCapCents.isAcceptableOrUnknown(
+          data['monthly_cap_cents']!,
+          _monthlyCapCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_monthlyCapCentsMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {category};
+  @override
+  Budget map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Budget(
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      monthlyCapCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}monthly_cap_cents'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BudgetsTable createAlias(String alias) {
+    return $BudgetsTable(attachedDatabase, alias);
+  }
+}
+
+class Budget extends DataClass implements Insertable<Budget> {
+  final String category;
+  final int monthlyCapCents;
+  final int updatedAt;
+  const Budget({
+    required this.category,
+    required this.monthlyCapCents,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['category'] = Variable<String>(category);
+    map['monthly_cap_cents'] = Variable<int>(monthlyCapCents);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  BudgetsCompanion toCompanion(bool nullToAbsent) {
+    return BudgetsCompanion(
+      category: Value(category),
+      monthlyCapCents: Value(monthlyCapCents),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Budget.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Budget(
+      category: serializer.fromJson<String>(json['category']),
+      monthlyCapCents: serializer.fromJson<int>(json['monthlyCapCents']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'category': serializer.toJson<String>(category),
+      'monthlyCapCents': serializer.toJson<int>(monthlyCapCents),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  Budget copyWith({String? category, int? monthlyCapCents, int? updatedAt}) =>
+      Budget(
+        category: category ?? this.category,
+        monthlyCapCents: monthlyCapCents ?? this.monthlyCapCents,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  Budget copyWithCompanion(BudgetsCompanion data) {
+    return Budget(
+      category: data.category.present ? data.category.value : this.category,
+      monthlyCapCents: data.monthlyCapCents.present
+          ? data.monthlyCapCents.value
+          : this.monthlyCapCents,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Budget(')
+          ..write('category: $category, ')
+          ..write('monthlyCapCents: $monthlyCapCents, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(category, monthlyCapCents, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Budget &&
+          other.category == this.category &&
+          other.monthlyCapCents == this.monthlyCapCents &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BudgetsCompanion extends UpdateCompanion<Budget> {
+  final Value<String> category;
+  final Value<int> monthlyCapCents;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const BudgetsCompanion({
+    this.category = const Value.absent(),
+    this.monthlyCapCents = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BudgetsCompanion.insert({
+    required String category,
+    required int monthlyCapCents,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : category = Value(category),
+       monthlyCapCents = Value(monthlyCapCents),
+       updatedAt = Value(updatedAt);
+  static Insertable<Budget> custom({
+    Expression<String>? category,
+    Expression<int>? monthlyCapCents,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (category != null) 'category': category,
+      if (monthlyCapCents != null) 'monthly_cap_cents': monthlyCapCents,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BudgetsCompanion copyWith({
+    Value<String>? category,
+    Value<int>? monthlyCapCents,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return BudgetsCompanion(
+      category: category ?? this.category,
+      monthlyCapCents: monthlyCapCents ?? this.monthlyCapCents,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (monthlyCapCents.present) {
+      map['monthly_cap_cents'] = Variable<int>(monthlyCapCents.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetsCompanion(')
+          ..write('category: $category, ')
+          ..write('monthlyCapCents: $monthlyCapCents, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $CapturesTable captures = $CapturesTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $SubcategoriesTable subcategories = $SubcategoriesTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $AccountGroupsTable accountGroups = $AccountGroupsTable(this);
   late final $ExpensesTable expenses = $ExpensesTable(this);
+  late final $BudgetsTable budgets = $BudgetsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    appSettings,
     captures,
     categories,
     subcategories,
     accounts,
     accountGroups,
     expenses,
+    budgets,
   ];
 }
 
+typedef $$AppSettingsTableCreateCompanionBuilder =
+    AppSettingsCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$AppSettingsTableUpdateCompanionBuilder =
+    AppSettingsCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$AppSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $AppSettingsTable> {
+  $$AppSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AppSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AppSettingsTable> {
+  $$AppSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AppSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AppSettingsTable> {
+  $$AppSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$AppSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AppSettingsTable,
+          AppSetting,
+          $$AppSettingsTableFilterComposer,
+          $$AppSettingsTableOrderingComposer,
+          $$AppSettingsTableAnnotationComposer,
+          $$AppSettingsTableCreateCompanionBuilder,
+          $$AppSettingsTableUpdateCompanionBuilder,
+          (
+            AppSetting,
+            BaseReferences<_$AppDatabase, $AppSettingsTable, AppSetting>,
+          ),
+          AppSetting,
+          PrefetchHooks Function()
+        > {
+  $$AppSettingsTableTableManager(_$AppDatabase db, $AppSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AppSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AppSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AppSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppSettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => AppSettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AppSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AppSettingsTable,
+      AppSetting,
+      $$AppSettingsTableFilterComposer,
+      $$AppSettingsTableOrderingComposer,
+      $$AppSettingsTableAnnotationComposer,
+      $$AppSettingsTableCreateCompanionBuilder,
+      $$AppSettingsTableUpdateCompanionBuilder,
+      (
+        AppSetting,
+        BaseReferences<_$AppDatabase, $AppSettingsTable, AppSetting>,
+      ),
+      AppSetting,
+      PrefetchHooks Function()
+    >;
 typedef $$CapturesTableCreateCompanionBuilder =
     CapturesCompanion Function({
       required String id,
@@ -4813,6 +5548,8 @@ typedef $$AccountsTableCreateCompanionBuilder =
       Value<bool> isArchived,
       required int createdAt,
       required int updatedAt,
+      Value<String?> description,
+      Value<int?> creditLimitCents,
       Value<int> rowid,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
@@ -4827,6 +5564,8 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<bool> isArchived,
       Value<int> createdAt,
       Value<int> updatedAt,
+      Value<String?> description,
+      Value<int?> creditLimitCents,
       Value<int> rowid,
     });
 
@@ -4910,6 +5649,16 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get creditLimitCents => $composableBuilder(
+    column: $table.creditLimitCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4997,6 +5746,16 @@ class $$AccountsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get creditLimitCents => $composableBuilder(
+    column: $table.creditLimitCents,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AccountsTableAnnotationComposer
@@ -5039,6 +5798,16 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get creditLimitCents => $composableBuilder(
+    column: $table.creditLimitCents,
+    builder: (column) => column,
+  );
 
   Expression<T> expensesRefs<T extends Object>(
     Expression<T> Function($$ExpensesTableAnnotationComposer a) f,
@@ -5104,6 +5873,8 @@ class $$AccountsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<int?> creditLimitCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
@@ -5116,6 +5887,8 @@ class $$AccountsTableTableManager
                 isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                description: description,
+                creditLimitCents: creditLimitCents,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5130,6 +5903,8 @@ class $$AccountsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
+                Value<String?> description = const Value.absent(),
+                Value<int?> creditLimitCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
@@ -5142,6 +5917,8 @@ class $$AccountsTableTableManager
                 isArchived: isArchived,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                description: description,
+                creditLimitCents: creditLimitCents,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6261,10 +7038,170 @@ typedef $$ExpensesTableProcessedTableManager =
         bool accountId,
       })
     >;
+typedef $$BudgetsTableCreateCompanionBuilder =
+    BudgetsCompanion Function({
+      required String category,
+      required int monthlyCapCents,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BudgetsTableUpdateCompanionBuilder =
+    BudgetsCompanion Function({
+      Value<String> category,
+      Value<int> monthlyCapCents,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$BudgetsTableFilterComposer
+    extends Composer<_$AppDatabase, $BudgetsTable> {
+  $$BudgetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get monthlyCapCents => $composableBuilder(
+    column: $table.monthlyCapCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BudgetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BudgetsTable> {
+  $$BudgetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get monthlyCapCents => $composableBuilder(
+    column: $table.monthlyCapCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BudgetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BudgetsTable> {
+  $$BudgetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get monthlyCapCents => $composableBuilder(
+    column: $table.monthlyCapCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BudgetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BudgetsTable,
+          Budget,
+          $$BudgetsTableFilterComposer,
+          $$BudgetsTableOrderingComposer,
+          $$BudgetsTableAnnotationComposer,
+          $$BudgetsTableCreateCompanionBuilder,
+          $$BudgetsTableUpdateCompanionBuilder,
+          (Budget, BaseReferences<_$AppDatabase, $BudgetsTable, Budget>),
+          Budget,
+          PrefetchHooks Function()
+        > {
+  $$BudgetsTableTableManager(_$AppDatabase db, $BudgetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BudgetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BudgetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> category = const Value.absent(),
+                Value<int> monthlyCapCents = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetsCompanion(
+                category: category,
+                monthlyCapCents: monthlyCapCents,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String category,
+                required int monthlyCapCents,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetsCompanion.insert(
+                category: category,
+                monthlyCapCents: monthlyCapCents,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BudgetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BudgetsTable,
+      Budget,
+      $$BudgetsTableFilterComposer,
+      $$BudgetsTableOrderingComposer,
+      $$BudgetsTableAnnotationComposer,
+      $$BudgetsTableCreateCompanionBuilder,
+      $$BudgetsTableUpdateCompanionBuilder,
+      (Budget, BaseReferences<_$AppDatabase, $BudgetsTable, Budget>),
+      Budget,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$AppSettingsTableTableManager get appSettings =>
+      $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$CapturesTableTableManager get captures =>
       $$CapturesTableTableManager(_db, _db.captures);
   $$CategoriesTableTableManager get categories =>
@@ -6277,4 +7214,6 @@ class $AppDatabaseManager {
       $$AccountGroupsTableTableManager(_db, _db.accountGroups);
   $$ExpensesTableTableManager get expenses =>
       $$ExpensesTableTableManager(_db, _db.expenses);
+  $$BudgetsTableTableManager get budgets =>
+      $$BudgetsTableTableManager(_db, _db.budgets);
 }

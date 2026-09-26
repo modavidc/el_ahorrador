@@ -1,0 +1,5 @@
+Fonts bundled from Google Fonts (design handoff v1, design/):
+
+- Roboto 400/500/600/700 (static instances): SIL Open Font License 1.1.
+- Material Symbols Rounded (opsz 24, wght 400, FILL 0, GRAD 0): Apache License 2.0.
+  Code points: google/material-design-icons, variablefont/*.codepoints.
