@@ -64,6 +64,12 @@ class Accounts extends Table {
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
 
+  /// Subtitle shown under the account ("Cuenta sueldo").
+  TextColumn get description => text().nullable()();
+
+  /// Credit line of a card account, shown as "Por pagar · línea S/. X".
+  IntColumn get creditLimitCents => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -110,8 +116,37 @@ class Expenses extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Monthly spending cap per category name (design model
+/// `Budget { category, monthlyCap }`).
+class Budgets extends Table {
+  TextColumn get category => text()();
+  IntColumn get monthlyCapCents => integer()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {category};
+}
+
+/// User preferences shown in Ajustes (toggles and choices).
+class AppSettings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @DriftDatabase(
-  tables: [Captures, Categories, Subcategories, Accounts, AccountGroups, Expenses],
+  tables: [
+    AppSettings,
+    Captures,
+    Categories,
+    Subcategories,
+    Accounts,
+    AccountGroups,
+    Expenses,
+    Budgets,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   static const defaultAccountId = 'account_default';
@@ -121,7 +156,7 @@ class AppDatabase extends _$AppDatabase {
   static const defaultAccountGroupId = 'group_default';
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -182,6 +217,17 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE accounts SET group_id = ? WHERE group_id IS NULL',
           [defaultAccountGroupId],
         );
+      }
+      if (from < 7) {
+        // Accounts created by the v1→v2 step already use the current schema.
+        if (!await _hasTable('budgets')) await m.createTable(budgets);
+        if (!await _hasTable('app_settings')) await m.createTable(appSettings);
+        if (!await _hasColumn('accounts', 'description')) {
+          await m.addColumn(accounts, accounts.description);
+        }
+        if (!await _hasColumn('accounts', 'credit_limit_cents')) {
+          await m.addColumn(accounts, accounts.creditLimitCents);
+        }
       }
     },
   );

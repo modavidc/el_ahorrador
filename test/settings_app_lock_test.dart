@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:el_ahorrador/data/app_database.dart';
 import 'package:el_ahorrador/main.dart';
-import 'package:el_ahorrador/screens/settings_screen.dart';
+import 'package:el_ahorrador/ui/settings/settings_screen.dart';
 import 'package:el_ahorrador/security/app_lock_settings.dart';
 import 'package:el_ahorrador/security/local_auth_service.dart';
 
@@ -46,9 +46,18 @@ void main() {
       MaterialApp(
         home: AppLockScope(
           settings: settings,
-          child: SettingsScreen(db: db, lockAuthenticator: authenticator),
+          child: Scaffold(
+            body: SettingsScreen(db: db, lockAuthenticator: authenticator),
+          ),
         ),
       ),
+    );
+    await tester.pumpAndSettle();
+    // Seguridad is the last group of Ajustes.
+    await tester.scrollUntilVisible(
+      find.text('Bloqueo con huella'),
+      200,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
   }

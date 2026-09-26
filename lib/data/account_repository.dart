@@ -127,6 +127,8 @@ class AccountRepository {
     required String name,
     required String groupId,
     String currency = 'PEN',
+    String? description,
+    int? creditLimitCents,
   }) async {
     final cleanName = await _validateName(name);
     final maxOrder = _db.accounts.order.max();
@@ -147,6 +149,8 @@ class AccountRepository {
             order: nextOrder,
             createdAt: now,
             updatedAt: now,
+            description: Value(description),
+            creditLimitCents: Value(creditLimitCents),
           ),
         );
     return id;

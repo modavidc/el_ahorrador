@@ -17,7 +17,9 @@ import 'features/capture/application/attachment_batch_processor.dart';
 import 'data/app_database.dart';
 import 'data/daos.dart';
 import 'data/historical_import.dart';
-import 'screens/home_screen.dart';
+import 'features/ledger/demo_seed.dart';
+import 'theme/design_tokens.dart';
+import 'ui/app_home.dart';
 import 'widgets/expense_edit_dialog.dart';
 import 'widgets/processing_animation.dart';
 import 'widgets/immediate_loading_overlay.dart';
@@ -139,6 +141,12 @@ class _MisGastosAppState extends State<MisGastosApp> {
     );
     if (kDebugMode && importHistoricalCsv) {
       await runHistoricalImport(db, _debugLog);
+    }
+    // Prototype data for visual checks: --dart-define=DEMO_DATA=true.
+    if (kDebugMode &&
+        DemoSeed.enabled &&
+        (await db.select(db.expenses).get()).isEmpty) {
+      await DemoSeed.load(db);
     }
 
     final interruptedCaptures = await db.failInterruptedCaptures();
@@ -665,26 +673,12 @@ class _MisGastosAppState extends State<MisGastosApp> {
               : child!,
         ),
       ),
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
-          brightness: Brightness.light,
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
-          brightness: Brightness.dark,
-        ),
-      ),
-      themeMode: ThemeMode.system, // Sigue el tema del sistema
+      theme: buildDesignTheme(),
+      // The v1 design is light only (Ajustes → Tema: Claro).
+      themeMode: ThemeMode.light,
       // The home remains usable while optional startup maintenance finishes.
       // Incoming shares are already queued until bootstrap is ready.
-      home: HomeScreen(db: db),
+      home: AppHome(db: db),
     );
   }
 }

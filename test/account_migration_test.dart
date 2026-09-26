@@ -51,4 +51,35 @@ void main() {
       expect(await db.select(db.accounts).getSingle(), isNotNull);
     },
   );
+
+  test('v6 databases gain budgets, settings and account details', () async {
+    // Build the current schema, then strip what v7 adds to get a v6 file.
+    final sqlite = sqlite3.openInMemory();
+    final fresh = AppDatabase.forTesting(
+      NativeDatabase.opened(sqlite, closeUnderlyingOnClose: false),
+    );
+    await fresh.customSelect('SELECT 1').get();
+    await fresh.close();
+    sqlite
+      ..execute('DROP TABLE budgets')
+      ..execute('DROP TABLE app_settings')
+      ..execute('ALTER TABLE accounts DROP COLUMN description')
+      ..execute('ALTER TABLE accounts DROP COLUMN credit_limit_cents')
+      ..execute('PRAGMA user_version = 6');
+
+    final db = AppDatabase.forTesting(NativeDatabase.opened(sqlite));
+    addTearDown(db.close);
+
+    final columns = await db.customSelect('PRAGMA table_info(accounts)').get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      containsAll(['description', 'credit_limit_cents']),
+    );
+    expect(await db.select(db.budgets).get(), isEmpty);
+    expect(await db.select(db.appSettings).get(), isEmpty);
+    expect(
+      (await db.select(db.accounts).getSingle()).id,
+      AppDatabase.defaultAccountId,
+    );
+  });
 }

@@ -24,12 +24,12 @@ Fuera de la v1: ver [`docs/ideas.md`](docs/ideas.md).
 | Fase | Contenido | Estado |
 |---|---|---|
 | 0 | Motor: OCR, parsers, cola de captura, DB cifrada (SQLCipher), bloqueo | Hecho |
-| 1 | Tema desde `design/tokens.json`, sin literales en pantallas | Pendiente |
-| 2 | Bottom nav de 5 ítems + FAB, pantalla Trans. | Parcial |
-| 3 | Estadísticas + detalle de categoría | Parcial |
-| 4 | Cuentas (saldos calculados) + Ajustes persistidos | Parcial |
-| 5 | Detección automática de capturas (Android) | Pendiente |
-| 6 | Coach IA (insights locales + chat con LLM) | Pendiente |
+| 1 | Tema desde `design/tokens.json`, fuentes Roboto + Material Symbols Rounded | Hecho |
+| 2 | Bottom nav de 5 ítems + FAB, pantalla Trans. (Diario, Calendario, Mensual, Total) | Hecho |
+| 3 | Estadísticas + detalle de categoría | Hecho |
+| 4 | Cuentas (saldos calculados) + Ajustes persistidos + Presupuestos | Hecho |
+| 5 | Detección automática de capturas (Android) + Escanear recibo | Pendiente |
+| 6 | Coach IA: insights locales (hecho) + chat con LLM (pendiente) | Parcial |
 
 ## Desarrollo
 
@@ -41,6 +41,11 @@ flutter test
 ```
 
 - Flutter **3.35.4** (la misma versión que usa CI).
+- Datos del prototipo para revisar la interfaz: `flutter run
+  --dart-define=DEMO_DATA=true` (solo debug, con la base vacía).
+- Comparación visual con el prototipo: `VISUAL_OUT=/tmp/visual flutter test
+  test/visual` genera capturas de cada pantalla con los datos y el tamaño de
+  teléfono del diseño.
 - Import histórico opcional: copia tu CSV a `assets/import/importar.csv`
   (ignorado por git) y lanza con `--dart-define=IMPORT_HISTORICAL_CSV=true`.
   Ver [`docs/specs/import-masivo.md`](docs/specs/import-masivo.md).
@@ -49,10 +54,12 @@ flutter test
 
 ```
 lib/
+  ui/         interfaz v1 (shell, Trans., Estad., Coach, Cuentas, Ajustes, Añadir)
+  theme/      design_tokens.dart: colores, tipografía, íconos, sombras del diseño
   core/       parsers (Yape, banco, Binance), OCR, dominio financiero
   data/       Drift + SQLCipher, repositorios, backup, import
-  features/   captura (cola/lotes), bandeja, transacciones
-  screens/    pantallas
+  features/   ledger (movimientos, demo), coach, ajustes, captura
+  screens/    pantallas previas aún en uso (alta/edición de cuentas, import)
   widgets/    componentes
   security/   bloqueo con biometría
 design/       handoff de diseño v1 (fuente de verdad visual)
