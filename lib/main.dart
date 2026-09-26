@@ -23,7 +23,7 @@ import 'widgets/processing_animation.dart';
 import 'widgets/immediate_loading_overlay.dart';
 import 'widgets/loading_dialog_tracker.dart';
 import 'security/app_lock_gate.dart';
-import 'config/security_config.dart';
+import 'security/app_lock_settings.dart';
 
 void _debugLog(Object? message) {
   if (kDebugMode) debugPrint(message?.toString());
@@ -46,7 +46,10 @@ Future<void> main() async {
     unawaited(AppObservability.error('platform_dispatch_failed', error, stack));
     return true;
   };
-  await AppObservability.run(const MisGastosApp());
+  final appLockSettings = await AppLockSettings.load(
+    const SecureAppLockPreferenceStore(),
+  );
+  await AppObservability.run(MisGastosApp(appLockSettings: appLockSettings));
   AppObservability.metric(
     'startup_duration',
     DateTime.now().difference(startTime).inMilliseconds,
@@ -54,7 +57,11 @@ Future<void> main() async {
 }
 
 class MisGastosApp extends StatefulWidget {
-  const MisGastosApp({super.key});
+  const MisGastosApp({super.key, this.appLockSettings});
+
+  /// Fingerprint lock preference, loaded before the first frame so a locked
+  /// app never shows financial data. Defaults to disabled.
+  final AppLockSettings? appLockSettings;
 
   @override
   State<MisGastosApp> createState() => _MisGastosAppState();
@@ -62,6 +69,11 @@ class MisGastosApp extends StatefulWidget {
 
 class _MisGastosAppState extends State<MisGastosApp> {
   final db = AppDatabase();
+  late final AppLockSettings _appLock =
+      widget.appLockSettings ?? AppLockSettings.disabled();
+  // Only a lock that was already on at startup asks for authentication right
+  // away; turning it on from Ajustes already required authenticating.
+  late bool _lockedAtStartup = _appLock.enabled;
   final _uuid = const Uuid();
   MlKitEngine? _ocr; // OCR engine (lazy init)
   StreamSubscription<SharedMedia>? _sub;
@@ -75,6 +87,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
   @override
   void initState() {
     super.initState();
+    _appLock.addListener(() => _lockedAtStartup = false);
     _debugLog('🚀 [STARTUP] initState() called');
 
     // ✅ OPTIMIZACIÓN: Diferir todo al siguiente frame para no bloquear el primer render
@@ -643,8 +656,15 @@ class _MisGastosAppState extends State<MisGastosApp> {
     _debugLog('🚀 [STARTUP] build() called, _isInitialized=$_isInitialized');
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      builder: (context, child) =>
-          SecurityConfig.enableAppLock ? AppLockGate(child: child!) : child!,
+      builder: (context, child) => AppLockScope(
+        settings: _appLock,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: _appLock,
+          builder: (context, enabled, _) => enabled
+              ? AppLockGate(startUnlocked: !_lockedAtStartup, child: child!)
+              : child!,
+        ),
+      ),
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,

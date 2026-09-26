@@ -8,7 +8,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 
-import 'package:el_ahorrador/config/security_config.dart';
 import 'package:el_ahorrador/main.dart';
 
 void main() {
@@ -17,12 +16,8 @@ void main() {
     await tester.pumpWidget(const MisGastosApp());
 
     expect(find.byType(MaterialApp), findsOneWidget);
-    // When the lock is enabled (ENABLE_APP_LOCK=true), sensitive content is
-    // covered by the local-auth gate from the first frame.
-    expect(
-      find.textContaining('bloqueado'),
-      SecurityConfig.enableAppLock ? findsOneWidget : findsNothing,
-    );
+    // The fingerprint lock is off until the user enables it in Ajustes.
+    expect(find.textContaining('bloqueado'), findsNothing);
 
     // Let drift cancel its stream queries before the test binding checks for
     // pending timers.
