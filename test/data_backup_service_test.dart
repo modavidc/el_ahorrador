@@ -25,8 +25,8 @@ void main() {
       dateEpochMs: 1234,
       amountCents: 2590,
       currency: 'PEN',
-      categoryId: 'cat_1',
-      subcategoryId: 'sub_9',
+      categoryId: 'mm_cat_2',
+      subcategoryId: 'mm_sub_2_9',
       vendor: 'Restaurante',
     );
 
@@ -37,8 +37,8 @@ void main() {
     final captures = await target.select(target.captures).get();
     expect(expenses.single.id, 'expense-1');
     expect(expenses.single.captureId, captures.single.id);
-    expect(expenses.single.categoryId, 'cat_1');
-    expect(expenses.single.subcategoryId, 'sub_9');
+    expect(expenses.single.categoryId, 'mm_cat_2');
+    expect(expenses.single.subcategoryId, 'mm_sub_2_9');
   });
 
   test('tampered backup is rejected before existing data changes', () async {

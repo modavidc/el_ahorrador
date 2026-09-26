@@ -88,8 +88,10 @@ flutter:
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
+  # assets/import/ is gitignored (personal data). Only a .gitkeep is committed,
+  # so the directory always exists and CI can build the asset bundle.
   assets:
-    - assets/import/importar.csv
+    - assets/import/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

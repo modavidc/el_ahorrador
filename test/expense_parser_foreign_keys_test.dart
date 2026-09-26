@@ -19,8 +19,8 @@ void main() {
     );
 
     final expense = await db.select(db.expenses).getSingle();
-    expect(expense.categoryId, 'cat_1');
-    expect(expense.subcategoryId, 'sub_11');
+    expect(expense.categoryId, 'mm_cat_2');
+    expect(expense.subcategoryId, 'mm_sub_2_14');
   });
 
   test('existing database IDs remain supported', () async {
@@ -32,12 +32,12 @@ void main() {
       dateEpochMs: 1785278760000,
       amountCents: 900,
       currency: 'PEN',
-      categoryId: 'cat_1',
-      subcategoryId: 'sub_11',
+      categoryId: 'mm_cat_2',
+      subcategoryId: 'mm_sub_2_14',
     );
 
     final expense = await db.select(db.expenses).getSingle();
-    expect(expense.categoryId, 'cat_1');
-    expect(expense.subcategoryId, 'sub_11');
+    expect(expense.categoryId, 'mm_cat_2');
+    expect(expense.subcategoryId, 'mm_sub_2_14');
   });
 }

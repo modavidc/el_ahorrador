@@ -6,7 +6,7 @@ import '../data/app_database.dart';
 import '../data/historical_import.dart';
 
 // Pantalla de debug temporal: importa las transacciones históricas
-// de assets/import/importar.csv. Ver Z:\el_ahorrador\IMPORT_MASIVO_SPEC.md.
+// de assets/import/importar.csv. Ver docs/specs/import-masivo.md.
 // Es idempotente (corre historical_import.dart), así que presionar el botón
 // más de una vez no duplica registros.
 class DebugImportScreen extends StatefulWidget {

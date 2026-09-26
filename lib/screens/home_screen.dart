@@ -754,34 +754,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     double balance,
   ) => SizedBox(
     width: 178,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
+    // Rows have a fixed height; scale down instead of overflowing with large
+    // text (accessibility font scaling).
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: 178,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Expanded(
-              child: Text(
-                _formatAmount(income, currency: 'PEN'),
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 13, color: Color(0xff3294c0)),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _formatAmount(income, currency: 'PEN'),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xff3294c0),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _formatAmount(expense, currency: 'PEN'),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xffd96e60),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _formatAmount(expense, currency: 'PEN'),
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 13, color: Color(0xffd96e60)),
-              ),
+            Text(
+              _formatAmount(balance, currency: 'PEN'),
+              style: const TextStyle(fontSize: 10, color: Color(0xff777777)),
             ),
           ],
         ),
-        Text(
-          _formatAmount(balance, currency: 'PEN'),
-          style: const TextStyle(fontSize: 10, color: Color(0xff777777)),
-        ),
-      ],
+      ),
     ),
   );
 
@@ -1201,7 +1216,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required String currency,
     bool showPenSymbol = true,
   }) {
-    final upperCurrency = currency.toUpperCase();
+    // Captures store ISO codes (PEN, USD); manual entries store the symbol
+    // picked in AddTransactionScreen (S/., $).
+    final upperCurrency = switch (currency.toUpperCase()) {
+      'S/.' || 'S/' => 'PEN',
+      '\$' => 'USD',
+      final code => code,
+    };
     if (upperCurrency == 'USD') {
       return '\$ ${amount.toStringAsFixed(2)}';
     }

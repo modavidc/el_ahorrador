@@ -122,7 +122,13 @@ Future<void> runHistoricalImport(
   log('Validando el catálogo exacto de Money Manager...');
 
   log('Cargando CSV desde $_assetPath...');
-  final csvText = await rootBundle.loadString(_assetPath);
+  final String csvText;
+  try {
+    csvText = await rootBundle.loadString(_assetPath);
+  } catch (_) {
+    log('No se encontró $_assetPath. Copia tu CSV ahí y vuelve a compilar.');
+    return;
+  }
   final rows = _parseCsv(csvText);
   log('Filas totales en CSV: ${rows.length}');
 

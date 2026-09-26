@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #d9dade; font-family: 'Roboto', system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+  a { color: #F0523C; text-decoration: none; }
+  a:hover { color: #D33F2B; }
+  input, textarea, select, button { font-family: inherit; }
+  .noscroll::-webkit-scrollbar { display: none; }
+  .ms { font-family: 'Material Symbols Rounded'; font-weight: 400; line-height: 1; font-feature-settings: 'liga'; font-style: normal; white-space: nowrap; -webkit-font-smoothing: antialiased; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pop { 0% { transform: scale(.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes slideup { 0% { transform: translateY(12px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+  @keyframes scanline { 0% { top: 6%; } 100% { top: 92%; } }
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 12px;">
+  <div style="width:390px;height:844px;background:#F4F4F6;border-radius:40px;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;position:relative;display:flex;flex-direction:column;border:10px solid #111;">
+
+    <div style="height:32px;flex:none;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:13px;font-weight:500;color:#222;">
+      <span>22:27</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span class="ms" style="font-size:16px;">signal_cellular_alt</span><span class="ms" style="font-size:16px;">wifi</span><span class="ms" style="font-size:16px;">battery_5_bar</span></span>
+    </div>
+
+    <!-- ================= TRANS ================= -->
+    <sc-if value="{{ isTrans }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#fff;flex:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 0 8px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span onClick="{{ prevPeriod }}" class="ms" style="font-size:24px;color:#222;padding:6px;cursor:pointer;">chevron_left</span>
+            <span style="font-size:20px;font-weight:700;color:#222;min-width:92px;text-align:center;">{{ periodLabel }}</span>
+            <span onClick="{{ nextPeriod }}" class="ms" style="font-size:24px;color:#222;padding:6px;cursor:pointer;">chevron_right</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;color:#555;">
+            <span class="ms" style="font-size:22px;">star</span><span class="ms" style="font-size:22px;">search</span><span class="ms" style="font-size:22px;">tune</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);margin-top:6px;">
+          <sc-for list="{{ transTabs }}" as="tb" hint-placeholder-count="4">
+            <div onClick="{{ tb.onClick }}" style="text-align:center;padding:10px 0 9px;font-size:14px;font-weight:{{ tb.weight }};color:{{ tb.color }};border-bottom:3px solid {{ tb.border }};cursor:pointer;">{{ tb.label }}</div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:9px 12px;border-top:1px solid #EEEEEE;border-bottom:1px solid #EEEEEE;">
+          <div style="text-align:center;"><div style="font-size:12px;color:#8A8A8A;">Ingresos</div><div style="color:#2F80ED;font-size:14px;font-weight:600;margin-top:2px;">{{ sumInc }}</div></div>
+          <div style="text-align:center;"><div style="font-size:12px;color:#8A8A8A;">Gastos</div><div style="color:#F0523C;font-size:14px;font-weight:600;margin-top:2px;">{{ sumExp }}</div></div>
+          <div style="text-align:center;"><div style="font-size:12px;color:#8A8A8A;">Total</div><div style="color:#222;font-size:14px;font-weight:600;margin-top:2px;">{{ sumNet }}</div></div>
+        </div>
+      </div>
+
+      <div class="noscroll" style="flex:1;min-height:0;overflow-y:auto;">
+
+        <!-- DAILY -->
+        <sc-if value="{{ isDaily }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px 12px 0;display:flex;flex-direction:column;gap:12px;">
+            <sc-if value="{{ dailyEmpty }}" hint-placeholder-val="">
+              <div style="text-align:center;color:#8A8A8A;font-size:14px;padding:48px 0;">Sin movimientos este mes</div>
+            </sc-if>
+            <sc-for list="{{ dailyGroups }}" as="g" hint-placeholder-count="3">
+              <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #F2F2F2;">
+                  <span style="font-size:20px;font-weight:700;color:#222;">{{ g.day }}</span>
+                  <span style="background:{{ g.chipBg }};color:#fff;font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;">{{ g.wd }}</span>
+                  <span style="font-size:12px;color:#8A8A8A;">{{ g.my }}</span>
+                  <span style="margin-left:auto;color:#2F80ED;font-size:13px;font-weight:500;">{{ g.inc }}</span>
+                  <span style="color:#F0523C;font-size:13px;font-weight:500;min-width:78px;text-align:right;">{{ g.exp }}</span>
+                </div>
+                <sc-for list="{{ g.rows }}" as="t" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:{{ t.sep }};">
+                    <div style="width:36px;height:36px;border-radius:10px;background:{{ t.bg }};color:{{ t.fg }};display:flex;align-items:center;justify-content:center;flex:none;"><span class="ms" style="font-size:20px;">{{ t.icon }}</span></div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:baseline;gap:8px;">
+                        <span style="flex:1;min-width:0;font-size:14px;font-weight:500;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.note }}</span>
+                        <span style="font-size:14px;font-weight:600;color:{{ t.amtColor }};flex:none;">{{ t.amt }}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+                        <span style="flex:1;min-width:0;font-size:12px;color:#8A8A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.meta }}</span>
+                        <sc-if value="{{ t.method }}" hint-placeholder-val="">
+                          <span style="flex:none;background:#EFE3FC;color:#8A4FD6;font-size:11px;font-weight:500;height:20px;padding:0 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;"><span class="ms" style="font-size:13px;">smartphone</span>{{ t.method }}</span>
+                        </sc-if>
+                        <sc-if value="{{ t.ocr }}" hint-placeholder-val="">
+                          <span style="flex:none;background:#E3F7EA;color:#2EA862;font-size:11px;font-weight:500;height:20px;padding:0 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;"><span class="ms" style="font-size:13px;">document_scanner</span>{{ t.ocr }}</span>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- CALENDAR -->
+        <sc-if value="{{ isCalendar }}" hint-placeholder-val="">
+          <div style="background:#fff;">
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #EEEEEE;">
+              <sc-for list="{{ calHead }}" as="h" hint-placeholder-count="7">
+                <div style="text-align:center;font-size:12px;padding:7px 0;color:{{ h.color }};">{{ h.label }}</div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));">
+              <sc-for list="{{ calCells }}" as="c" hint-placeholder-count="35">
+                <div onClick="{{ c.onClick }}" style="height:64px;padding:3px 4px;border-right:1px solid #F2F2F2;border-bottom:1px solid #F2F2F2;background:{{ c.bg }};box-shadow:{{ c.ring }};cursor:pointer;display:flex;flex-direction:column;overflow:hidden;">
+                  <div style="display:flex;"><span style="font-size:11px;font-weight:500;color:{{ c.numColor }};background:{{ c.numBg }};border-radius:4px;padding:0 4px;line-height:16px;">{{ c.num }}</span></div>
+                  <div style="margin-top:auto;text-align:right;font-size:11px;line-height:14px;">
+                    <div style="color:#2F80ED;">{{ c.inc }}</div>
+                    <div style="color:#F0523C;">{{ c.exp }}</div>
+                    <div style="color:#555;">{{ c.net }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:14px 12px 0;">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px 8px;">
+              <span style="font-size:16px;font-weight:600;color:#222;">{{ selDayLabel }}</span>
+              <span style="font-size:13px;color:#8A8A8A;">{{ selDayCount }}</span>
+            </div>
+            <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;">
+              <sc-if value="{{ selDayEmpty }}" hint-placeholder-val="">
+                <div style="padding:20px;text-align:center;font-size:13px;color:#8A8A8A;">Sin movimientos este día</div>
+              </sc-if>
+              <sc-for list="{{ selDayRows }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:{{ t.sep }};">
+                  <div style="width:36px;height:36px;border-radius:10px;background:{{ t.bg }};color:{{ t.fg }};display:flex;align-items:center;justify-content:center;flex:none;"><span class="ms" style="font-size:20px;">{{ t.icon }}</span></div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:500;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.note }}</div>
+                    <div style="font-size:12px;color:#8A8A8A;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.meta }}</div>
+                  </div>
+                  <span style="font-size:14px;font-weight:600;color:{{ t.amtColor }};">{{ t.amt }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- MONTHLY -->
+        <sc-if value="{{ isMonthly }}" hint-placeholder-val="">
+          <div style="background:#fff;">
+            <sc-for list="{{ monthRows }}" as="mr" hint-placeholder-count="6">
+              <div onClick="{{ mr.onClick }}" style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #EEEEEE;cursor:pointer;">
+                <div style="flex:1;">
+                  <div style="font-size:16px;font-weight:600;color:#222;display:flex;align-items:center;gap:4px;">{{ mr.name }}<span class="ms" style="font-size:18px;color:#B0B0B0;">{{ mr.chev }}</span></div>
+                  <div style="font-size:12px;color:#8A8A8A;margin-top:1px;">{{ mr.range }}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="display:flex;gap:14px;justify-content:flex-end;font-size:13px;font-weight:500;"><span style="color:#2F80ED;">{{ mr.inc }}</span><span style="color:#F0523C;min-width:84px;">{{ mr.exp }}</span></div>
+                  <div style="font-size:12px;color:#8A8A8A;margin-top:2px;">{{ mr.net }}</div>
+                </div>
+              </div>
+              <sc-if value="{{ mr.open }}" hint-placeholder-val="">
+                <sc-for list="{{ mr.weeks }}" as="wk" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;padding:10px 16px 10px 36px;background:#F7F7F8;border-bottom:1px solid #EEEEEE;">
+                    <span style="flex:1;font-size:13px;color:#555;">{{ wk.range }}</span>
+                    <div style="text-align:right;">
+                      <div style="display:flex;gap:14px;justify-content:flex-end;font-size:13px;"><span style="color:#2F80ED;">{{ wk.inc }}</span><span style="color:#F0523C;min-width:84px;">{{ wk.exp }}</span></div>
+                      <div style="font-size:11px;color:#8A8A8A;margin-top:1px;">{{ wk.net }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </sc-if>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- TOTAL -->
+        <sc-if value="{{ isTotal }}" hint-placeholder-val="">
+          <div style="padding:12px;display:flex;flex-direction:column;gap:12px;">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:16px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="ms" style="font-size:22px;color:#222;">savings</span>
+                <span style="font-size:16px;font-weight:600;color:#222;flex:1;">Presupuesto</span>
+                <span style="font-size:12px;color:#555;background:#F4F4F6;border-radius:8px;padding:6px 8px 6px 10px;display:inline-flex;align-items:center;gap:2px;">Configurar<span class="ms" style="font-size:16px;">chevron_right</span></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;">
+                <span style="font-size:13px;color:#8A8A8A;">Gastado</span>
+                <span style="font-size:13px;color:#555;"><span style="font-weight:600;color:#222;">{{ budSpent }}</span> de {{ budTotal }}</span>
+              </div>
+              <div style="height:8px;background:#F2F2F2;border-radius:999px;margin-top:6px;position:relative;overflow:hidden;">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:{{ budPctW }};background:{{ budColor }};border-radius:999px;"></div>
+              </div>
+              <div style="font-size:12px;color:#8A8A8A;margin-top:6px;">{{ budNote }}</div>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+                <sc-for list="{{ budRows }}" as="br" hint-placeholder-count="4">
+                  <div>
+                    <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+                      <span class="ms" style="font-size:16px;color:{{ br.fg }};">{{ br.icon }}</span>
+                      <span style="flex:1;color:#222;">{{ br.name }}</span>
+                      <span style="color:{{ br.pctColor }};font-weight:600;">{{ br.pct }}</span>
+                      <span style="color:#8A8A8A;min-width:124px;text-align:right;">{{ br.spent }} / {{ br.cap }}</span>
+                    </div>
+                    <div style="height:5px;background:#F2F2F2;border-radius:999px;margin-top:5px;overflow:hidden;"><div style="height:100%;width:{{ br.w }};background:{{ br.barColor }};border-radius:999px;"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <span class="ms" style="font-size:22px;color:#222;">account_balance_wallet</span>
+                <span style="font-size:16px;font-weight:600;color:#222;flex:1;">Cuentas</span>
+                <span style="font-size:12px;color:#8A8A8A;">{{ totRange }}</span>
+              </div>
+              <div style="border:1px solid #EEEEEE;border-radius:12px;padding:6px 14px;">
+                <sc-for list="{{ totRows }}" as="tr" hint-placeholder-count="4">
+                  <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;font-size:13px;border-top:{{ tr.sep }};">
+                    <span style="color:#8A8A8A;">{{ tr.label }}</span><span style="color:{{ tr.color }};font-weight:500;">{{ tr.val }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <button onClick="{{ exportExcel }}" style="background:#fff;border:1px solid #E2E2E2;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;color:#222;cursor:pointer;"><span class="ms" style="font-size:20px;color:#2EA862;">table_view</span>Exportar a Excel</button>
+          </div>
+        </sc-if>
+
+        <div style="height:96px;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= STATS ================= -->
+    <sc-if value="{{ isStats }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#fff;flex:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 0 8px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span onClick="{{ prevMonth }}" class="ms" style="font-size:24px;color:#222;padding:6px;cursor:pointer;">chevron_left</span>
+            <span style="font-size:20px;font-weight:700;color:#222;min-width:92px;text-align:center;">{{ monthLabel }}</span>
+            <span onClick="{{ nextMonth }}" class="ms" style="font-size:24px;color:#222;padding:6px;cursor:pointer;">chevron_right</span>
+          </div>
+          <span style="font-size:13px;color:#555;border:1px solid #E2E2E2;border-radius:8px;padding:6px 6px 6px 10px;display:inline-flex;align-items:center;gap:2px;">Mensual<span class="ms" style="font-size:18px;">expand_more</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;margin-top:8px;">
+          <sc-for list="{{ statTabs }}" as="st" hint-placeholder-count="2">
+            <div onClick="{{ st.onClick }}" style="text-align:center;padding:10px 0 9px;font-size:14px;font-weight:{{ st.weight }};color:{{ st.color }};border-bottom:3px solid {{ st.border }};cursor:pointer;">{{ st.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="noscroll" style="flex:1;min-height:0;overflow-y:auto;">
+        <div style="background:#fff;display:flex;justify-content:center;padding:20px 0 16px;border-bottom:1px solid #EEEEEE;">
+          <div style="position:relative;width:200px;height:200px;">
+            <svg width="200" height="200" style="display:block;">
+              <circle cx="100" cy="100" r="66" style="fill:none;stroke:#F2F2F2;stroke-width:30;"></circle>
+              <sc-for list="{{ donut }}" as="sl" hint-placeholder-count="0">
+                <circle cx="100" cy="100" r="66" transform="rotate(-90 100 100)" style="fill:none;stroke:{{ sl.color }};stroke-width:30;stroke-dasharray:{{ sl.dash }};stroke-dashoffset:{{ sl.offset }};"></circle>
+              </sc-for>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <span style="font-size:12px;color:#8A8A8A;">{{ statCenterLabel }}</span>
+              <span style="font-size:16px;font-weight:700;color:#222;margin-top:2px;">{{ statTotal }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;margin-top:12px;">
+          <sc-for list="{{ statRows }}" as="sr" hint-placeholder-count="6">
+            <div onClick="{{ sr.onClick }}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #F2F2F2;cursor:pointer;">
+              <span style="min-width:40px;text-align:center;background:{{ sr.color }};color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:3px 0;">{{ sr.pct }}</span>
+              <span class="ms" style="font-size:20px;color:{{ sr.color }};">{{ sr.icon }}</span>
+              <span style="flex:1;font-size:14px;color:#222;">{{ sr.name }}</span>
+              <span style="font-size:14px;font-weight:500;color:#222;">{{ sr.amt }}</span>
+              <span class="ms" style="font-size:18px;color:#B0B0B0;">chevron_right</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:96px;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= CATEGORY DETAIL ================= -->
+    <sc-if value="{{ isCatDetail }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#fff;flex:none;display:flex;align-items:center;gap:8px;padding:10px 8px;border-bottom:1px solid #EEEEEE;">
+        <span onClick="{{ goStats }}" class="ms" style="font-size:24px;color:#222;padding:6px;cursor:pointer;">arrow_back</span>
+        <span class="ms" style="font-size:22px;color:{{ cd.fg }};">{{ cd.icon }}</span>
+        <span style="font-size:18px;font-weight:600;color:#222;flex:1;">{{ cd.name }}</span>
+        <span onClick="{{ prevMonth }}" class="ms" style="font-size:22px;color:#222;padding:4px;cursor:pointer;">chevron_left</span>
+        <span style="font-size:14px;font-weight:500;color:#222;">{{ monthLabel }}</span>
+        <span onClick="{{ nextMonth }}" class="ms" style="font-size:22px;color:#222;padding:4px;cursor:pointer;">chevron_right</span>
+      </div>
+      <div class="noscroll" style="flex:1;min-height:0;overflow-y:auto;">
+        <div style="background:#fff;padding:14px 16px 10px;">
+          <div style="font-size:12px;color:#8A8A8A;">Total del mes</div>
+          <div style="font-size:28px;font-weight:700;color:{{ cd.totalColor }};margin-top:2px;">{{ cd.total }}</div>
+        </div>
+        <div style="background:#fff;">
+          <sc-for list="{{ cd.subs }}" as="sb" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;padding:10px 16px;border-top:1px solid #F2F2F2;font-size:13px;background:{{ sb.bg }};">
+              <span style="flex:1;color:#222;">{{ sb.name }}</span>
+              <span style="width:60px;text-align:right;color:#8A8A8A;">{{ sb.pct }}</span>
+              <span style="width:100px;text-align:right;color:#222;font-weight:500;">{{ sb.amt }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;margin-top:12px;padding:12px 8px 8px;">
+          <div style="font-size:12px;color:#8A8A8A;padding:0 8px 6px;">Últimos 6 meses</div>
+          <svg width="358" height="150" style="display:block;">
+            <sc-for list="{{ cd.grid }}" as="gl" hint-placeholder-count="3">
+              <line x1="40" x2="350" y1="{{ gl.y }}" y2="{{ gl.y }}" style="stroke:#EEEEEE;stroke-width:1;"></line>
+              <text x="34" y="{{ gl.ty }}" style="font-size:10px;fill:#8A8A8A;text-anchor:end;">{{ gl.label }}</text>
+            </sc-for>
+            <polyline points="{{ cd.points }}" style="fill:none;stroke:{{ cd.fg }};stroke-width:2;stroke-linejoin:round;"></polyline>
+            <sc-for list="{{ cd.dots }}" as="dt" hint-placeholder-count="6">
+              <circle cx="{{ dt.x }}" cy="{{ dt.y }}" r="{{ dt.r }}" style="fill:{{ dt.fill }};stroke:{{ dt.stroke }};stroke-width:2;"></circle>
+              <text x="{{ dt.x }}" y="142" style="font-size:10px;fill:#8A8A8A;text-anchor:middle;">{{ dt.label }}</text>
+            </sc-for>
+          </svg>
+        </div>
+        <div style="padding:12px 12px 0;">
+          <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;">
+            <sc-for list="{{ cd.rows }}" as="t" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:{{ t.sep }};">
+                <div style="width:40px;text-align:center;flex:none;"><div style="font-size:16px;font-weight:700;color:#222;line-height:1;">{{ t.day }}</div><div style="font-size:11px;color:#8A8A8A;margin-top:2px;">{{ t.wd }}</div></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:500;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.note }}</div>
+                  <div style="font-size:12px;color:#8A8A8A;margin-top:2px;">{{ t.meta }}</div>
+                </div>
+                <span style="font-size:14px;font-weight:600;color:{{ t.amtColor }};">{{ t.amt }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="height:96px;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= COACH ================= -->
+    <sc-if value="{{ isCoach }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#fff;flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #EEEEEE;">
+        <div style="width:36px;height:36px;border-radius:10px;background:#F0523C;color:#fff;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:20px;">auto_awesome</span></div>
+        <div style="flex:1;"><div style="font-size:16px;font-weight:600;color:#222;">Coach</div><div style="font-size:12px;color:#8A8A8A;">Analizó {{ coachTxCount }} movimientos de {{ monthLabelLong }}</div></div>
+      </div>
+      <div id="coachscroll" class="noscroll" style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;">
+        <sc-for list="{{ insights }}" as="in" hint-placeholder-count="4">
+          <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:14px 16px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="width:28px;height:28px;border-radius:8px;background:{{ in.bg }};color:{{ in.fg }};display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:18px;">{{ in.icon }}</span></span>
+              <span style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:{{ in.fg }};">{{ in.kicker }}</span>
+            </div>
+            <div style="font-size:16px;font-weight:600;color:#222;margin-top:10px;line-height:1.3;text-wrap:pretty;">{{ in.title }}</div>
+            <div style="font-size:13px;color:#555;margin-top:4px;line-height:1.45;text-wrap:pretty;">{{ in.body }}</div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button onClick="{{ in.primary }}" style="height:34px;padding:0 14px;border:none;border-radius:999px;background:#F0523C;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">{{ in.primaryLabel }}</button>
+              <button onClick="{{ in.secondary }}" style="height:34px;padding:0 14px;border:1px solid #E2E2E2;border-radius:999px;background:#fff;color:#555;font-size:13px;cursor:pointer;">{{ in.secondaryLabel }}</button>
+            </div>
+          </div>
+        </sc-for>
+        <sc-for list="{{ chat }}" as="m" hint-placeholder-count="0">
+          <div style="align-self:{{ m.align }};max-width:84%;background:{{ m.bg }};color:{{ m.color }};padding:10px 13px;border-radius:{{ m.radius }};font-size:14px;line-height:1.45;white-space:pre-wrap;box-shadow:0 1px 2px rgba(0,0,0,.05);animation:slideup .2s ease;">{{ m.text }}</div>
+        </sc-for>
+      </div>
+      <div style="flex:none;background:#fff;border-top:1px solid #EEEEEE;">
+        <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;padding:10px 12px 0;">
+          <sc-for list="{{ coachChips }}" as="c" hint-placeholder-count="4">
+            <button onClick="{{ c.onClick }}" style="flex:none;border:1px solid #E2E2E2;background:#fff;color:#555;font-size:12px;height:30px;padding:0 12px;border-radius:999px;cursor:pointer;white-space:nowrap;">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;padding:10px 12px 12px;">
+          <input value="{{ chatInput }}" onInput="{{ onChatInput }}" onKeyDown="{{ onChatKey }}" placeholder="Pregúntale al Coach..." style="flex:1;height:44px;border:1px solid #E2E2E2;border-radius:999px;padding:0 16px;font-size:14px;outline:none;background:#F7F7F8;" />
+          <button onClick="{{ sendChat }}" style="width:44px;height:44px;border:none;border-radius:50%;background:#F0523C;color:#fff;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:20px;">arrow_upward</span></button>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= ACCOUNTS ================= -->
+    <sc-if value="{{ isAccounts }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#fff;flex:none;">
+        <div style="display:flex;align-items:center;padding:12px 16px;">
+          <span style="flex:1;font-size:20px;font-weight:700;color:#222;">Cuentas</span>
+          <span class="ms" style="font-size:22px;color:#555;margin-right:16px;">edit</span>
+          <span class="ms" style="font-size:24px;color:#222;">add</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:9px 12px;border-top:1px solid #EEEEEE;border-bottom:1px solid #EEEEEE;">
+          <div style="text-align:center;"><div style="font-size:12px;color:#8A8A8A;">Activos</div><div style="color:#2F80ED;font-size:14px;font-weight:600;margin-top:2px;">{{ accAssets }}</div></div>
+          <div style="text-align:center;"><div style="font-size:12px;color:#8A8A8A;">Pasivos</div><div style="color:#F0523C;font-size:14px;font-weight:600;margin-top:2px;">{{ accLiab }}</div></div>
+          <div style="text-align:center;"><div style="font-size:12px;color:#8A8A8A;">Total</div><div style="color:#222;font-size:14px;font-weight:600;margin-top:2px;">{{ accNet }}</div></div>
+        </div>
+      </div>
+      <div class="noscroll" style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;">
+        <sc-for list="{{ accGroups }}" as="ag" hint-placeholder-count="4">
+          <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#F7F7F8;">
+              <span class="ms" style="font-size:18px;color:#8A8A8A;">{{ ag.icon }}</span>
+              <span style="flex:1;font-size:13px;color:#8A8A8A;font-weight:500;">{{ ag.name }}</span>
+              <span style="font-size:13px;font-weight:600;color:{{ ag.color }};">{{ ag.total }}</span>
+            </div>
+            <sc-for list="{{ ag.rows }}" as="ar" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;padding:12px 16px;border-top:1px solid #F2F2F2;">
+                <div style="flex:1;min-width:0;"><div style="font-size:14px;color:#222;">{{ ar.name }}</div><div style="font-size:12px;color:#8A8A8A;margin-top:1px;">{{ ar.sub }}</div></div>
+                <span style="font-size:14px;font-weight:500;color:{{ ar.color }};">{{ ar.bal }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <div style="height:84px;flex:none;"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= SETTINGS ================= -->
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#fff;flex:none;padding:12px 16px;border-bottom:1px solid #EEEEEE;"><span style="font-size:20px;font-weight:700;color:#222;">Ajustes</span></div>
+      <div class="noscroll" style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:16px;">
+        <sc-for list="{{ settingGroups }}" as="sg" hint-placeholder-count="3">
+          <div>
+            <div style="font-size:12px;font-weight:500;color:#8A8A8A;padding:0 4px 6px;text-transform:uppercase;letter-spacing:.4px;">{{ sg.title }}</div>
+            <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;">
+              <sc-for list="{{ sg.rows }}" as="so" hint-placeholder-count="3">
+                <div onClick="{{ so.onClick }}" style="display:flex;align-items:center;gap:12px;padding:0 16px;min-height:52px;border-top:{{ so.sep }};cursor:pointer;">
+                  <span class="ms" style="font-size:20px;color:#555;">{{ so.icon }}</span>
+                  <span style="flex:1;font-size:14px;color:#222;">{{ so.label }}</span>
+                  <sc-if value="{{ so.value }}" hint-placeholder-val="">
+                    <span style="font-size:13px;color:#8A8A8A;">{{ so.value }}</span>
+                  </sc-if>
+                  <sc-if value="{{ so.isToggle }}" hint-placeholder-val="">
+                    <span style="width:40px;height:24px;border-radius:999px;background:{{ so.trackBg }};position:relative;flex:none;transition:background .15s;"><span style="position:absolute;top:3px;left:{{ so.knobLeft }};width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s;"></span></span>
+                  </sc-if>
+                  <sc-if value="{{ so.isLink }}" hint-placeholder-val="">
+                    <span class="ms" style="font-size:18px;color:#B0B0B0;">chevron_right</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="text-align:center;font-size:12px;color:#B0B0B0;padding:4px 0 84px;">Money Manager IA · v0.2 · datos locales</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= ADD ================= -->
+    <sc-if value="{{ isAdd }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="background:#F0523C;flex:none;display:flex;align-items:center;gap:12px;padding:12px 12px;color:#fff;">
+        <span onClick="{{ goTrans }}" class="ms" style="font-size:24px;cursor:pointer;">arrow_back</span>
+        <span style="font-size:16px;font-weight:600;">Nueva transacción</span>
+      </div>
+      <div style="display:flex;background:#F0523C;flex:none;">
+        <sc-for list="{{ typeTabs }}" as="tt" hint-placeholder-count="3">
+          <div onClick="{{ tt.onClick }}" style="flex:1;text-align:center;padding:10px 0;font-size:14px;color:#fff;border-bottom:3px solid {{ tt.border }};opacity:{{ tt.opacity }};cursor:pointer;">{{ tt.label }}</div>
+        </sc-for>
+      </div>
+      <div class="noscroll" style="flex:1;overflow-y:auto;padding:12px;">
+        <div style="background:#fff;border:1px solid #FBE0DA;border-radius:16px;padding:14px;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:600;color:#F0523C;display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span class="ms" style="font-size:16px;">auto_awesome</span>Escribe en lenguaje natural</div>
+          <textarea value="{{ nlText }}" onInput="{{ onNl }}" placeholder="ej. rappi pizza 42 soles con la visa" rows="2" style="width:100%;border:1px solid #E2E2E2;border-radius:12px;padding:10px 12px;font-size:14px;resize:none;outline:none;background:#F7F7F8;"></textarea>
+          <button onClick="{{ interpret }}" style="margin-top:8px;width:100%;height:44px;background:#F0523C;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">Interpretar</button>
+          <sc-if value="{{ nlHint }}" hint-placeholder-val="">
+            <div style="margin-top:8px;font-size:12px;color:#2EA862;background:#E3F7EA;border-radius:8px;padding:8px 10px;">{{ nlHint }}</div>
+          </sc-if>
+        </div>
+        <div style="background:#fff;border-radius:16px;overflow:hidden;">
+          <div style="display:flex;align-items:center;padding:0 16px;height:52px;border-bottom:1px solid #F2F2F2;"><span style="width:88px;font-size:13px;color:#8A8A8A;">Fecha</span><span style="font-size:14px;color:#222;">25.09.2026 (Vie)</span></div>
+          <div style="display:flex;align-items:center;padding:0 16px;height:52px;border-bottom:1px solid #F2F2F2;"><span style="width:88px;font-size:13px;color:#8A8A8A;">Monto</span><span style="color:#8A8A8A;margin-right:4px;font-size:14px;">S/.</span><input value="{{ form.amount }}" onInput="{{ onAmount }}" inputmode="decimal" placeholder="0.00" style="flex:1;border:none;font-size:16px;font-weight:600;color:{{ amountFieldColor }};outline:none;" /></div>
+          <div style="display:flex;align-items:center;padding:0 16px;height:52px;border-bottom:1px solid #F2F2F2;"><span style="width:88px;font-size:13px;color:#8A8A8A;">Categoría</span>
+            <select value="{{ form.cat }}" onChange="{{ onCat }}" style="flex:1;border:none;font-size:14px;color:#222;outline:none;background:transparent;">
+              <sc-for list="{{ catOptions }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;padding:0 16px;height:52px;border-bottom:1px solid #F2F2F2;"><span style="width:88px;font-size:13px;color:#8A8A8A;">Cuenta</span>
+            <select value="{{ form.acc }}" onChange="{{ onAcc }}" style="flex:1;border:none;font-size:14px;color:#222;outline:none;background:transparent;">
+              <sc-for list="{{ accOptions }}" as="a" hint-placeholder-count="4"><option value="{{ a }}">{{ a }}</option></sc-for>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;padding:0 16px;height:52px;"><span style="width:88px;font-size:13px;color:#8A8A8A;">Nota</span><input value="{{ form.note }}" onInput="{{ onNote }}" placeholder="Descripción" style="flex:1;border:none;font-size:14px;color:#222;outline:none;" /></div>
+        </div>
+        <button onClick="{{ saveTx }}" style="margin-top:16px;width:100%;height:48px;background:#F0523C;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">Guardar</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ================= SCAN ================= -->
+    <sc-if value="{{ isScan }}" hint-placeholder-val="">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;background:#1a1a1a;">
+      <div style="padding:12px;flex:none;display:flex;align-items:center;gap:12px;color:#fff;">
+        <span onClick="{{ goTrans }}" class="ms" style="font-size:24px;cursor:pointer;">arrow_back</span>
+        <span style="font-size:16px;font-weight:600;">Escanear recibo</span>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:16px;">
+        <div style="width:240px;height:320px;background:#fff;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5);padding:18px 16px;font-family:'Courier New',monospace;color:#333;outline:3px solid #2EA862;outline-offset:10px;">
+          <div style="text-align:center;font-weight:700;font-size:14px;letter-spacing:1px;">PLAZA VEA</div>
+          <div style="text-align:center;font-size:9px;color:#888;margin:2px 0 10px;">RUC 20100070970 · Surco</div>
+          <div style="border-top:1px dashed #ccc;margin:6px 0;"></div>
+          <div style="font-size:10px;display:flex;justify-content:space-between;"><span>Arroz Costeño 5kg</span><span>24.90</span></div>
+          <div style="font-size:10px;display:flex;justify-content:space-between;"><span>Leche Gloria x6</span><span>23.40</span></div>
+          <div style="font-size:10px;display:flex;justify-content:space-between;"><span>Pollo entero</span><span>32.50</span></div>
+          <div style="font-size:10px;display:flex;justify-content:space-between;"><span>Verduras varias</span><span>18.70</span></div>
+          <div style="border-top:1px dashed #ccc;margin:8px 0;"></div>
+          <div style="font-size:12px;font-weight:700;display:flex;justify-content:space-between;"><span>TOTAL S/.</span><span>99.50</span></div>
+          <div style="font-size:9px;color:#888;margin-top:8px;">VISA ****4521 · 25/09/2026 20:14</div>
+          <sc-if value="{{ scanning }}" hint-placeholder-val="">
+            <div style="position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#2EA862,transparent);box-shadow:0 0 14px #2EA862;animation:scanline 1.1s ease-in-out infinite alternate;"></div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="flex:none;background:#fff;border-radius:20px 20px 0 0;padding:16px 16px 20px;">
+        <sc-if value="{{ scanIdle }}" hint-placeholder-val="{{ true }}">
+          <div style="text-align:center;font-size:13px;color:#8A8A8A;margin-bottom:12px;">Encuadra el recibo dentro del marco</div>
+          <button onClick="{{ startScan }}" style="width:100%;height:48px;background:#F0523C;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><span class="ms" style="font-size:20px;">photo_camera</span>Escanear</button>
+        </sc-if>
+        <sc-if value="{{ scanning }}" hint-placeholder-val="">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;color:#F0523C;font-size:14px;height:48px;">
+            <span style="width:18px;height:18px;border:3px solid #FBE0DA;border-top-color:#F0523C;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>Extrayendo datos...
+          </div>
+        </sc-if>
+        <sc-if value="{{ scanDone }}" hint-placeholder-val="">
+          <div style="animation:pop .2s ease;">
+            <div style="font-size:12px;color:#2EA862;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:5px;"><span class="ms" style="font-size:16px;">check_circle</span>Detectado · confianza 94%</div>
+            <div style="background:#F7F7F8;border-radius:12px;padding:2px 14px;margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #EEEEEE;font-size:13px;"><span style="color:#8A8A8A;">Comercio</span><span style="color:#222;">Plaza Vea</span></div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #EEEEEE;font-size:13px;"><span style="color:#8A8A8A;">Monto</span><span style="color:#F0523C;font-weight:600;">S/. 99.50</span></div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #EEEEEE;font-size:13px;"><span style="color:#8A8A8A;">Cuenta</span><span style="color:#222;">BCP Visa</span></div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;"><span style="color:#8A8A8A;">Categoría</span><span style="color:#222;">Comida · Supermercado</span></div>
+            </div>
+            <button onClick="{{ addScanned }}" style="width:100%;height:48px;background:#F0523C;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">Añadir transacción</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- FAB menu -->
+    <sc-if value="{{ fabOpen }}" hint-placeholder-val="">
+      <div onClick="{{ closeFab }}" style="position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:40;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;gap:14px;padding:0 24px 168px;">
+        <sc-for list="{{ fabActions }}" as="f" hint-placeholder-count="3">
+          <div onClick="{{ f.onClick }}" style="display:flex;align-items:center;gap:12px;cursor:pointer;animation:slideup .18s ease;">
+            <span style="color:#fff;font-size:14px;font-weight:500;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;">{{ f.label }}</span>
+            <span style="width:48px;height:48px;border-radius:50%;background:#fff;color:{{ f.fg }};display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.3);"><span class="ms" style="font-size:22px;">{{ f.icon }}</span></span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showFab }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ toggleFab }}" style="position:absolute;right:20px;bottom:96px;width:56px;height:56px;border-radius:50%;background:#F0523C;color:#fff;border:none;box-shadow:0 6px 16px rgba(240,82,60,.45);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;transition:transform .2s;transform:rotate({{ fabRotate }});"><span class="ms" style="font-size:28px;">add</span></button>
+    </sc-if>
+
+    <sc-if value="{{ toast }}" hint-placeholder-val="">
+      <div style="position:absolute;left:16px;right:16px;bottom:100px;z-index:60;background:#3A3A3A;color:#fff;font-size:13px;padding:12px 14px;border-radius:12px;display:flex;align-items:center;gap:8px;animation:slideup .2s ease;"><span class="ms" style="font-size:18px;color:#6FDC9C;">check_circle</span>{{ toast }}</div>
+    </sc-if>
+
+    <!-- bottom nav -->
+    <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:none;background:#fff;border-top:1px solid #EEEEEE;display:flex;height:58px;align-items:center;z-index:30;">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+        <div onClick="{{ n.onClick }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:{{ n.color }};cursor:pointer;">
+          <span class="ms" style="font-size:24px;">{{ n.icon }}</span>
+          <span style="font-size:11px;font-weight:500;">{{ n.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+    <div style="flex:none;height:30px;background:#F4F4F6;display:flex;align-items:center;justify-content:center;"><span style="width:110px;height:4px;border-radius:999px;background:#222;"></span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:940}}">
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MONTHS_L = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const WD = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const TODAY = { y: 2026, m: 8, d: 25 };
+const CATS = {
+  'Comida':        { icon: 'restaurant', fg: '#F0523C', bg: '#FBE0DA', type: 'expense' },
+  'Hogar':         { icon: 'home', fg: '#A1674A', bg: '#F3E4DC', type: 'expense' },
+  'Transporte':    { icon: 'local_taxi', fg: '#2F80ED', bg: '#DBE8FB', type: 'expense' },
+  'Servicios':     { icon: 'wifi', fg: '#F2994A', bg: '#FDEED9', type: 'expense' },
+  'Suscripciones': { icon: 'subscriptions', fg: '#D6457A', bg: '#FADDE8', type: 'expense' },
+  'Familia':       { icon: 'family_restroom', fg: '#9B51E0', bg: '#EFE3FC', type: 'expense' },
+  'Ocio':          { icon: 'sports_esports', fg: '#E0A800', bg: '#FFF3C9', type: 'expense' },
+  'Compras':       { icon: 'shopping_bag', fg: '#00A3A3', bg: '#D7F2F2', type: 'expense' },
+  'Salud':         { icon: 'medication', fg: '#27AE60', bg: '#DBF3E5', type: 'expense' },
+  'Educación':     { icon: 'school', fg: '#4F5BD5', bg: '#E1E4F6', type: 'expense' },
+  'Otros':         { icon: 'category', fg: '#828282', bg: '#ECECEC', type: 'expense' },
+  'Salario':       { icon: 'payments', fg: '#2F80ED', bg: '#DBE8FB', type: 'income' },
+  'Freelance':     { icon: 'work', fg: '#27AE60', bg: '#DBF3E5', type: 'income' },
+  'Inversiones':   { icon: 'trending_up', fg: '#F2994A', bg: '#FDEED9', type: 'income' },
+  'Transferencia': { icon: 'swap_horiz', fg: '#8A8A8A', bg: '#ECECEC', type: 'transfer' },
+};
+const ACCOUNTS = [
+  { name: 'Efectivo', group: 'cash', start: 180 },
+  { name: 'BCP Soles', group: 'bank', start: 3400 },
+  { name: 'Interbank Soles', group: 'bank', start: 1650 },
+  { name: 'BCP Visa', group: 'card', start: 0, limit: 6000 },
+  { name: 'BCP Ahorro', group: 'savings', start: 8200 },
+];
+const BUDGET = { 'Comida': 1100, 'Hogar': 1300, 'Transporte': 380, 'Servicios': 280, 'Suscripciones': 110, 'Ocio': 420, 'Compras': 450, 'Familia': 300, 'Salud': 120, 'Educación': 80 };
+
+function genData() {
+  let seed = 11;
+  const r = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const pick = (a) => a[Math.floor(r() * a.length)];
+  const amt = (a, b) => Math.round((a + r() * (b - a)) * 10) / 10;
+  const time = (h1, h2) => String(h1 + Math.floor(r() * (h2 - h1))).padStart(2, '0') + ':' + String(Math.floor(r() * 60)).padStart(2, '0');
+  const out = []; let id = 1;
+  const add = (m, d, type, cat, sub, note, acc, a, extra) => out.push({ id: id++, y: 2026, m, d, type, cat, sub, note, acc, amt: a, time: (extra && extra.time) || time(8, 22), ...extra });
+  [[5, 30], [6, 31], [7, 31], [8, 25]].forEach(([m, L]) => {
+    const sep = m === 8;
+    add(m, 1, 'expense', 'Hogar', 'Alquiler', 'Alquiler depa Surco', 'BCP Soles', 1200, { time: '09:05' });
+    add(m, 3, 'expense', 'Suscripciones', 'Streaming', 'Netflix Estándar', 'BCP Visa', 44.9, { time: '06:00' });
+    add(m, 5, 'income', 'Salario', 'Quincena', 'Quincena 1 · Medirec', 'BCP Soles', 2482, { time: '10:12' });
+    add(m, 7, 'expense', 'Suscripciones', 'Música', 'Spotify Premium', 'BCP Visa', 21.9, { time: '06:00' });
+    add(m, 8, 'expense', 'Servicios', 'Luz', 'Luz del Sur', 'BCP Soles', amt(72, 104), { time: '19:40' });
+    add(m, 10, 'expense', 'Servicios', 'Internet', 'Claro Hogar 200 Mbps', 'BCP Soles', 99, { time: '08:30' });
+    add(m, 12, 'expense', 'Servicios', 'Celular', 'Plan Movistar', 'BCP Visa', 59.9, { time: '07:15' });
+    add(m, 14, 'expense', 'Suscripciones', 'Streaming', 'YouTube Premium', 'BCP Visa', 23.9, { time: '06:00' });
+    add(m, 15, 'expense', 'Familia', 'Apoyo', 'Apoyo mamá', 'BCP Soles', 250, { method: 'Yape', time: '12:30' });
+    if (m >= 6) add(m, 2, 'expense', 'Educación', 'Cursos', 'Platzi Expert', 'BCP Visa', 69, { time: '06:00' });
+    if (m >= 7) add(m, 18, 'expense', 'Suscripciones', 'Almacenamiento', 'iCloud 200 GB', 'BCP Visa', 12.9, { time: '06:00' });
+    if (L >= 19) add(m, 19, 'income', 'Salario', 'Quincena', 'Quincena 2 · Medirec', 'Interbank Soles', 2489, { time: '10:05' });
+    if (L >= 20) add(m, 20, 'transfer', 'Transferencia', 'Ahorro', 'BCP Soles → BCP Ahorro', 'BCP Soles', 500, { to: 'BCP Ahorro', time: '11:00' });
+    if (L >= 24) add(m, 24, 'transfer', 'Transferencia', 'Pago tarjeta', 'Pago BCP Visa', 'Interbank Soles', 1900, { to: 'BCP Visa', time: '09:20' });
+    add(m, 4, 'transfer', 'Transferencia', 'Retiro', 'Retiro cajero BCP', 'BCP Soles', 200, { to: 'Efectivo', time: '18:10' });
+    if (L >= 18) add(m, 18, 'transfer', 'Transferencia', 'Retiro', 'Retiro cajero BCP', 'BCP Soles', 150, { to: 'Efectivo', time: '19:30' });
+    if (m === 5 || m === 7) add(m, 28, 'income', 'Inversiones', 'Fondos', 'Rendimiento fondo mutuo', 'BCP Ahorro', amt(80, 140), { time: '08:00' });
+    if (m === 6) add(m, 22, 'income', 'Freelance', 'Diseño', 'Logo para cafetería', 'Interbank Soles', 650, { time: '17:45' });
+    if (sep) add(m, 11, 'income', 'Freelance', 'Diseño', 'Landing para dentista', 'Interbank Soles', 480, { time: '18:20' });
+    if (sep) add(m, 13, 'expense', 'Compras', 'Ropa', 'Zapatillas Nike Pegasus', 'BCP Visa', 389, { time: '16:40' });
+    if (m === 7) add(m, 23, 'expense', 'Salud', 'Consulta', 'Consulta dermatólogo', 'BCP Visa', 150, { time: '10:30' });
+    for (let d = 1; d <= L; d++) {
+      const w = new Date(2026, m, d).getDay();
+      const wk = w > 0 && w < 6;
+      if (wk && r() < 0.72) {
+        const ocr = r() < 0.3;
+        add(m, d, 'expense', 'Comida', 'Almuerzo', 'Menú ' + pick(['trucha', 'ají de gallina', 'lomo saltado', 'pollo a la plancha', 'seco con frejoles', 'arroz chaufa']), r() < 0.6 ? 'BCP Soles' : 'Efectivo', amt(12, 19), { method: r() < 0.6 ? 'Yape' : null, time: time(12, 15), ocr: ocr ? Math.round(82 + r() * 15) : null });
+      }
+      if (wk && r() < 0.45) add(m, d, 'expense', 'Transporte', 'Taxi', pick(['Uber a oficina', 'Taxi Beat', 'InDrive a casa']), 'BCP Visa', amt(8, 22), { time: time(7, 9) });
+      if (r() < 0.22) add(m, d, 'expense', 'Comida', 'Café', pick(['Café Tostado', 'Starbucks latte', 'Juan Valdez']), 'BCP Soles', amt(9, 17), { method: 'Yape', time: time(9, 17) });
+      if (r() < (sep ? 0.5 : 0.16)) add(m, d, 'expense', 'Comida', 'Delivery', 'Rappi · ' + pick(['pizza', 'sushi', 'hamburguesa', 'pollo a la brasa', 'chifa']), 'BCP Visa', amt(29, 58), { time: time(19, 22) });
+      if (w === 6) add(m, d, 'expense', 'Comida', 'Supermercado', pick(['Plaza Vea', 'Tottus', 'Wong']), 'BCP Visa', amt(120, 230), { time: time(10, 13), ocr: r() < 0.5 ? Math.round(88 + r() * 10) : null });
+      if ((w === 5 || w === 6) && r() < 0.55) add(m, d, 'expense', 'Ocio', pick(['Cine', 'Salidas', 'Bar']), pick(['Cineplanet', 'Salida con amigos', 'Cervezas en Barranco', 'Concierto']), 'BCP Visa', amt(30, 110), { time: time(19, 23) });
+      if (w === 0 && r() < 0.5) add(m, d, 'expense', 'Transporte', 'Movilidad', 'Metropolitano', 'Efectivo', amt(3, 6), { time: time(10, 18) });
+      if (r() < 0.04) add(m, d, 'expense', 'Salud', 'Farmacia', 'Inkafarma', 'BCP Soles', amt(18, 60), { method: 'Yape' });
+      if (r() < 0.035) add(m, d, 'expense', 'Compras', pick(['Ropa', 'Hogar']), pick(['Saga Falabella', 'Mercado Libre', 'Promart']), 'BCP Visa', amt(60, 180));
+    }
+  });
+  return out;
+}
+
+class Component extends DCLogic {
+  state = {
+    tx: genData(),
+    screen: 'trans', tab: 'daily',
+    ym: { y: 2026, m: 8 }, year: 2026,
+    selDay: 25, openMonth: 8,
+    statType: 'expense', statCat: null,
+    fabOpen: false, toast: '',
+    form: { type: 'expense', amount: '', cat: 'Comida', acc: 'BCP Soles', note: '' },
+    nlText: '', nlHint: '', scan: 'idle',
+    chat: [], chatInput: '',
+    settings: { autoCat: true, ocrAuto: true, coachWeekly: true, lock: false },
+  };
+
+  n(v) { return Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  f(v) { return 'S/. ' + this.n(v); }
+  fs(v) { return (v < 0 ? '-S/. ' : 'S/. ') + this.n(Math.abs(v)); }
+  short(v) { return v >= 1000 ? Math.round(v).toLocaleString('en-US') : v.toFixed(2); }
+  sum(list, type) { return list.filter(t => t.type === type).reduce((a, t) => a + t.amt, 0); }
+  inMonth(y, m) { return this.state.tx.filter(t => t.y === y && t.m === m); }
+  flash(msg) { clearTimeout(this._tt); this.setState({ toast: msg }); this._tt = setTimeout(() => this.setState({ toast: '' }), 2200); }
+  daysIn(y, m) { return new Date(y, m + 1, 0).getDate(); }
+  row(t, i) {
+    const c = CATS[t.cat] || CATS.Otros;
+    const acct = t.type === 'transfer' ? `${t.acc} → ${t.to}` : t.acc;
+    return {
+      icon: c.icon, fg: c.fg, bg: c.bg, note: t.note,
+      meta: `${t.cat} · ${t.sub} · ${acct} · ${t.time}`,
+      amt: this.f(t.amt),
+      amtColor: t.type === 'income' ? '#2F80ED' : t.type === 'expense' ? '#F0523C' : '#8A8A8A',
+      method: t.method || '', ocr: t.ocr ? 'OCR ' + t.ocr + '%' : '',
+      sep: i === 0 ? 'none' : '1px solid #F2F2F2',
+      day: String(t.d).padStart(2, '0'), wd: WD[new Date(t.y, t.m, t.d).getDay()],
+    };
+  }
+
+  coachAnswer(q) {
+    const s = this.state, low = q.toLowerCase();
+    const cur = this.inMonth(2026, 8), prev = this.inMonth(2026, 7);
+    const exp = this.sum(cur, 'expense');
+    const budTot = Object.values(BUDGET).reduce((a, b) => a + b, 0);
+    const left = 30 - TODAY.d;
+    const byCat = (list) => { const o = {}; list.filter(t => t.type === 'expense').forEach(t => { o[t.cat] = (o[t.cat] || 0) + t.amt; }); return o; };
+    if (low.includes('300') || low.includes('finde') || low.includes('permit')) {
+      const avail = budTot - exp;
+      const after = avail - 300;
+      return after > 0
+        ? `Sí, con cuidado. Te quedan ${this.f(avail)} de presupuesto para ${left} días. Si gastas S/. 300 este finde te quedarían ${this.f(after)} (${this.f(after / left)}/día). Lo que más te aprieta es Comida: ya vas en ${Math.round(byCat(cur)['Comida'] / BUDGET['Comida'] * 100)}% de su tope.`
+        : `Mejor no. Te quedan ${this.f(avail)} de presupuesto para ${left} días; gastar S/. 300 te dejaría ${this.f(Math.abs(after))} por encima. Un tope razonable para el finde sería ${this.f(Math.max(0, avail * 0.4))}.`;
+    }
+    if (low.includes('suscrip')) {
+      const subs = cur.filter(t => t.cat === 'Suscripciones');
+      const tot = subs.reduce((a, t) => a + t.amt, 0);
+      return `Pagas ${this.f(tot)}/mes en ${subs.length} suscripciones:\n${subs.map(t => `· ${t.note} — ${this.f(t.amt)}`).join('\n')}\n\nYouTube Premium incluye YouTube Music, que se solapa con Spotify. Quedarte con uno te ahorra ~S/. 22/mes (S/. 264 al año).`;
+    }
+    if (low.includes('ahorr') || low.includes('500')) {
+      const deliv = cur.filter(t => t.sub === 'Delivery');
+      const dAvg = deliv.reduce((a, t) => a + t.amt, 0) / (deliv.length || 1);
+      const cafe = cur.filter(t => t.sub === 'Café');
+      const cAvg = cafe.reduce((a, t) => a + t.amt, 0) / (cafe.length || 1);
+      const dProj = deliv.length / TODAY.d * 30, cProj = cafe.length / TODAY.d * 30;
+      const s1 = Math.max(0, dProj - 8.6) * dAvg, s2 = Math.max(0, cProj - 4.3) * cAvg;
+      return `Plan para ahorrar S/. 500 el próximo mes:\n· Delivery a 2 veces/semana (vas camino a ${Math.round(dProj)} pedidos): ~${this.f(s1)}\n· Café fuera 1 vez/semana (vas camino a ${Math.round(cProj)}): ~${this.f(s2)}\n· Cancelar Spotify o YouTube Premium: ~S/. 22\n· Tope de Ocio en S/. 180: ~S/. 60\n\nTotal estimado: ${this.f(s1 + s2 + 82)}. ¿Lo convierto en presupuesto?`;
+    }
+    if (low.includes('agosto') || low.includes('más') || low.includes('por qué')) {
+      const a = byCat(prev), b = byCat(cur);
+      const diffs = Object.keys(b).map(k => [k, b[k] / TODAY.d * 30 - (a[k] || 0)]).sort((x, y) => y[1] - x[1]).slice(0, 3);
+      return `Proyectando septiembre completo vs agosto, lo que más sube:\n${diffs.map(([k, v]) => `· ${k}: ${v >= 0 ? '+' : ''}${this.f(v)}`).join('\n')}\n\nEl salto en Comida viene casi todo de Delivery (Rappi), no de almuerzos.`;
+    }
+    return `Puedo ayudarte con decisiones: si puedes permitirte un gasto, dónde recortar, qué suscripciones sobran o cómo llegar a una meta de ahorro. Para ver totales y gráficos, Estadísticas lo muestra mejor.`;
+  }
+
+  renderVals() {
+    const s = this.state, set = (p) => this.setState(p);
+    const go = (screen) => set({ screen, fabOpen: false });
+    const { y, m } = s.ym;
+    const mt = this.inMonth(y, m);
+    const shiftMonth = (dir) => { let mm = m + dir, yy = y; if (mm < 0) { mm = 11; yy--; } if (mm > 11) { mm = 0; yy++; } const last = this.daysIn(yy, mm); set({ ym: { y: yy, m: mm }, selDay: Math.min(s.selDay, last), openMonth: mm, year: yy }); };
+
+    // summary
+    const isMonthly = s.tab === 'monthly';
+    const scope = isMonthly ? s.tx.filter(t => t.y === s.year) : mt;
+    const sInc = this.sum(scope, 'income'), sExp = this.sum(scope, 'expense');
+
+    // daily
+    const byDay = {};
+    mt.forEach(t => { (byDay[t.d] = byDay[t.d] || []).push(t); });
+    const dailyGroups = Object.keys(byDay).map(Number).sort((a, b) => b - a).map(d => {
+      const list = byDay[d].slice().sort((a, b) => b.time.localeCompare(a.time));
+      const wd = new Date(y, m, d).getDay();
+      return {
+        day: String(d).padStart(2, '0'), wd: WD[wd], my: String(m + 1).padStart(2, '0') + '.' + y,
+        chipBg: wd === 0 ? '#F0523C' : wd === 6 ? '#2F80ED' : '#8A8A8A',
+        inc: this.f(this.sum(list, 'income')), exp: this.f(this.sum(list, 'expense')),
+        rows: list.map((t, i) => this.row(t, i)),
+      };
+    });
+
+    // calendar
+    const first = new Date(y, m, 1).getDay(), dim = this.daysIn(y, m), prevDim = this.daysIn(y, m - 1 < 0 ? 11 : m - 1);
+    const weeks = Math.ceil((first + dim) / 7);
+    const calCells = [];
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = i - first + 1, inM = d >= 1 && d <= dim, col = i % 7;
+      const list = inM ? (byDay[d] || []) : [];
+      const inc = this.sum(list, 'income'), exp = this.sum(list, 'expense');
+      const isToday = inM && y === TODAY.y && m === TODAY.m && d === TODAY.d;
+      const sel = inM && d === s.selDay;
+      calCells.push({
+        num: inM ? d : (d < 1 ? prevDim + d : d - dim),
+        numColor: isToday ? '#fff' : !inM ? '#B0B0B0' : col === 0 ? '#F0523C' : col === 6 ? '#2F80ED' : '#222',
+        numBg: isToday ? '#3A3A3A' : 'transparent',
+        bg: !inM ? '#F7F7F8' : sel ? '#FFF6F4' : '#fff',
+        ring: sel ? 'inset 0 0 0 2px #F0523C' : 'none',
+        inc: inc ? this.short(inc) : '', exp: exp ? this.short(exp) : '',
+        net: (inc && exp) ? this.short(inc - exp) : '',
+        onClick: inM ? () => set({ selDay: d }) : () => {},
+      });
+    }
+    const selList = (byDay[s.selDay] || []).slice().sort((a, b) => b.time.localeCompare(a.time));
+
+    // monthly
+    const monthRows = [];
+    const lastM = s.year === TODAY.y ? TODAY.m : 11;
+    for (let mm = lastM; mm >= 0; mm--) {
+      const list = s.tx.filter(t => t.y === s.year && t.m === mm);
+      const inc = this.sum(list, 'income'), exp = this.sum(list, 'expense');
+      const L = this.daysIn(s.year, mm);
+      const open = s.openMonth === mm && list.length > 0;
+      const wks = [];
+      if (open) {
+        let start = 1;
+        while (start <= L) {
+          const wd = new Date(s.year, mm, start).getDay();
+          const end = Math.min(L, start + (6 - wd));
+          const wl = list.filter(t => t.d >= start && t.d <= end);
+          const wi = this.sum(wl, 'income'), we = this.sum(wl, 'expense');
+          const p = (d) => String(d).padStart(2, '0') + '.' + String(mm + 1).padStart(2, '0');
+          wks.push({ range: `${p(start)} ~ ${p(end)}`, inc: this.f(wi), exp: this.f(we), net: this.fs(wi - we) });
+          start = end + 1;
+        }
+        wks.reverse();
+      }
+      monthRows.push({
+        name: MONTHS[mm], range: `01.${String(mm + 1).padStart(2, '0')} ~ ${L}.${String(mm + 1).padStart(2, '0')}`,
+        inc: this.f(inc), exp: this.f(exp), net: this.fs(inc - exp), open, weeks: wks,
+        chev: list.length ? (open ? 'expand_less' : 'expand_more') : '',
+        onClick: () => set({ openMonth: s.openMonth === mm ? -1 : mm }),
+      });
+    }
+
+    // total / budget
+    const catExp = {};
+    mt.filter(t => t.type === 'expense').forEach(t => { catExp[t.cat] = (catExp[t.cat] || 0) + t.amt; });
+    const budTot = Object.values(BUDGET).reduce((a, b) => a + b, 0);
+    const isCur = y === TODAY.y && m === TODAY.m;
+    const elapsed = isCur ? TODAY.d / dim : 1;
+    const budPct = sExp / budTot;
+    const budRows = Object.keys(BUDGET).map(k => ({ k, spent: catExp[k] || 0, cap: BUDGET[k] }))
+      .sort((a, b) => b.spent / b.cap - a.spent / a.cap).slice(0, 5).map(b => {
+        const p = b.spent / b.cap, c = CATS[b.k];
+        const over = p > 1, risk = p > elapsed + 0.05;
+        return { name: b.k, icon: c.icon, fg: c.fg, pct: Math.round(p * 100) + '%', spent: this.f(b.spent), cap: this.short(b.cap),
+          w: Math.min(100, p * 100) + '%', barColor: over ? '#F0523C' : risk ? '#F2994A' : '#2EA862', pctColor: over ? '#F0523C' : risk ? '#F2994A' : '#2EA862' };
+      });
+    const pmList = this.inMonth(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
+    const pmExp = this.sum(pmList, 'expense');
+    const expCash = mt.filter(t => t.type === 'expense' && t.acc !== 'BCP Visa').reduce((a, t) => a + t.amt, 0);
+    const expCard = mt.filter(t => t.type === 'expense' && t.acc === 'BCP Visa').reduce((a, t) => a + t.amt, 0);
+    const trf = this.sum(mt, 'transfer');
+    const mm2 = String(m + 1).padStart(2, '0');
+
+    // stats
+    const stList = mt.filter(t => t.type === s.statType);
+    const stTot = stList.reduce((a, t) => a + t.amt, 0);
+    const stCat = {};
+    stList.forEach(t => { stCat[t.cat] = (stCat[t.cat] || 0) + t.amt; });
+    const stSorted = Object.entries(stCat).sort((a, b) => b[1] - a[1]);
+    const C = 2 * Math.PI * 66;
+    let acc = 0;
+    const donut = stSorted.map(([k, v]) => {
+      const len = v / stTot * C, gap = stSorted.length > 1 ? 1.5 : 0;
+      const o = { color: CATS[k].fg, dash: `${Math.max(0.1, len - gap)} ${C}`, offset: -acc };
+      acc += len; return o;
+    });
+    const statRows = stSorted.map(([k, v]) => ({
+      name: k, icon: CATS[k].icon, color: CATS[k].fg, amt: this.f(v), pct: Math.round(v / stTot * 100) + '%',
+      onClick: () => set({ screen: 'catDetail', statCat: k }),
+    }));
+
+    // category detail
+    let cd = { name: '', icon: '', fg: '#222', total: '', totalColor: '#222', subs: [], grid: [], points: '', dots: [], rows: [] };
+    if (s.statCat) {
+      const k = s.statCat, c = CATS[k];
+      const list = mt.filter(t => t.cat === k).sort((a, b) => b.d - a.d || b.time.localeCompare(a.time));
+      const tot = list.reduce((a, t) => a + t.amt, 0);
+      const subs = {};
+      list.forEach(t => { subs[t.sub] = (subs[t.sub] || 0) + t.amt; });
+      const series = [];
+      for (let i = 5; i >= 0; i--) { let mm = m - i, yy = y; if (mm < 0) { mm += 12; yy--; } series.push({ label: MONTHS[mm], v: this.inMonth(yy, mm).filter(t => t.cat === k).reduce((a, t) => a + t.amt, 0), cur: i === 0 }); }
+      const max = Math.max(1, ...series.map(p => p.v)) * 1.15;
+      const X = (i) => 56 + i * 58, Y = (v) => 118 - (v / max) * 104;
+      cd = {
+        name: k, icon: c.icon, fg: c.fg, total: this.f(tot), totalColor: c.type === 'income' ? '#2F80ED' : '#F0523C',
+        subs: [{ name: 'Todas', pct: '100%', amt: this.f(tot), bg: '#FFF6F4' }].concat(Object.entries(subs).sort((a, b) => b[1] - a[1]).map(([n, v]) => ({ name: n, pct: Math.round(v / (tot || 1) * 100) + '%', amt: this.f(v), bg: '#fff' }))),
+        grid: [0, 0.5, 1].map(p => ({ y: Y(max * p / 1.15), ty: Y(max * p / 1.15) + 3, label: (max * p / 1.15) >= 1000 ? ((max * p / 1.15) / 1000).toFixed(1) + 'k' : Math.round(max * p / 1.15) })),
+        points: series.map((p, i) => `${X(i)},${Y(p.v)}`).join(' '),
+        dots: series.map((p, i) => ({ x: X(i), y: Y(p.v), r: p.cur ? 5 : 3.5, fill: p.cur ? c.fg : '#fff', stroke: c.fg, label: p.label })),
+        rows: list.map((t, i) => { const r = this.row(t, i); r.meta = `${t.sub} · ${t.acc}`; return r; }),
+      };
+    }
+
+    // accounts
+    const bal = {};
+    ACCOUNTS.forEach(a => { bal[a.name] = a.start; });
+    s.tx.forEach(t => {
+      if (t.type === 'income') bal[t.acc] += t.amt;
+      else if (t.type === 'expense') bal[t.acc] -= t.amt;
+      else { bal[t.acc] -= t.amt; bal[t.to] += t.amt; }
+    });
+    const GROUPS = [['cash', 'Efectivo', 'payments'], ['bank', 'Cuentas bancarias', 'account_balance'], ['card', 'Tarjetas de crédito', 'credit_card'], ['savings', 'Ahorros', 'savings']];
+    let assets = 0, liab = 0;
+    const accGroups = GROUPS.map(([g, name, icon]) => {
+      const list = ACCOUNTS.filter(a => a.group === g);
+      const tot = list.reduce((a, x) => a + bal[x.name], 0);
+      if (g === 'card') liab += Math.max(0, -tot); else assets += tot;
+      return {
+        name, icon, total: g === 'card' ? this.f(Math.max(0, -tot)) : this.fs(tot), color: (g === 'card' || tot < 0) ? '#F0523C' : '#2F80ED',
+        rows: list.map(a => {
+          const b = bal[a.name];
+          if (g === 'card') return { name: a.name, sub: `Por pagar · línea ${this.f(a.limit)}`, bal: this.f(Math.max(0, -b)), color: '#F0523C' };
+          const sub = g === 'bank' ? (a.name === 'BCP Soles' ? 'Incluye pagos Yape' : 'Cuenta sueldo') : g === 'savings' ? 'Meta: S/. 12,000' : 'En billetera';
+          return { name: a.name, sub, bal: this.fs(b), color: b < 0 ? '#F0523C' : '#2F80ED' };
+        }),
+      };
+    });
+
+    // coach insights (always about current month)
+    const cur = this.inMonth(2026, 8), aug = this.inMonth(2026, 7);
+    const curExp = this.sum(cur, 'expense'), augExp = this.sum(aug, 'expense');
+    const proj = curExp / TODAY.d * 30;
+    const deliv = cur.filter(t => t.sub === 'Delivery'), delivAug = aug.filter(t => t.sub === 'Delivery');
+    const delivTot = deliv.reduce((a, t) => a + t.amt, 0);
+    const subsCur = cur.filter(t => t.cat === 'Suscripciones');
+    const subsTot = subsCur.reduce((a, t) => a + t.amt, 0);
+    const compAvg = [5, 6, 7].map(mm => this.inMonth(2026, mm).filter(t => t.cat === 'Compras').reduce((a, t) => a + t.amt, 0)).reduce((a, b) => a + b, 0) / 3;
+    const toCat = (k) => () => set({ screen: 'catDetail', statCat: k, statType: 'expense', ym: { y: 2026, m: 8 } });
+    const budLeft = budTot - curExp, daysLeft = 30 - TODAY.d;
+    const delivProj = deliv.length / TODAY.d * 30;
+    const delivSave = Math.max(0, delivProj - 8.6) * delivTot / (deliv.length || 1);
+    const insights = [
+      { icon: 'speed', kicker: 'Ritmo del mes', fg: '#F2994A', bg: '#FDEED9',
+        title: `A este ritmo cerrarás septiembre en ${this.f(proj)}`,
+        body: `${Math.round(Math.abs(proj / augExp - 1) * 100)}% ${proj >= augExp ? 'más' : 'menos'} que agosto (${this.f(augExp)}). ` + (budLeft > 0
+          ? `Te quedan ${daysLeft} días y ${this.f(budLeft)} de presupuesto: unos ${this.f(budLeft / daysLeft)} por día.`
+          : `Ya superaste tu presupuesto por ${this.f(-budLeft)}; quedan ${daysLeft} días.`),
+        primaryLabel: 'Ver presupuesto', primary: () => set({ screen: 'trans', tab: 'total', ym: { y: 2026, m: 8 } }),
+        secondaryLabel: 'Entendido', secondary: () => this.flash('Te aviso si el ritmo cambia') },
+      { icon: 'delivery_dining', kicker: 'Hábito detectado', fg: '#F0523C', bg: '#FBE0DA',
+        title: `${deliv.length} pedidos de delivery este mes (en agosto fueron ${delivAug.length})`,
+        body: `Llevas ${this.f(delivTot)} en Rappi, casi todos entre las 19:00 y 22:00; vas camino a ${Math.round(delivProj)} pedidos. Bajando a 2 por semana ahorrarías ~${this.f(delivSave)} al mes.`,
+        primaryLabel: 'Poner tope', primary: () => this.flash('Tope de delivery: S/. 320 / mes'),
+        secondaryLabel: 'Ver pedidos', secondary: toCat('Comida') },
+      { icon: 'subscriptions', kicker: 'Suscripciones', fg: '#D6457A', bg: '#FADDE8',
+        title: `Pagas ${this.f(subsTot)}/mes en ${subsCur.length} suscripciones`,
+        body: 'YouTube Premium ya incluye música: se solapa con Spotify. Quedarte con uno te ahorra S/. 264 al año. iCloud subió de plan en agosto.',
+        primaryLabel: 'Revisar', primary: toCat('Suscripciones'),
+        secondaryLabel: 'Ignorar', secondary: () => this.flash('No volveré a mostrar esta sugerencia') },
+      { icon: 'error', kicker: 'Gasto inusual', fg: '#4F5BD5', bg: '#E1E4F6',
+        title: 'Zapatillas Nike Pegasus · S/. 389.00',
+        body: `Es ${(389 / (compAvg || 1)).toFixed(1)}x tu gasto mensual promedio en Compras. ¿Fue planeado? Si fue un gasto único, lo excluyo de tus promedios.`,
+        primaryLabel: 'Fue único', primary: () => this.flash('Marcado como gasto único'),
+        secondaryLabel: 'Es normal', secondary: () => this.flash('Anotado, ajusto tu referencia') },
+    ];
+    const coachQs = ['¿Puedo gastar S/. 300 este finde?', '¿Qué suscripciones me sobran?', 'Plan para ahorrar S/. 500', '¿Por qué gasto más que en agosto?'];
+    const pushChat = (text) => {
+      if (!text || !text.trim()) return;
+      this.setState(st => ({ chat: [...st.chat, { role: 'user', text }, { role: 'ai', text: this.coachAnswer(text) }], chatInput: '' }));
+      setTimeout(() => { const el = document.getElementById('coachscroll'); if (el) el.scrollTop = el.scrollHeight; }, 60);
+    };
+
+    // settings
+    const tog = (k) => () => set({ settings: { ...s.settings, [k]: !s.settings[k] } });
+    const T = (icon, label, k) => ({ icon, label, isToggle: true, trackBg: s.settings[k] ? '#F0523C' : '#D5D5D8', knobLeft: s.settings[k] ? '19px' : '3px', onClick: tog(k) });
+    const Lk = (icon, label, value, fn) => ({ icon, label, value: value || '', isLink: true, onClick: fn || (() => this.flash(label)) });
+    const settingGroups = [
+      { title: 'Coach e IA', rows: [T('auto_awesome', 'Categorizar automáticamente', 'autoCat'), T('document_scanner', 'Guardar recibos OCR sin revisar', 'ocrAuto'), T('notifications', 'Resumen semanal del Coach', 'coachWeekly'), Lk('memory', 'Modelo', 'Claude')] },
+      { title: 'General', rows: [Lk('payments', 'Moneda principal', 'PEN · S/.'), Lk('calendar_month', 'Inicio de mes', 'Día 1'), Lk('date_range', 'Inicio de semana', 'Domingo'), Lk('category', 'Categorías'), Lk('savings', 'Presupuestos')] },
+      { title: 'Datos', rows: [Lk('table_view', 'Exportar a Excel', '', () => this.flash('Exportado: movimientos_2026.xlsx')), Lk('upload_file', 'Importar desde Money Manager'), Lk('backup', 'Copia de seguridad', 'Hace 2 días')] },
+      { title: 'Seguridad', rows: [T('lock', 'Bloqueo con huella', 'lock'), Lk('dark_mode', 'Tema', 'Claro')] },
+    ].map(g => ({ ...g, rows: g.rows.map((r, i) => ({ ...r, sep: i === 0 ? 'none' : '1px solid #F2F2F2' })) }));
+
+    // add / scan
+    const catOptions = Object.keys(CATS).filter(k => CATS[k].type === (s.form.type === 'transfer' ? 'transfer' : s.form.type));
+    const interpret = () => {
+      const txt = s.nlText.trim(); if (!txt) return;
+      const low = txt.toLowerCase();
+      const am = low.match(/(\d+(?:[.,]\d{1,2})?)/);
+      const kw = { Comida: ['almuerzo', 'menu', 'menú', 'cena', 'rappi', 'pizza', 'café', 'cafe', 'plaza vea', 'tottus', 'pollo'], Transporte: ['uber', 'taxi', 'indrive', 'bus', 'metro'], Ocio: ['cine', 'bar', 'cerveza', 'concierto'], Salud: ['farmacia', 'inkafarma', 'doctor'], Compras: ['ropa', 'zapatillas', 'saga'], Servicios: ['luz', 'agua', 'internet', 'plan'], Salario: ['sueldo', 'quincena', 'salario'], Freelance: ['freelance', 'cliente', 'proyecto'] };
+      let cat = 'Otros'; Object.entries(kw).some(([k, ws]) => ws.some(w => low.includes(w)) && (cat = k));
+      const type = CATS[cat].type === 'income' ? 'income' : 'expense';
+      const acc = low.includes('visa') || low.includes('tarjeta') ? 'BCP Visa' : low.includes('efectivo') ? 'Efectivo' : low.includes('interbank') ? 'Interbank Soles' : 'BCP Soles';
+      let note = txt.replace(/\d+(?:[.,]\d{1,2})?/, '').replace(/soles|s\/\.?|con (la )?visa|con yape|en efectivo|con tarjeta/gi, '').replace(/\s+/g, ' ').trim();
+      note = note.charAt(0).toUpperCase() + note.slice(1);
+      set({ form: { type, amount: am ? am[1].replace(',', '.') : '', cat, acc, note, yape: low.includes('yape') }, nlHint: `${type === 'income' ? 'Ingreso' : 'Gasto'} · ${cat} · ${acc}${low.includes('yape') ? ' · Yape' : ''}. Revisa y guarda.` });
+    };
+    const saveTx = () => {
+      const a = parseFloat(s.form.amount);
+      if (!a || a <= 0) { set({ nlHint: 'Ingresa un monto válido.' }); return; }
+      const t = { id: Date.now(), y: 2026, m: 8, d: 25, type: s.form.type, cat: s.form.cat, sub: 'General', note: s.form.note || s.form.cat, acc: s.form.acc, amt: a, time: '22:27', method: s.form.yape ? 'Yape' : null };
+      if (t.type === 'transfer') { t.to = 'BCP Ahorro'; t.cat = 'Transferencia'; }
+      set({ tx: [...s.tx, t], screen: 'trans', tab: 'daily', ym: { y: 2026, m: 8 }, nlText: '', nlHint: '', form: { type: 'expense', amount: '', cat: 'Comida', acc: 'BCP Soles', note: '' } });
+      this.flash('Transacción guardada');
+    };
+
+    const navDef = [['trans', 'receipt_long', 'Trans.'], ['stats', 'bar_chart', 'Estad.'], ['coach', 'auto_awesome', 'Coach'], ['accounts', 'account_balance_wallet', 'Cuentas'], ['settings', 'settings', 'Ajustes']];
+    const activeNav = s.screen === 'catDetail' ? 'stats' : s.screen;
+
+    return {
+      isTrans: s.screen === 'trans', isStats: s.screen === 'stats', isCatDetail: s.screen === 'catDetail', isCoach: s.screen === 'coach',
+      isAccounts: s.screen === 'accounts', isSettings: s.screen === 'settings', isAdd: s.screen === 'add', isScan: s.screen === 'scan',
+      isDaily: s.tab === 'daily', isCalendar: s.tab === 'calendar', isMonthly, isTotal: s.tab === 'total',
+      periodLabel: isMonthly ? String(s.year) : `${MONTHS[m]} ${y}`, monthLabel: `${MONTHS[m]} ${y}`, monthLabelLong: 'septiembre',
+      prevPeriod: () => isMonthly ? set({ year: s.year - 1, openMonth: -1 }) : shiftMonth(-1),
+      nextPeriod: () => isMonthly ? set({ year: Math.min(TODAY.y, s.year + 1) }) : shiftMonth(1),
+      prevMonth: () => shiftMonth(-1), nextMonth: () => shiftMonth(1),
+      transTabs: [['daily', 'Diario'], ['calendar', 'Calendario'], ['monthly', 'Mensual'], ['total', 'Total']].map(([k, l]) => ({ label: l, color: s.tab === k ? '#222' : '#8A8A8A', weight: s.tab === k ? 600 : 400, border: s.tab === k ? '#F0523C' : 'transparent', onClick: () => set({ tab: k, openMonth: k === 'monthly' ? m : s.openMonth, year: y }) })),
+      sumInc: this.f(sInc), sumExp: this.f(sExp), sumNet: this.fs(sInc - sExp),
+      dailyGroups, dailyEmpty: dailyGroups.length === 0,
+      calHead: WD.map((l, i) => ({ label: l, color: i === 0 ? '#F0523C' : i === 6 ? '#2F80ED' : '#555' })),
+      calCells,
+      selDayLabel: `${WD[new Date(y, m, s.selDay).getDay()]} ${s.selDay} de ${MONTHS_L[m]}`,
+      selDayCount: selList.length ? `${selList.length} mov. · ${this.fs(this.sum(selList, 'income') - this.sum(selList, 'expense'))}` : '',
+      selDayRows: selList.map((t, i) => this.row(t, i)), selDayEmpty: selList.length === 0,
+      monthRows,
+      budSpent: this.f(sExp), budTotal: this.f(budTot), budPctW: Math.min(100, budPct * 100) + '%',
+      budColor: budPct > 1 ? '#F0523C' : budPct > elapsed + 0.05 ? '#F2994A' : '#2EA862',
+      budNote: isCur ? `${Math.round(budPct * 100)}% del presupuesto usado · ${Math.round(elapsed * 100)}% del mes transcurrido` : `${Math.round(budPct * 100)}% del presupuesto usado`,
+      budRows,
+      totRange: `01.${mm2} ~ ${dim}.${mm2}`,
+      totRows: [
+        { label: 'Gastos vs mes anterior', val: pmExp ? Math.round(sExp / pmExp * 100) + '%' : '—', color: '#222' },
+        { label: 'Gastos (efectivo y cuentas)', val: this.f(expCash), color: '#222' },
+        { label: 'Gastos (tarjeta)', val: this.f(expCard), color: '#222' },
+        { label: 'Transferencias', val: this.f(trf), color: '#222' },
+      ].map((r, i) => ({ ...r, sep: i === 0 ? 'none' : '1px solid #F2F2F2' })),
+      exportExcel: () => this.flash(`Exportado: movimientos_${MONTHS_L[m]}_${y}.xlsx`),
+      statTabs: [['income', 'Ingresos'], ['expense', 'Gastos']].map(([k, l]) => ({ label: `${l}  ${this.f(this.sum(mt, k))}`, color: s.statType === k ? '#222' : '#8A8A8A', weight: s.statType === k ? 600 : 400, border: s.statType === k ? '#F0523C' : 'transparent', onClick: () => set({ statType: k }) })),
+      donut, statRows, statTotal: this.f(stTot), statCenterLabel: s.statType === 'expense' ? 'Gastos' : 'Ingresos',
+      cd, goStats: () => set({ screen: 'stats' }),
+      accAssets: this.f(assets), accLiab: this.f(liab), accNet: this.fs(assets - liab), accGroups,
+      insights, coachTxCount: cur.length,
+      chat: s.chat.map(mm => ({ text: mm.text, align: mm.role === 'user' ? 'flex-end' : 'flex-start', bg: mm.role === 'user' ? '#F0523C' : '#fff', color: mm.role === 'user' ? '#fff' : '#222', radius: mm.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px' })),
+      coachChips: coachQs.map(q => ({ label: q, onClick: () => pushChat(q) })),
+      chatInput: s.chatInput, onChatInput: (e) => set({ chatInput: e.target.value }),
+      onChatKey: (e) => { if (e.key === 'Enter') pushChat(s.chatInput); }, sendChat: () => pushChat(s.chatInput),
+      settingGroups,
+      typeTabs: [['income', 'Ingreso'], ['expense', 'Gasto'], ['transfer', 'Transf.']].map(([k, l]) => ({ label: l, border: s.form.type === k ? '#fff' : 'transparent', opacity: s.form.type === k ? 1 : 0.7, onClick: () => set({ form: { ...s.form, type: k, cat: Object.keys(CATS).find(c => CATS[c].type === k) } }) })),
+      form: s.form, nlText: s.nlText, nlHint: s.nlHint, catOptions, accOptions: ACCOUNTS.map(a => a.name),
+      amountFieldColor: s.form.type === 'income' ? '#2F80ED' : '#F0523C',
+      onNl: (e) => set({ nlText: e.target.value }), interpret, saveTx,
+      onAmount: (e) => set({ form: { ...s.form, amount: e.target.value } }),
+      onCat: (e) => set({ form: { ...s.form, cat: e.target.value } }),
+      onAcc: (e) => set({ form: { ...s.form, acc: e.target.value } }),
+      onNote: (e) => set({ form: { ...s.form, note: e.target.value } }),
+      goTrans: () => go('trans'),
+      scanIdle: s.scan === 'idle', scanning: s.scan === 'scanning', scanDone: s.scan === 'done',
+      startScan: () => { set({ scan: 'scanning' }); setTimeout(() => this.setState({ scan: 'done' }), 2000); },
+      addScanned: () => { set({ tx: [...s.tx, { id: Date.now(), y: 2026, m: 8, d: 25, type: 'expense', cat: 'Comida', sub: 'Supermercado', note: 'Plaza Vea', acc: 'BCP Visa', amt: 99.5, time: '20:14', ocr: 94 }], screen: 'trans', tab: 'daily', ym: { y: 2026, m: 8 }, scan: 'idle' }); this.flash('Recibo añadido'); },
+      fabOpen: s.fabOpen, showFab: s.screen === 'trans' || s.screen === 'stats',
+      toggleFab: () => set({ fabOpen: !s.fabOpen }), closeFab: () => set({ fabOpen: false }), fabRotate: s.fabOpen ? '45deg' : '0deg',
+      fabActions: [
+        { label: 'Añadir manual', icon: 'edit', fg: '#2F80ED', onClick: () => go('add') },
+        { label: 'Escanear recibo', icon: 'document_scanner', fg: '#2EA862', onClick: () => set({ screen: 'scan', scan: 'idle', fabOpen: false }) },
+        { label: 'Preguntar al Coach', icon: 'auto_awesome', fg: '#F0523C', onClick: () => go('coach') },
+      ],
+      toast: s.toast,
+      showNav: s.screen !== 'add' && s.screen !== 'scan',
+      navItems: navDef.map(([k, icon, label]) => ({ icon, label, color: activeNav === k ? '#F0523C' : '#8A8A8A', onClick: () => go(k) })),
+    };
+  }
+}
+</script>
+</body>
+</html>

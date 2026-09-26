@@ -24,5 +24,9 @@ void main() {
     expect(find.byType(StatsScreen), findsOneWidget);
     expect(find.text('No data available.'), findsOneWidget);
     expect(find.text('Monthly'), findsOneWidget);
+
+    // Cancel drift stream timers before tearDown closes the database.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 1));
   });
 }
