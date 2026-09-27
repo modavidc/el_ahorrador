@@ -58,6 +58,11 @@ dependencies:
   sentry_flutter: ^9.6.0
   local_auth: ^2.3.0
 
+  # Escanear boleta, Dictar and the Coach with OpenAI
+  image_picker: ^1.2.2
+  speech_to_text: ^7.4.0
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

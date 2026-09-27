@@ -190,6 +190,9 @@ abstract final class ReceiptReader {
     return null;
   }
 
+  /// Date and time written in [text], if any.
+  static DateTime? dateIn(String text, DateTime now) => _date(text, now);
+
   static DateTime? _date(String text, DateTime now) {
     final t = _textDate.firstMatch(text);
     if (t != null) {

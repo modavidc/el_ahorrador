@@ -82,3 +82,24 @@ final class InboxItem {
   final MovementOrigin origin;
   final DateTime receivedAt;
 }
+
+/// A ticket read by Escanear boleta, waiting for "Guardar".
+final class ReceiptScan {
+  const ReceiptScan({required this.captureId, required this.draft});
+
+  final String captureId;
+  final CaptureDraft draft;
+}
+
+/// Why a scanned ticket cannot be saved; [message] is shown as is.
+final class ScanException implements Exception {
+  const ScanException(this.message, {this.originalMovementId});
+
+  final String message;
+
+  /// The movement already registered from the same ticket.
+  final String? originalMovementId;
+
+  @override
+  String toString() => message;
+}

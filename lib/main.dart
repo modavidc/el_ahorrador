@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:share_handler/share_handler.dart';
 
 import 'package:el_ahorrador/core/observability/observability.dart';
-import 'package:el_ahorrador/features/capture/data/android_background_capture.dart';
-import 'package:el_ahorrador/features/capture/data/unsupported_background_capture.dart';
 import 'package:el_ahorrador/app/background_capture.dart';
 import 'package:el_ahorrador/app/dependencies.dart';
 import 'package:el_ahorrador/core/database/app_database.dart';
@@ -78,12 +76,9 @@ class _MisGastosAppState extends State<MisGastosApp> {
 
   /// Created here so a share that opens the app is queued before the
   /// interface exists.
-  late final _dependencies = AppDependencies(
+  late final _dependencies = AppDependencies.forDevice(
     db,
     historicalImport: kDebugMode,
-    backgroundCapture: defaultTargetPlatform == TargetPlatform.android
-        ? AndroidBackgroundCapture()
-        : const UnsupportedBackgroundCapture(),
   );
   StreamSubscription<SharedMedia>? _sub;
 
@@ -174,6 +169,6 @@ class _MisGastosAppState extends State<MisGastosApp> {
     theme: buildDesignTheme(),
     // The v3 design is light only.
     themeMode: ThemeMode.light,
-    home: AppHome(dependencies: _dependencies),
+    home: AppHome(dependencies: _dependencies, welcomeOnFirstRun: true),
   );
 }

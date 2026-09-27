@@ -26,6 +26,7 @@ final class SettingsLinks {
     required this.openCoachHistory,
     required this.showWelcome,
     this.coachModel,
+    this.testReminder,
     this.runImport,
   });
 
@@ -39,6 +40,9 @@ final class SettingsLinks {
 
   /// Personalizar Coach → Modelo de IA (OpenAI key); null hides the row.
   final VoidCallback? coachModel;
+
+  /// Recordatorios → Probar recordatorio.
+  final VoidCallback? testReminder;
 
   /// Debug builds: historical import from assets/import.
   final VoidCallback? runImport;
@@ -127,7 +131,10 @@ class SettingsScreen extends StatelessWidget {
                           : 'Apagado',
                       onTap: () => _push(
                         context,
-                        RemindersScreen(preferences: preferences),
+                        RemindersScreen(
+                          preferences: preferences,
+                          onTest: links.testReminder,
+                        ),
                       ),
                     ),
                     SettingRow(
@@ -314,9 +321,12 @@ class _ProfileCard extends StatelessWidget {
 
 /// Recordatorios: daily reminder and its hour, recaps and notices.
 class RemindersScreen extends StatelessWidget {
-  const RemindersScreen({super.key, required this.preferences});
+  const RemindersScreen({super.key, required this.preferences, this.onTest});
 
   final AppPreferences preferences;
+
+  /// "Probar recordatorio": shows the daily reminder now.
+  final VoidCallback? onTest;
 
   @override
   Widget build(BuildContext context) => StreamBuilder<Map<Preference, bool>>(
@@ -395,6 +405,14 @@ class RemindersScreen extends StatelessWidget {
                 ),
               ],
             ),
+            if (onTest != null) ...[
+              const SizedBox(height: 8),
+              OutlineAction(
+                icon: DesignIcons.notificationsActive,
+                label: 'Probar recordatorio',
+                onTap: onTest!,
+              ),
+            ],
           ],
         ),
       );

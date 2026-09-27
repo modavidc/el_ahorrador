@@ -121,7 +121,36 @@ void main() {
 
   Future<void> fab(WidgetTester t) => tap(t, find.byKey(const ValueKey('fab')));
 
+  Future<void> welcome(WidgetTester t, {int steps = 0}) async {
+    await tap(t, find.text('Ajustes'));
+    await t.scrollUntilVisible(find.text('Ver bienvenida'), 300);
+    await t.drag(find.text('Ver bienvenida'), const Offset(0, -200));
+    await t.pumpAndSettle();
+    await tap(t, find.text('Ver bienvenida'));
+    // The welcome reads the budget from the database first.
+    for (var i = 0; i < 40 && find.text('Continuar').evaluate().isEmpty; i++) {
+      await t.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await t.pump(const Duration(milliseconds: 16));
+    }
+    await t.pumpAndSettle();
+    for (var i = 0; i < steps; i++) {
+      await t.tap(find.byKey(const ValueKey('onboarding-next')));
+      // The demo of the last step loops: pump instead of settling.
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
+    }
+  }
+
   final screens = <String, Future<void> Function(WidgetTester)?>{
+    '00_onb1': welcome,
+    '01_onb2': (t) => welcome(t, steps: 1),
+    '02_onb3': (t) async {
+      await welcome(t, steps: 2);
+      // Same moment as the prototype capture: "Compartir" highlighted.
+      await t.pump(const Duration(milliseconds: 2500));
+    },
     '03_mov': null,
     '11_cal': (t) => tap(t, find.text('Calendario')),
     '12_mensual': (t) => tap(t, find.text('Mensual')),

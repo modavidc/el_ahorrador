@@ -11,12 +11,18 @@ import 'package:el_ahorrador/features/capture/presentation/capture_hub_screen.da
 import 'package:el_ahorrador/features/capture/presentation/capture_sheet.dart';
 import 'package:el_ahorrador/features/capture/presentation/inbox_screen.dart';
 import 'package:el_ahorrador/features/capture/presentation/rules_screen.dart';
+import 'package:el_ahorrador/features/capture/presentation/scan_receipt_screen.dart';
+import 'package:el_ahorrador/features/coach/presentation/coach_model_screen.dart';
 import 'package:el_ahorrador/features/coach/presentation/coach_screen.dart';
 import 'package:el_ahorrador/features/import/presentation/debug_import_screen.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
+import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
+import 'package:el_ahorrador/features/ledger/presentation/dictate_sheet.dart';
 import 'package:el_ahorrador/features/ledger/presentation/entry_sheet.dart';
 import 'package:el_ahorrador/features/ledger/presentation/ledger_scope.dart';
 import 'package:el_ahorrador/features/ledger/presentation/movements_screen.dart';
+import 'package:el_ahorrador/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:el_ahorrador/features/settings/domain/app_preferences.dart';
 import 'package:el_ahorrador/features/settings/presentation/settings_screen.dart';
 import 'package:el_ahorrador/features/stats/presentation/stats_screen.dart';
 
@@ -26,24 +32,14 @@ class AppHome extends StatefulWidget {
     super.key,
     required this.dependencies,
     this.version = '',
-    this.onShowWelcome,
-    this.onOpenCoachModel,
-    this.onScanReceipt,
-    this.onDictate,
+    this.welcomeOnFirstRun = false,
   });
 
   final AppDependencies dependencies;
   final String version;
 
-  /// Ajustes → Ver bienvenida.
-  final VoidCallback? onShowWelcome;
-
-  /// Personalizar Coach → Modelo de IA.
-  final VoidCallback? onOpenCoachModel;
-
-  /// + → Escanear boleta and Dictar.
-  final VoidCallback? onScanReceipt;
-  final VoidCallback? onDictate;
+  /// Shows the onboarding until the user finishes or skips it once.
+  final bool welcomeOnFirstRun;
 
   @override
   State<AppHome> createState() => _AppHomeState();
@@ -70,6 +66,10 @@ class _AppHomeState extends State<AppHome> {
   /// The capture sheet was closed while images were still being read.
   bool _captureInBackground = false;
 
+  /// The onboarding is on screen; null while the flag is read.
+  bool? _welcome;
+  int _welcomeBudget = LedgerRepository.defaultMonthlyBudgetCents;
+
   static const _movements = 0;
   static const _coach = 2;
   static const _accounts = 3;
@@ -79,6 +79,42 @@ class _AppHomeState extends State<AppHome> {
     super.initState();
     _capture.addListener(_onCapture);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onCapture());
+    if (widget.welcomeOnFirstRun) {
+      _preferences.get(Preference.onboardingDone).then((done) async {
+        if (done) {
+          if (mounted) setState(() => _welcome = false);
+        } else {
+          await _openWelcome();
+        }
+      });
+    } else {
+      _welcome = false;
+    }
+  }
+
+  /// Onboarding, on the first run and from Ajustes → Ver bienvenida.
+  Future<void> _openWelcome() async {
+    final budget = await _repository.watchMonthlyBudget().first;
+    if (!mounted) return;
+    setState(() {
+      _welcomeBudget = budget;
+      _welcome = true;
+    });
+  }
+
+  Future<void> _finishWelcome(OnboardingResult result) async {
+    final budget = result.budgetCents;
+    if (budget != null) await _repository.setMonthlyBudget(budget);
+    await _preferences.set(Preference.onboardingDone, true);
+    if (!mounted) return;
+    setState(() => _welcome = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _shellContext;
+      if (result.activateCapture && context != null && context.mounted) {
+        _startBackgroundCapture(context);
+      }
+      _onCapture();
+    });
   }
 
   void _onCapture() {
@@ -178,13 +214,36 @@ class _AppHomeState extends State<AppHome> {
       movements: data.movements,
     );
     if (result == null || !context.mounted) return;
-    _recent.add(result.id);
-    _shell.select(_movements);
-    showUndoToast(
+    _registered(context, result.id, result.message);
+  }
+
+  void _openScan(BuildContext context) => _push(
+    context,
+    (_) => ScanReceiptScreen(
+      service: _capture.service,
+      camera: widget.dependencies.camera,
+      accounts: [for (final a in LedgerScope.of(context).accounts) a.name],
+      onSaved: (id, message) => _registered(context, id, message),
+    ),
+  );
+
+  Future<void> _openDictate(BuildContext context) async {
+    final result = await showDictateSheet(
       context,
-      result.message,
-      onUndo: () => _undoById(context, result.id),
+      speech: widget.dependencies.speech,
+      repository: _repository,
+      accounts: LedgerScope.of(context).accounts,
     );
+    if (result != null && context.mounted) {
+      _registered(context, result.id, result.message);
+    }
+  }
+
+  /// A movement registered from a sheet or screen: pill, tab and toast.
+  void _registered(BuildContext context, String id, String message) {
+    _recent.add(id);
+    _shell.select(_movements);
+    showUndoToast(context, message, onUndo: () => _undoById(context, id));
   }
 
   Future<void> _undoById(BuildContext context, String id) async {
@@ -327,8 +386,17 @@ class _AppHomeState extends State<AppHome> {
     openAccounts: () => _shell.select(_accounts),
     openCategory: (c) => _openCategory(context, c),
     openCoachHistory: () => _openCoachHistory(context),
-    showWelcome: widget.onShowWelcome ?? () {},
-    coachModel: widget.onOpenCoachModel,
+    showWelcome: _openWelcome,
+    coachModel: widget.dependencies.coachModel == null
+        ? null
+        : () => _push(
+            context,
+            (_) => CoachModelScreen(access: widget.dependencies.coachModel!),
+          ),
+    testReminder: () async {
+      await widget.dependencies.reminders.test();
+      if (context.mounted) showUndoToast(context, 'Recordatorio enviado');
+    },
     runImport: widget.dependencies.runImport == null
         ? null
         : () => _push(
@@ -338,7 +406,22 @@ class _AppHomeState extends State<AppHome> {
   );
 
   @override
-  Widget build(BuildContext context) => LedgerProvider(
+  Widget build(BuildContext context) => Stack(
+    children: [
+      _home(),
+      if (_welcome != false)
+        Positioned.fill(
+          child: _welcome == null
+              ? const ColoredBox(color: DesignColors.paper)
+              : OnboardingScreen(
+                  initialBudgetCents: _welcomeBudget,
+                  onFinish: _finishWelcome,
+                ),
+        ),
+    ],
+  );
+
+  Widget _home() => LedgerProvider(
     repository: _repository,
     child: RecentEntriesScope(
       entries: _recent,
@@ -411,14 +494,13 @@ class _AppHomeState extends State<AppHome> {
                 label: 'Escanear boleta',
                 subtitle: 'Foto del ticket',
                 icon: DesignIcons.documentScanner,
-                onSelected: () =>
-                    (widget.onScanReceipt ?? () => _soon(context))(),
+                onSelected: () => _openScan(context),
               ),
               FabAction(
                 label: 'Dictar',
                 subtitle: 'Dilo en voz alta',
                 icon: DesignIcons.mic,
-                onSelected: () => (widget.onDictate ?? () => _soon(context))(),
+                onSelected: () => _openDictate(context),
               ),
               FabAction(
                 label: 'Compartir comprobante',
@@ -440,6 +522,4 @@ class _AppHomeState extends State<AppHome> {
       ),
     ),
   );
-
-  void _soon(BuildContext context) => showUndoToast(context, 'Próximamente');
 }

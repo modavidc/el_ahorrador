@@ -881,11 +881,15 @@ class FieldBox extends StatelessWidget {
     this.amount = false,
     this.keyboardType,
     this.onChanged,
+    this.obscure = false,
   });
 
   final TextEditingController controller;
   final String? hint;
   final bool amount;
+
+  /// Secrets such as an API key.
+  final bool obscure;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
 
@@ -903,6 +907,9 @@ class FieldBox extends StatelessWidget {
       onChanged: onChanged,
       style: style,
       keyboardType: keyboardType,
+      obscureText: obscure,
+      autocorrect: !obscure,
+      enableSuggestions: !obscure,
       inputFormatters: amount
           ? [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}'))]
           : null,

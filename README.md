@@ -13,7 +13,8 @@ que da sentido a la app:
 1. **Captura → OCR → transacción.** Compartir una imagen con la app, leerla
    on-device y registrarla. *(Ya existe.)*
 2. **Detección automática de capturas (Android).** Detectar capturas nuevas
-   de Yape/bancos y procesarlas sin que el usuario las comparta. *(Pendiente.)*
+   de Yape/bancos y avisos de pago, y procesarlas sin que el usuario las
+   comparta. *(Hecho: servicio en primer plano + lector de notificaciones.)*
 3. **Pantallas del diseño:** Trans. (Diario, Calendario, Mensual, Total),
    Estadísticas, Coach IA, Cuentas y Ajustes.
 
@@ -24,12 +25,11 @@ Fuera de la v1: ver [`docs/ideas.md`](docs/ideas.md).
 | Fase | Contenido | Estado |
 |---|---|---|
 | 0 | Motor: OCR, parsers, cola de captura, DB cifrada (SQLCipher), bloqueo | Hecho |
-| 1 | Tema v3 (papel, tinta y rojo), fuentes Schibsted Grotesk + Material Symbols Rounded | Hecho |
-| 2 | Bottom nav de 5 ítems + FAB, pantalla Trans. (Diario, Calendario, Mensual, Total) | Hecho |
-| 3 | Estadísticas + detalle de categoría | Hecho |
-| 4 | Cuentas (saldos calculados) + Ajustes persistidos + Presupuestos | Hecho |
-| 5 | Detección automática de capturas (Android) + Escanear recibo | Pendiente |
-| 6 | Coach IA: insights locales (hecho) + chat con LLM (pendiente) | Parcial |
+| 1 | Tema v3, shell (5 pestañas + botón +), Movimientos y registro manual | Hecho |
+| 2 | Captura por compartir (1 o varias imágenes), Por revisar y reglas | Hecho |
+| 3 | Estadísticas, Coach, Cuentas, Ajustes y Presupuestos | Hecho |
+| 4 | Captura en segundo plano (Android): capturas de pantalla y avisos de pago | Hecho |
+| 5 | Bienvenida con presupuesto real, recordatorios y recaps, Dictar, Escanear boleta, Coach con OpenAI | Hecho |
 
 ## Desarrollo
 

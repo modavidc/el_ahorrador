@@ -2,6 +2,7 @@ import 'package:el_ahorrador/app/dependencies.dart';
 import 'package:el_ahorrador/core/clock/app_clock.dart';
 import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/features/capture/domain/capture_ports.dart';
+import 'package:el_ahorrador/features/ledger/domain/speech_input.dart';
 
 const yapeSent = '''
 ¡Yapeaste!
@@ -49,6 +50,24 @@ Saga Falabella
 
 const selfie = 'Feliz cumpleaños\nNos vemos el sábado';
 
+/// Photo of a supermarket ticket (Escanear boleta).
+const plazaVeaTicket = '''
+PLAZA VEA
+SUPERMERCADOS PERUANOS S.A.
+RUC 20100070970
+BOLETA DE VENTA ELECTRONICA B123-00045678
+Fecha: 26/09/2026 19:42
+LECHE GLORIA 6X400G      27.90
+PAN MOLDE BIMBO          9.60
+ARROZ COSTENO 5KG        32.00
+POLLO ENTERO KG          30.00
+SUBTOTAL                 84.32
+IGV 18%                  15.18
+TOTAL S/                 99.50
+EFECTIVO                100.00
+VUELTO                    0.50
+''';
+
 /// OCR that returns canned text per file name.
 class FakeOcr implements OcrEngine {
   FakeOcr([this.texts = receipts]);
@@ -79,7 +98,37 @@ const receipts = {
   'blurry': yapeBlurry,
   'bcp': bcpCard,
   'selfie': selfie,
+  'ticket': plazaVeaTicket,
 };
+
+/// Camera that "takes" the given fake file names in order; null = closed.
+class FakeCamera implements ReceiptCamera {
+  FakeCamera([this.photos = const ['ticket']]);
+
+  final List<String?> photos;
+  var _next = 0;
+
+  @override
+  Future<String?> takePhoto() async =>
+      _next < photos.length ? photos[_next++] : null;
+}
+
+/// Speech recognition that "hears" [text].
+class FakeSpeech implements SpeechInput {
+  FakeSpeech([this.text = 'almuerzo 18 soles con yape']);
+
+  final String text;
+  var stops = 0;
+
+  @override
+  Stream<SpeechText> listen() => Stream.fromIterable([
+    SpeechText(text.split(' ').first),
+    SpeechText(text, done: true),
+  ]);
+
+  @override
+  Future<void> stop() async => stops++;
+}
 
 /// The real app wiring over [db], with fake OCR and image storage and the
 /// pinned [AppClock].
@@ -87,5 +136,7 @@ AppDependencies fakeDependencies(AppDatabase db) => AppDependencies(
   db,
   ocr: FakeOcr(),
   images: FakeStorage(),
+  camera: FakeCamera(),
+  speech: FakeSpeech(),
   now: AppClock.now,
 );

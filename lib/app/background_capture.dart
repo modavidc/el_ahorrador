@@ -5,6 +5,7 @@ import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/features/capture/domain/capture_models.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
+import 'package:el_ahorrador/features/reminders/domain/reminders.dart';
 
 /// Runs in the headless engine the Android capture service keeps warm, so a
 /// screenshot or a payment notification is registered in 1–2 seconds even
@@ -15,6 +16,7 @@ import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 ///   to show: `{status, title, body, movementId}`; no title means silence
 ///   (duplicates, images that are not receipts).
 /// - `undo(movementId)` from the notification's "Deshacer".
+/// - `reminders(slot)` from an alarm of Recordatorios → `[{id, title, body}]`.
 Future<void> runBackgroundCapture() async {
   final db = AppDatabase();
   final dependencies = AppDependencies(db);
@@ -41,6 +43,14 @@ Future<void> runBackgroundCapture() async {
       case 'undo':
         await dependencies.ledger.deleteById(call.arguments as String);
         return null;
+      case 'reminders':
+        final notices = await dependencies.reminders.due(
+          ReminderSlot.values.byName(call.arguments as String),
+        );
+        return [
+          for (final n in notices)
+            {'id': n.id, 'title': n.title, 'body': n.body},
+        ];
     }
     return null;
   });

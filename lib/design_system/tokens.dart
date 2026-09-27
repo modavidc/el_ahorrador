@@ -86,6 +86,9 @@ abstract final class DesignColors {
   static const fabLabel = ink;
   static const toastIcon = Color(0xFF7FD6A0);
   static const cameraBackground = ink;
+
+  /// Yape's purple, only for the recreated receipt of the onboarding demo.
+  static const yape = Color(0xFF6F2A8C);
 }
 
 /// Schibsted Grotesk, the only family of v3 (proportional figures, as the
@@ -129,6 +132,36 @@ abstract final class DesignText {
     letterSpacing: -.03,
     height: 1.05,
   );
+
+  /// Onboarding question ("¿Cuánto quieres gastar al mes?").
+  static final question = style(
+    32,
+    FontWeight.w800,
+    letterSpacing: -.03,
+    height: 1.08,
+  );
+
+  /// Onboarding step title ("Registra sin escribir").
+  static final stepTitle = style(
+    30,
+    FontWeight.w800,
+    letterSpacing: -.03,
+    height: 1.08,
+  );
+
+  /// Onboarding budget input.
+  static final budgetInput = style(
+    48,
+    FontWeight.w800,
+    letterSpacing: -.03,
+    height: 1.1,
+  );
+
+  /// "S/" before the onboarding budget.
+  static final currencyLarge = style(26, FontWeight.w700);
+
+  /// Supporting text of the onboarding.
+  static final lead = style(16, FontWeight.w400, height: 1.5);
 
   /// Amount typed in the manual entry sheet.
   static final amountInput = style(
@@ -285,6 +318,10 @@ abstract final class DesignIcons {
     0xe850: IconData(0xe850, fontFamily: _filledFamily),
     0xe8b8: IconData(0xe8b8, fontFamily: _filledFamily),
     0xef55: IconData(0xef55, fontFamily: _filledFamily),
+    0xe2eb: IconData(0xe2eb, fontFamily: _filledFamily),
+    0xe31d: IconData(0xe31d, fontFamily: _filledFamily),
+    0xe034: IconData(0xe034, fontFamily: _filledFamily),
+    0xe037: IconData(0xe037, fontFamily: _filledFamily),
   };
 
   static const backspace = IconData(0xe14a, fontFamily: _family);
@@ -363,6 +400,8 @@ abstract final class DesignIcons {
   static const memory = IconData(0xe322, fontFamily: _family);
   static const notifications = IconData(0xe7f5, fontFamily: _family);
   static const payments = IconData(0xef63, fontFamily: _family);
+  static const pause = IconData(0xe034, fontFamily: _family);
+  static const playArrow = IconData(0xe037, fontFamily: _family);
   static const photoCamera = IconData(0xe412, fontFamily: _family);
   static const receiptLong = IconData(0xef6e, fontFamily: _family);
   static const restaurant = IconData(0xe56c, fontFamily: _family);

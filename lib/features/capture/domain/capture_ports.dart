@@ -19,6 +19,12 @@ abstract interface class OcrEngine {
 }
 
 /// Keeps a private copy of each capture image.
+/// Escanear boleta: a photo taken with the camera.
+abstract interface class ReceiptCamera {
+  /// Path of the photo, or null when the user closed the camera.
+  Future<String?> takePhoto();
+}
+
 abstract interface class CaptureImageStore {
   /// Stores the image and returns where.
   Future<String> persist(String path);

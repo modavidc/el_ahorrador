@@ -23,17 +23,28 @@ object BackgroundEngine {
     private val pending = mutableListOf<() -> Unit>()
 
     fun processImage(context: Context, path: String, done: (Map<*, *>?) -> Unit) =
-        call(context, "processImage", path, done)
+        call(context, "processImage", path) { done(it as? Map<*, *>) }
 
     fun processText(
         context: Context,
         text: String,
         source: String,
         done: (Map<*, *>?) -> Unit,
-    ) = call(context, "processText", mapOf("text" to text, "source" to source), done)
+    ) = call(context, "processText", mapOf("text" to text, "source" to source)) {
+        done(it as? Map<*, *>)
+    }
 
     fun undo(context: Context, movementId: String, done: () -> Unit) =
         call(context, "undo", movementId) { done() }
+
+    /** Notices of an alarm of Recordatorios: `[{id, title, body}]`. */
+    fun reminders(context: Context, slot: String, done: (List<Map<*, *>>) -> Unit) =
+        call(context, "reminders", slot, refreshApp = false) { result ->
+            done((result as? List<*>)?.filterIsInstance<Map<*, *>>() ?: emptyList())
+        }
+
+    val isRunning: Boolean
+        get() = engine != null
 
     /** Starts the engine ahead of the first payment. */
     fun warmUp(context: Context) = main.post { ensure(context.applicationContext) }
@@ -50,7 +61,8 @@ object BackgroundEngine {
         context: Context,
         method: String,
         arguments: Any?,
-        done: (Map<*, *>?) -> Unit,
+        refreshApp: Boolean = true,
+        done: (Any?) -> Unit,
     ) = main.post {
         ensure(context.applicationContext)
         val run = {
@@ -59,8 +71,8 @@ object BackgroundEngine {
                 arguments,
                 object : MethodChannel.Result {
                     override fun success(result: Any?) {
-                        done(result as? Map<*, *>)
-                        AppChannel.notifyCaptured()
+                        done(result)
+                        if (refreshApp) AppChannel.notifyCaptured()
                     }
 
                     override fun error(code: String, message: String?, details: Any?) =

@@ -2,6 +2,7 @@ import 'package:el_ahorrador/features/capture/domain/capture_models.dart';
 import 'package:el_ahorrador/features/capture/domain/capture_ports.dart';
 import 'package:el_ahorrador/features/capture/domain/capture_rule.dart';
 import 'package:el_ahorrador/features/capture/domain/receipt_reader.dart';
+import 'package:el_ahorrador/features/capture/domain/ticket_reader.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
 
@@ -95,6 +96,80 @@ class CaptureService {
       );
     }
   }
+
+  /// Escanear boleta: reads the photo of a ticket without registering it,
+  /// so the user can check category and account before "Guardar".
+  ///
+  /// Throws [ScanException] when the ticket was already registered or has
+  /// no readable total.
+  Future<ReceiptScan> scan(String path) async {
+    final hash = await _images.hash(path);
+    final same = await _records.findActive(hash: hash);
+    if (same != null) {
+      throw ScanException(
+        'Esta boleta ya está registrada',
+        originalMovementId: same.movementId,
+      );
+    }
+    final ocrFuture = _ocr.run(path);
+    final stored = await _images.persist(path);
+    final captureId = await _records.create(imagePath: stored, hash: hash);
+    try {
+      final ocr = await ocrFuture;
+      final reading = TicketReader.read(ocr.text, now: _now());
+      if (!reading.isReceipt) {
+        await _records.setStatus(captureId, CaptureRecordStatus.failed);
+        throw const ScanException(
+          'No encontramos el total. Acerca la boleta y vuelve a intentar.',
+        );
+      }
+      final draft = await _draft(reading, ocr.confidence);
+      await _records.saveReading(
+        captureId,
+        text: ocr.text,
+        origin: MovementOrigin.receipt,
+        confidence: ocr.confidence,
+        sourceApp: reading.source.label,
+        draft: draft,
+      );
+      return ReceiptScan(captureId: captureId, draft: draft);
+    } on ScanException {
+      rethrow;
+    } on Object {
+      await _records.setStatus(captureId, CaptureRecordStatus.failed);
+      throw const ScanException('No se pudo leer la foto. Intenta otra vez.');
+    }
+  }
+
+  /// "Guardar" of Escanear boleta, with what the user changed.
+  Future<String> saveScan(
+    ReceiptScan scan, {
+    required String category,
+    required String account,
+    int? amountCents,
+    String? note,
+  }) {
+    final d = scan.draft;
+    final amount = amountCents ?? d.amountCents;
+    if (amount == null || amount <= 0) throw ArgumentError('Falta el monto');
+    return _register(
+      scan.captureId,
+      CaptureDraft(
+        note: note == null || note.trim().isEmpty ? d.note : note.trim(),
+        type: d.type,
+        account: account,
+        at: d.at,
+        amountCents: amount,
+        category: category,
+        ocrPercent: d.ocrPercent,
+      ),
+      ReceiptSource.other,
+    );
+  }
+
+  /// The scan screen was closed without saving.
+  Future<void> cancelScan(ReceiptScan scan) =>
+      _records.setStatus(scan.captureId, CaptureRecordStatus.discarded);
 
   /// FNV-1a of the text: the same notification twice is one payment.
   static String _fingerprint(String text) {

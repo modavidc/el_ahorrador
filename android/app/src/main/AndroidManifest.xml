@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Coach with OpenAI (only when the user connects a key). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Dictar: the system recognizer listens; the app gets the text. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Background capture of payment screenshots and notifications. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -88,6 +92,10 @@
             android:name=".capture.UndoReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".reminders.ReminderReceiver"
+            android:exported="false" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -103,6 +111,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Dictar and Escanear boleta (Android 11+ package visibility). -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
     </queries>
 </manifest>

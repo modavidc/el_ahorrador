@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import com.elahorrador.app.capture.AppChannel
 import com.elahorrador.app.capture.CapturePermissions
+import com.elahorrador.app.reminders.Reminders
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -18,6 +19,7 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         AppChannel.attach(this, flutterEngine.dartExecutor.binaryMessenger)
+        Reminders.attach(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun onResume() {
