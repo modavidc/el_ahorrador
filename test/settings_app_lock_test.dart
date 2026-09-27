@@ -2,11 +2,11 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/data/app_database.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/main.dart';
-import 'package:el_ahorrador/ui/settings/settings_screen.dart';
-import 'package:el_ahorrador/security/app_lock_settings.dart';
-import 'package:el_ahorrador/security/local_auth_service.dart';
+import 'package:el_ahorrador/features/settings/presentation/settings_screen.dart';
+import 'package:el_ahorrador/core/security/app_lock_settings.dart';
+import 'package:el_ahorrador/core/security/local_auth_service.dart';
 
 class _MemoryStore implements AppLockPreferenceStore {
   bool stored = false;

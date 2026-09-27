@@ -52,16 +52,16 @@ flutter test
 
 ## Estructura
 
+Arquitectura por funcionalidad y capas; detalle y reglas en
+[`docs/arquitectura.md`](docs/arquitectura.md).
+
 ```
 lib/
-  ui/         interfaz v1 (shell, Trans., Estad., Coach, Cuentas, Ajustes, Añadir)
-  theme/      design_tokens.dart: colores, tipografía, íconos, sombras del diseño
-  core/       parsers (Yape, banco, Binance), OCR, dominio financiero
-  data/       Drift + SQLCipher, repositorios, backup, import
-  features/   ledger (movimientos, demo), coach, ajustes, captura
-  screens/    pantallas previas aún en uso (alta/edición de cuentas, import)
-  widgets/    componentes
-  security/   bloqueo con biometría
+  app/        raíz de composición (dependencies.dart) y shell
+  core/       base de datos, formato, reloj, seguridad, observabilidad
+  design_system/  tokens del diseño v3 y kit de componentes
+  features/   ledger, capture, settings, accounts, stats, coach, import
+              cada una con domain/ data/ application/ presentation/
 design/       handoff de diseño v3 (fuente de verdad visual)
 docs/
   specs/          specs funcionales vigentes

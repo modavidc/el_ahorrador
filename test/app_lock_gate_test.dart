@@ -1,5 +1,5 @@
-import 'package:el_ahorrador/security/app_lock_gate.dart';
-import 'package:el_ahorrador/security/local_auth_service.dart';
+import 'package:el_ahorrador/core/security/app_lock_gate.dart';
+import 'package:el_ahorrador/core/security/local_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

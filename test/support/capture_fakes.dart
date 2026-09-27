@@ -1,5 +1,7 @@
-import 'package:el_ahorrador/core/ocr_engine.dart';
-import 'package:el_ahorrador/features/capture/capture_service.dart';
+import 'package:el_ahorrador/app/dependencies.dart';
+import 'package:el_ahorrador/core/clock/app_clock.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/capture/domain/capture_ports.dart';
 
 const yapeSent = '''
 ¡Yapeaste!
@@ -55,12 +57,12 @@ class FakeOcr implements OcrEngine {
 
   @override
   Future<OcrResult> run(String imagePath) async =>
-      OcrResult(texts[imagePath]!, {'confidence': 97});
+      OcrResult(texts[imagePath]!, confidence: 97);
 }
 
 /// Keeps images in place; the hash is the file name so tests control
 /// "same image".
-class FakeStorage implements CaptureStorage {
+class FakeStorage implements CaptureImageStore {
   @override
   Future<String> hash(String path) async => path.split('#').first;
 
@@ -78,3 +80,12 @@ const receipts = {
   'bcp': bcpCard,
   'selfie': selfie,
 };
+
+/// The real app wiring over [db], with fake OCR and image storage and the
+/// pinned [AppClock].
+AppDependencies fakeDependencies(AppDatabase db) => AppDependencies(
+  db,
+  ocr: FakeOcr(),
+  images: FakeStorage(),
+  now: AppClock.now,
+);

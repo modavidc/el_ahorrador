@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/features/ledger/demo_seed.dart';
+import 'package:el_ahorrador/features/ledger/data/demo_seed_v1.dart';
 
 void main() {
   test('demo data is identical to the prototype genData()', () {

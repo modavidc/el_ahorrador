@@ -2,18 +2,19 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/core/app_clock.dart';
-import 'package:el_ahorrador/data/account_repository.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/features/capture/capture_controller.dart';
-import 'package:el_ahorrador/features/capture/capture_service.dart';
-import 'package:el_ahorrador/theme/design_tokens.dart';
-import 'package:el_ahorrador/ui/app_home.dart';
+import 'package:el_ahorrador/core/clock/app_clock.dart';
+import 'package:el_ahorrador/features/accounts/data/account_repository.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/capture/application/capture_controller.dart';
+import 'package:el_ahorrador/app/dependencies.dart';
+import 'package:el_ahorrador/design_system/tokens.dart';
+import 'package:el_ahorrador/app/home/app_home.dart';
 
 import 'support/capture_fakes.dart';
 
 void main() {
   late AppDatabase db;
+  late AppDependencies dependencies;
   late CaptureController capture;
 
   setUp(() async {
@@ -22,18 +23,12 @@ void main() {
     await AccountRepository(
       db,
     ).create(name: 'Yape', groupId: AppDatabase.defaultAccountGroupId);
-    capture = CaptureController(
-      CaptureService(
-        db: db,
-        ocr: FakeOcr(),
-        storage: FakeStorage(),
-        now: AppClock.now,
-      ),
-    );
+    dependencies = fakeDependencies(db);
+    capture = dependencies.capture;
   });
   tearDown(() async {
     AppClock.reset();
-    capture.dispose();
+    dependencies.dispose();
     await db.close();
   });
 
@@ -43,7 +38,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildDesignTheme(),
-        home: AppHome(db: db, capture: capture),
+        home: AppHome(dependencies: dependencies),
       ),
     );
     await tester.pumpAndSettle();

@@ -10,13 +10,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/core/app_clock.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/features/capture/capture_controller.dart';
-import 'package:el_ahorrador/features/capture/capture_service.dart';
-import 'package:el_ahorrador/features/ledger/demo_seed_v3.dart';
-import 'package:el_ahorrador/theme/design_tokens.dart';
-import 'package:el_ahorrador/ui/app_home.dart';
+import 'package:el_ahorrador/core/clock/app_clock.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/capture/application/capture_controller.dart';
+import 'package:el_ahorrador/app/dependencies.dart';
+import 'package:el_ahorrador/features/ledger/data/demo_seed.dart';
+import 'package:el_ahorrador/design_system/tokens.dart';
+import 'package:el_ahorrador/app/home/app_home.dart';
 
 import '../support/capture_fakes.dart';
 
@@ -51,6 +51,7 @@ void main() {
     AppClock.pin(DemoSeedV3.today);
   });
 
+  late AppDependencies dependencies;
   late CaptureController capture;
 
   Future<void> render(
@@ -67,14 +68,8 @@ void main() {
 
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     await tester.runAsync(() => DemoSeedV3.load(db));
-    capture = CaptureController(
-      CaptureService(
-        db: db,
-        ocr: FakeOcr(),
-        storage: FakeStorage(),
-        now: AppClock.now,
-      ),
-    );
+    dependencies = fakeDependencies(db);
+    capture = dependencies.capture;
 
     final boundary = GlobalKey();
     await tester.pumpWidget(
@@ -83,7 +78,7 @@ void main() {
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: buildDesignTheme(),
-          home: AppHome(db: db, capture: capture),
+          home: AppHome(dependencies: dependencies),
         ),
       ),
     );
@@ -103,7 +98,7 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 1));
-    capture.dispose();
+    dependencies.dispose();
     await tester.runAsync(db.close);
   }
 

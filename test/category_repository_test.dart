@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/data/category_repository.dart';
-import 'package:el_ahorrador/models/category_model.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/import/data/category_repository.dart';
+import 'package:el_ahorrador/features/import/data/category_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

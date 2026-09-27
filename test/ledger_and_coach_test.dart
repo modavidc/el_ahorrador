@@ -1,12 +1,15 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/features/coach/coach_insights.dart';
-import 'package:el_ahorrador/features/ledger/demo_seed.dart';
-import 'package:el_ahorrador/features/ledger/entry_form.dart';
-import 'package:el_ahorrador/features/ledger/ledger.dart';
-import 'package:el_ahorrador/ui/format.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/coach/domain/coach_analysis.dart';
+import 'package:el_ahorrador/features/ledger/data/demo_seed_v1.dart';
+import 'package:el_ahorrador/features/ledger/domain/category.dart';
+import 'package:el_ahorrador/features/ledger/domain/entry_interpreter.dart';
+import 'package:el_ahorrador/features/ledger/domain/entities.dart';
+import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
+import 'package:el_ahorrador/features/ledger/data/drift_ledger_repository.dart';
+import 'package:el_ahorrador/core/format/fmt.dart';
 
 void main() {
   late AppDatabase db;
@@ -15,7 +18,7 @@ void main() {
   setUpAll(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     await DemoSeed.load(db);
-    ledger = LedgerRepository(db);
+    ledger = DriftLedgerRepository(db);
   });
   tearDownAll(() => db.close());
 
@@ -87,23 +90,18 @@ void main() {
     final accounts = await ledger.watchAccounts().first;
     final entry = interpretEntry(
       'rappi pizza 42 soles con la visa',
-      categories: ['Comida', 'Transporte', 'Salario', 'Otros'],
       accounts: accounts,
     );
     expect(entry.type, MovementType.expense);
     expect(entry.amount, '42');
-    expect(entry.category, 'Comida');
+    expect(entry.category, Category.comida);
     expect(entry.account, 'BCP Visa');
     expect(entry.note, 'Rappi pizza');
     expect(entry.hint, 'Gasto · Comida · BCP Visa. Revisa y guarda.');
 
-    final income = interpretEntry(
-      'quincena 2482',
-      categories: ['Comida', 'Salario', 'Otros'],
-      accounts: accounts,
-    );
+    final income = interpretEntry('quincena 2482', accounts: accounts);
     expect(income.type, MovementType.income);
-    expect(income.category, 'Salario');
+    expect(income.category, Category.sueldo);
   });
 
   test('amount formatting', () {

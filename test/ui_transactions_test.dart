@@ -4,11 +4,12 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/core/app_clock.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/data/daos.dart';
-import 'package:el_ahorrador/theme/design_tokens.dart';
-import 'package:el_ahorrador/ui/app_home.dart';
+import 'package:el_ahorrador/app/dependencies.dart';
+import 'package:el_ahorrador/core/clock/app_clock.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/core/database/daos.dart';
+import 'package:el_ahorrador/design_system/tokens.dart';
+import 'package:el_ahorrador/app/home/app_home.dart';
 
 // Movimientos shows the current month, so fixtures must be dated in it.
 DateTime _thisMonth(int hour, [int minute = 0]) {
@@ -22,7 +23,7 @@ Future<void> _pumpHome(WidgetTester tester, AppDatabase db) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: buildDesignTheme(),
-      home: AppHome(db: db),
+      home: AppHome(dependencies: AppDependencies(db)),
     ),
   );
   await tester.pumpAndSettle();

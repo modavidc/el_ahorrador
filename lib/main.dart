@@ -5,20 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_handler/share_handler.dart';
 
-import 'core/category_service.dart';
-import 'core/observability.dart';
-import 'core/ocr_engine.dart';
-import 'data/app_database.dart';
-import 'data/daos.dart';
-import 'data/historical_import.dart';
-import 'features/capture/capture_controller.dart';
-import 'features/capture/capture_service.dart';
-import 'features/ledger/demo_seed.dart';
-import 'features/ledger/demo_seed_v3.dart';
-import 'security/app_lock_gate.dart';
-import 'security/app_lock_settings.dart';
-import 'theme/design_tokens.dart';
-import 'ui/app_home.dart';
+import 'package:el_ahorrador/core/observability/observability.dart';
+import 'package:el_ahorrador/app/dependencies.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/core/database/daos.dart';
+import 'package:el_ahorrador/features/import/data/historical_import.dart';
+import 'package:el_ahorrador/features/ledger/data/demo_seed_v1.dart';
+import 'package:el_ahorrador/features/ledger/data/demo_seed.dart';
+import 'package:el_ahorrador/core/security/app_lock_gate.dart';
+import 'package:el_ahorrador/core/security/app_lock_settings.dart';
+import 'package:el_ahorrador/design_system/tokens.dart';
+import 'package:el_ahorrador/app/home/app_home.dart';
 
 void _debugLog(Object? message) {
   if (kDebugMode) debugPrint(message?.toString());
@@ -69,11 +66,10 @@ class _MisGastosAppState extends State<MisGastosApp> {
   // Only a lock that was already on at startup asks for authentication right
   // away; turning it on from Ajustes already required authenticating.
   late bool _lockedAtStartup = _appLock.enabled;
-  final _ocr = MlKitEngine();
 
-  /// Reads shared images; created here so a share that opens the app is
-  /// queued before the interface exists.
-  late final _capture = CaptureController(CaptureService(db: db, ocr: _ocr));
+  /// Created here so a share that opens the app is queued before the
+  /// interface exists.
+  late final _dependencies = AppDependencies(db);
   StreamSubscription<SharedMedia>? _sub;
 
   @override
@@ -98,8 +94,6 @@ class _MisGastosAppState extends State<MisGastosApp> {
   }
 
   Future<void> _initServices() async {
-    CategoryService().initialize(db);
-
     const importHistoricalCsv = bool.fromEnvironment(
       'IMPORT_HISTORICAL_CSV',
       defaultValue: false,
@@ -141,14 +135,13 @@ class _MisGastosAppState extends State<MisGastosApp> {
     ];
     if (paths.isEmpty) return;
     AppObservability.metric('capture_share_images', paths.length);
-    await _capture.start(paths);
+    await _dependencies.capture.start(paths);
   }
 
   @override
   void dispose() {
     _sub?.cancel();
-    _capture.dispose();
-    _ocr.dispose();
+    _dependencies.dispose();
     super.dispose();
   }
 
@@ -166,6 +159,6 @@ class _MisGastosAppState extends State<MisGastosApp> {
     theme: buildDesignTheme(),
     // The v3 design is light only.
     themeMode: ThemeMode.light,
-    home: AppHome(db: db, capture: _capture),
+    home: AppHome(dependencies: _dependencies),
   );
 }

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:el_ahorrador/core/capture_key_store.dart';
-import 'package:el_ahorrador/core/file_store.dart';
+import 'package:el_ahorrador/core/security/capture_key_store.dart';
+import 'package:el_ahorrador/core/security/encrypted_file_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-import 'package:el_ahorrador/core/observability.dart';
+import 'package:el_ahorrador/core/observability/observability.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

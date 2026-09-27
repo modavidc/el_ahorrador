@@ -1,8 +1,8 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:el_ahorrador/data/account_repository.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/data/daos.dart';
+import 'package:el_ahorrador/features/accounts/data/account_repository.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/core/database/daos.dart';
 
 void main() {
   late AppDatabase db;
@@ -16,8 +16,14 @@ void main() {
   tearDown(() => db.close());
 
   test('creates, renames and orders active accounts', () async {
-    final firstId = await repository.create(name: 'BCP', groupId: AppDatabase.defaultAccountGroupId);
-    final secondId = await repository.create(name: 'Yape', groupId: AppDatabase.defaultAccountGroupId);
+    final firstId = await repository.create(
+      name: 'BCP',
+      groupId: AppDatabase.defaultAccountGroupId,
+    );
+    final secondId = await repository.create(
+      name: 'Yape',
+      groupId: AppDatabase.defaultAccountGroupId,
+    );
 
     await repository.rename(firstId, 'BCP Soles');
     await repository.reorder([secondId, firstId, AppDatabase.defaultAccountId]);
@@ -33,7 +39,10 @@ void main() {
   test(
     'default account cannot be archived and a new default is active',
     () async {
-      final id = await repository.create(name: 'Tarjeta', groupId: AppDatabase.defaultAccountGroupId);
+      final id = await repository.create(
+        name: 'Tarjeta',
+        groupId: AppDatabase.defaultAccountGroupId,
+      );
 
       expect(
         () => repository.setArchived(AppDatabase.defaultAccountId, true),
@@ -61,7 +70,10 @@ void main() {
   });
 
   test('archived accounts disappear from selectors', () async {
-    final id = await repository.create(name: 'Ahorros', groupId: AppDatabase.defaultAccountGroupId);
+    final id = await repository.create(
+      name: 'Ahorros',
+      groupId: AppDatabase.defaultAccountGroupId,
+    );
     await repository.setArchived(id, true);
 
     final active = await repository.watchActive().first;
@@ -71,7 +83,10 @@ void main() {
   test(
     'calculates account balance from starting balance and signed movements',
     () async {
-      final id = await repository.create(name: 'BCP', groupId: AppDatabase.defaultAccountGroupId);
+      final id = await repository.create(
+        name: 'BCP',
+        groupId: AppDatabase.defaultAccountGroupId,
+      );
       await repository.setStartingBalance(id, startingBalanceCents: 10000);
       await db.insertExpenseFromParser(
         id: 'income-1',
@@ -95,7 +110,10 @@ void main() {
   );
 
   test('observes balance changes', () async {
-    final id = await repository.create(name: 'Yape', groupId: AppDatabase.defaultAccountGroupId);
+    final id = await repository.create(
+      name: 'Yape',
+      groupId: AppDatabase.defaultAccountGroupId,
+    );
     final values = <int>[];
     final subscription = repository
         .watchBalance(id)

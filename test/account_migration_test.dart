@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:el_ahorrador/data/app_database.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
 
 void main() {
   test('v4 accounts receive balance columns during v5 migration', () async {

@@ -1,12 +1,15 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/data/account_repository.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/features/capture/capture_rules.dart';
-import 'package:el_ahorrador/features/capture/capture_service.dart';
-import 'package:el_ahorrador/features/capture/receipt_reader.dart';
-import 'package:el_ahorrador/features/ledger/ledger.dart';
+import 'package:el_ahorrador/features/accounts/data/account_repository.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/capture/data/drift_capture_records.dart';
+import 'package:el_ahorrador/features/capture/data/drift_capture_rule_repository.dart';
+import 'package:el_ahorrador/features/capture/domain/capture_models.dart';
+import 'package:el_ahorrador/features/capture/domain/capture_service.dart';
+import 'package:el_ahorrador/features/capture/domain/receipt_reader.dart';
+import 'package:el_ahorrador/features/ledger/domain/entities.dart';
+import 'package:el_ahorrador/features/ledger/data/drift_ledger_repository.dart';
 
 import 'support/capture_fakes.dart';
 
@@ -68,16 +71,18 @@ void main() {
         groupId: AppDatabase.defaultAccountGroupId,
       );
       service = CaptureService(
-        db: db,
         ocr: FakeOcr(),
-        storage: FakeStorage(),
+        images: FakeStorage(),
+        records: DriftCaptureRecords(db),
+        rules: DriftCaptureRuleRepository(db),
+        ledger: DriftLedgerRepository(db),
         now: () => now,
       );
     });
     tearDown(() => db.close());
 
     Future<List<Movement>> movements() =>
-        LedgerRepository(db).watchMovements().first;
+        DriftLedgerRepository(db).watchMovements().first;
 
     test('a sent Yape is registered as an expense on Yape', () async {
       final out = await service.process('sent');
@@ -115,7 +120,7 @@ void main() {
 
     test('a deleted movement no longer blocks its receipt', () async {
       await service.process('sent');
-      await LedgerRepository(db).delete((await movements()).single);
+      await DriftLedgerRepository(db).delete((await movements()).single);
       expect((await service.process('sent')).status, CaptureStatus.registered);
     });
 
@@ -153,7 +158,7 @@ void main() {
     });
 
     test('rules can be edited', () async {
-      final store = CaptureRuleStore(db);
+      final store = DriftCaptureRuleRepository(db);
       final rules = await store.load();
       await store.update(
         rules.first.copyWith(category: 'Comida', account: 'BCP'),

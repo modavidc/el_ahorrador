@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/features/ledger/ledger.dart';
-import 'package:el_ahorrador/features/ledger/month_summary.dart';
-import 'package:el_ahorrador/ui/movements/movements_screen.dart';
+import 'package:el_ahorrador/features/ledger/domain/entities.dart';
+import 'package:el_ahorrador/features/ledger/domain/month_summary.dart';
+import 'package:el_ahorrador/features/ledger/presentation/movements_screen.dart';
 
 Movement _m(
   DateTime at,
