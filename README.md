@@ -7,7 +7,7 @@ sin escribirlos a mano.
 ## Objetivo v1
 
 La v1 es la del handoff de diseño en [`design/`](design/README.md)
-(tema unificado en `design/tokens.json` + prototipo HTML), **más** el núcleo
+(handoff v3 de Claude Design: `design/README.md` + prototipo HTML), **más** el núcleo
 que da sentido a la app:
 
 1. **Captura → OCR → transacción.** Compartir una imagen con la app, leerla
@@ -24,7 +24,7 @@ Fuera de la v1: ver [`docs/ideas.md`](docs/ideas.md).
 | Fase | Contenido | Estado |
 |---|---|---|
 | 0 | Motor: OCR, parsers, cola de captura, DB cifrada (SQLCipher), bloqueo | Hecho |
-| 1 | Tema desde `design/tokens.json`, fuentes Roboto + Material Symbols Rounded | Hecho |
+| 1 | Tema v3 (papel, tinta y rojo), fuentes Schibsted Grotesk + Material Symbols Rounded | Hecho |
 | 2 | Bottom nav de 5 ítems + FAB, pantalla Trans. (Diario, Calendario, Mensual, Total) | Hecho |
 | 3 | Estadísticas + detalle de categoría | Hecho |
 | 4 | Cuentas (saldos calculados) + Ajustes persistidos + Presupuestos | Hecho |
@@ -62,7 +62,7 @@ lib/
   screens/    pantallas previas aún en uso (alta/edición de cuentas, import)
   widgets/    componentes
   security/   bloqueo con biometría
-design/       handoff de diseño v1 (fuente de verdad visual)
+design/       handoff de diseño v3 (fuente de verdad visual)
 docs/
   specs/          specs funcionales vigentes
   producto/       estrategia, casos de uso, requerimientos antiguos

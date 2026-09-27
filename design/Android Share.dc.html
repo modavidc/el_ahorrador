@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<style>
+  .ms { font-family: 'Material Symbols Rounded'; font-weight: 400; line-height: 1; font-feature-settings: 'liga'; font-style: normal; white-space: nowrap; display: inline-block; -webkit-font-smoothing: antialiased; }
+  @keyframes as-up { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes as-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes as-drop { from { transform: translateY(-120%); } to { transform: none; } }
+  @keyframes as-flash { 0% { opacity: .95; } 100% { opacity: 0; } }
+</style>
+</helmet>
+<div style="position:absolute;inset:0;font-family:'Roboto',system-ui,sans-serif;color:#1B1B1F;">
+
+  <sc-if value="{{ isYape }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:#F4F1F8;display:flex;flex-direction:column;animation:as-fade .2s;">
+    <div style="background:#6A1B9A;color:#fff;padding:44px 20px 64px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="display:flex;width:100%;justify-content:space-between;align-items:center;"><span role="button" tabindex="0" onClick="{{ onClose }}" class="ms" style="font-size:24px;cursor:pointer;">close</span><span style="font-size:15px;font-weight:500;opacity:.85;">App de pagos</span><span style="width:24px;"></span></div>
+      <span class="ms" style="font-size:48px;margin-top:18px;color:#7CF5C8;font-variation-settings:'FILL' 1;">check_circle</span>
+      <div style="font-size:24px;font-weight:700;">¡Yapeaste!</div>
+    </div>
+    <div style="margin:-40px 20px 0;background:#fff;border-radius:20px;padding:24px 20px;box-shadow:0 8px 24px rgba(60,20,90,.12);display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div style="font-size:44px;font-weight:700;letter-spacing:-.02em;">S/ 23.50</div>
+      <div style="font-size:17px;font-weight:500;margin-top:4px;">Bodega Don Lucho</div>
+      <div style="font-size:14px;color:#6B6B76;">27 set. 2026 · 21:38</div>
+      <div style="width:100%;height:1px;background:#EEE;margin:16px 0;"></div>
+      <div style="width:100%;display:flex;justify-content:space-between;font-size:14px;color:#6B6B76;"><span>Nro. de operación</span><span style="color:#1B1B1F;font-weight:500;">04718822</span></div>
+      <div style="width:100%;display:flex;justify-content:space-between;font-size:14px;color:#6B6B76;margin-top:8px;"><span>Destino</span><span style="color:#1B1B1F;font-weight:500;">Yape</span></div>
+    </div>
+    <div style="flex:1;"></div>
+    <div style="padding:20px;display:flex;gap:12px;">
+      <div role="button" tabindex="0" onClick="{{ onToSheet }}" style="flex:1;min-height:52px;border-radius:999px;background:#6A1B9A;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:700;cursor:pointer;"><span class="ms" style="font-size:20px;">share</span>Compartir</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isGallery }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:#000;color:#fff;display:flex;flex-direction:column;animation:as-fade .2s;">
+    <div style="display:flex;align-items:center;gap:12px;padding:44px 16px 12px;"><span role="button" tabindex="0" onClick="{{ onClose }}" class="ms" style="font-size:24px;cursor:pointer;">close</span><span style="flex:1;font-size:18px;font-weight:500;">7 seleccionadas</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:0 3px;">
+      <div style="aspect-ratio:.75;background:#4A1D6B;position:relative;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:30px;opacity:.7;">receipt_long</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#4A1D6B;position:relative;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:30px;opacity:.7;">receipt_long</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#4A1D6B;position:relative;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:30px;opacity:.7;">receipt_long</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#1D3B6B;position:relative;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:30px;opacity:.7;">receipt_long</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#3A3A3A;position:relative;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:30px;opacity:.7;">image</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#12366B;position:relative;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:30px;opacity:.7;">receipt_long</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#4A1D6B;position:relative;display:flex;align-items:center;justify-content:center;filter:blur(1.5px);"><span class="ms" style="font-size:30px;opacity:.7;">receipt_long</span><span class="ms" style="position:absolute;top:6px;right:6px;font-size:20px;color:#8AB4F8;font-variation-settings:'FILL' 1;">check_circle</span></div>
+      <div style="aspect-ratio:.75;background:#222;"></div>
+      <div style="aspect-ratio:.75;background:#222;"></div>
+    </div>
+    <div style="flex:1;"></div>
+    <div style="display:flex;justify-content:space-around;padding:16px 24px 28px;">
+      <div role="button" tabindex="0" onClick="{{ onToSheet }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;min-width:64px;"><span class="ms" style="font-size:26px;">share</span><span style="font-size:13px;">Compartir</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.5;min-width:64px;"><span class="ms" style="font-size:26px;">delete</span><span style="font-size:13px;">Eliminar</span></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isSheet }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;flex-direction:column;justify-content:flex-end;animation:as-fade .2s;">
+    <div onClick="{{ onClose }}" style="flex:1;"></div>
+    <div style="background:#F3EDF7;border-radius:28px 28px 0 0;padding:12px 16px 28px;animation:as-up .25s cubic-bezier(.2,0,0,1);">
+      <div style="width:32px;height:4px;border-radius:2px;background:#C9C3D0;margin:0 auto 16px;"></div>
+      <div style="font-size:16px;font-weight:500;text-align:center;">{{ sheetTitle }}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 8px;margin-top:22px;">
+        <div role="button" tabindex="0" onClick="{{ onPick }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;">
+          <div style="width:56px;height:56px;border-radius:18px;background:{{ appColor }};display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #fff,0 0 0 5px {{ appColor }};"><span class="ms" style="font-size:28px;color:#fff;">savings</span></div>
+          <span style="font-size:12px;font-weight:700;text-align:center;">El Ahorrador</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#25A35A;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#fff;">chat</span></div><span style="font-size:12px;">Mensajes</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#E3452F;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#fff;">mail</span></div><span style="font-size:12px;">Correo</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#3478F6;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#fff;">folder</span></div><span style="font-size:12px;">Archivos</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#F2B01E;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#fff;">sticky_note_2</span></div><span style="font-size:12px;">Notas</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#5F6368;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#fff;">bluetooth</span></div><span style="font-size:12px;">Bluetooth</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#0B8043;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#fff;">print</span></div><span style="font-size:12px;">Imprimir</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.75;"><div style="width:56px;height:56px;border-radius:999px;background:#D0C8D8;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:26px;color:#1B1B1F;">more_horiz</span></div><span style="font-size:12px;">Más</span></div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isShade }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:rgba(18,18,24,.86);backdrop-filter:blur(14px);color:#fff;padding:44px 16px 16px;display:flex;flex-direction:column;animation:as-fade .2s;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:0 8px;">
+      <div><div style="font-size:48px;font-weight:300;line-height:1;">21:40</div><div style="font-size:14px;opacity:.7;margin-top:6px;">dom., 27 de setiembre</div></div>
+      <span role="button" tabindex="0" onClick="{{ onClose }}" class="ms" style="font-size:26px;cursor:pointer;padding:6px;">expand_less</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:22px;">
+      <div style="height:60px;border-radius:18px;background:#4C8DF6;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:24px;">wifi</span></div>
+      <div style="height:60px;border-radius:18px;background:#4C8DF6;display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:24px;">signal_cellular_alt</span></div>
+      <div style="height:60px;border-radius:18px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:24px;">flashlight_on</span></div>
+      <div style="height:60px;border-radius:18px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:24px;">screenshot</span></div>
+    </div>
+    <div style="margin-top:22px;font-size:13px;opacity:.6;padding:0 8px;">Notificaciones</div>
+    <div role="button" tabindex="0" onClick="{{ onShadeOpen }}" style="margin-top:8px;background:rgba(255,255,255,.12);border-radius:22px;padding:14px 16px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:.75;"><span style="width:18px;height:18px;border-radius:6px;background:{{ appColor }};display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:13px;">savings</span></span>El Ahorrador · fija<span class="ms" style="font-size:14px;margin-left:auto;">push_pin</span></div>
+      <div style="font-size:15px;font-weight:700;margin-top:8px;">Captura de pagos</div>
+      <div style="font-size:14px;opacity:.8;margin-top:2px;">{{ shadeSub }}</div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <div role="button" tabindex="0" onClick="{{ onShadeCapture }}" style="min-height:36px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.18);display:flex;align-items:center;font-size:13px;font-weight:700;cursor:pointer;">Capturar pantalla</div>
+        <div role="button" tabindex="0" onClick="{{ onShadeToggle }}" style="min-height:36px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.18);display:flex;align-items:center;font-size:13px;font-weight:700;cursor:pointer;">{{ shadeToggle }}</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;background:rgba(255,255,255,.08);border-radius:22px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:.7;"><span style="width:18px;height:18px;border-radius:6px;background:#6A1B9A;"></span>App de pagos · 21:38</div>
+      <div style="font-size:15px;font-weight:700;margin-top:8px;">¡Yapeaste S/ 23.50!</div>
+      <div style="font-size:14px;opacity:.8;margin-top:2px;">A Bodega Don Lucho</div>
+    </div>
+    <div onClick="{{ onClose }}" style="flex:1;"></div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isFlash }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:#fff;animation:as-flash .6s forwards;pointer-events:none;"></div>
+  </sc-if>
+
+  <sc-if value="{{ isHeads }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:10px;right:10px;top:40px;background:#2A2A31;color:#fff;border-radius:24px;padding:14px 16px;box-shadow:0 12px 30px rgba(0,0,0,.35);animation:as-drop .3s cubic-bezier(.2,0,0,1);">
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:.75;"><span style="width:18px;height:18px;border-radius:6px;background:{{ appColor }};display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:13px;">savings</span></span>El Ahorrador · ahora</div>
+    <div style="font-size:15px;font-weight:700;margin-top:8px;">Detectamos un pago en tu captura</div>
+    <div style="font-size:14px;opacity:.85;margin-top:2px;">{{ headsText }}</div>
+    <sc-if value="{{ headsCat }}" hint-placeholder-val="{{ false }}"><div role="button" tabindex="0" onClick="{{ onHeadsCat }}" style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;min-height:36px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.14);font-size:13px;font-weight:700;cursor:pointer;">{{ headsCat }}<span class="ms" style="font-size:16px;">sync</span></div></sc-if>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <div role="button" tabindex="0" onClick="{{ onHeadsSave }}" style="flex:1;min-height:40px;border-radius:999px;background:#fff;color:#1B1B1F;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;">Guardar</div>
+      <div role="button" tabindex="0" onClick="{{ onHeadsReview }}" style="flex:1;min-height:40px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;">Revisar</div>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;isYape&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;isGallery&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;isSheet&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;isShade&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;isHeads&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;isFlash&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sheetTitle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Compartir 1 imagen&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;appColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#7C3AED&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;shadeSub&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Captura activa · 2 por revisar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;shadeToggle&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Pausar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;headsText&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Plin a Tottus · S/ 18.00&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onToSheet&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onPick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onShadeOpen&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onShadeCapture&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onShadeToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onHeadsSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onHeadsReview&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}"></script>
+</body>
+</html>

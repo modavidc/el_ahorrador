@@ -42,4 +42,30 @@ class AppPreferences {
     )..where((s) => s.key.equals(preference.key))).getSingleOrNull();
     return row == null ? preference.defaultValue : row.value == 'true';
   }
+
+  static const _dismissedKey = 'dismissed_notices';
+
+  /// Notices of Movimientos the user closed with ×.
+  Stream<Set<String>> watchDismissedNotices() =>
+      (_db.select(_db.appSettings)..where((s) => s.key.equals(_dismissedKey)))
+          .watchSingleOrNull()
+          .map((row) => _split(row?.value));
+
+  Future<void> dismissNotice(String key) async {
+    final row = await (_db.select(
+      _db.appSettings,
+    )..where((s) => s.key.equals(_dismissedKey))).getSingleOrNull();
+    final keys = _split(row?.value)..add(key);
+    await _db
+        .into(_db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: _dismissedKey,
+            value: keys.join('\n'),
+          ),
+        );
+  }
+
+  static Set<String> _split(String? value) =>
+      {...?value?.split('\n')}..remove('');
 }

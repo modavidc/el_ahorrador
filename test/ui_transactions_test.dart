@@ -4,12 +4,13 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:el_ahorrador/core/app_clock.dart';
 import 'package:el_ahorrador/data/app_database.dart';
 import 'package:el_ahorrador/data/daos.dart';
 import 'package:el_ahorrador/theme/design_tokens.dart';
 import 'package:el_ahorrador/ui/app_home.dart';
 
-// Trans. shows the current month, so fixtures must be dated in it.
+// Movimientos shows the current month, so fixtures must be dated in it.
 DateTime _thisMonth(int hour, [int minute = 0]) {
   final now = DateTime.now();
   return DateTime(now.year, now.month, 1, hour, minute);
@@ -35,6 +36,13 @@ Future<void> _unmount(WidgetTester tester) async {
 }
 
 void main() {
+  // Mornings: the "Aún no registras nada hoy" notice only shows from 20:00.
+  setUp(() {
+    final now = DateTime.now();
+    AppClock.pin(DateTime(now.year, now.month, now.day, 10));
+  });
+  tearDown(AppClock.reset);
+
   testWidgets('renders a manual S/ 5 expense with nullable category fields', (
     tester,
   ) async {
@@ -58,7 +66,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Gasto manual de prueba'), findsOneWidget);
     expect(find.textContaining('Comida · Efectivo'), findsOneWidget);
-    expect(find.text('S/. 5.00'), findsWidgets);
+    expect(find.text('\u2212S/ 5.00'), findsWidgets);
     await _unmount(tester);
   });
 
@@ -95,84 +103,80 @@ void main() {
     await tester.runAsync(db.close);
   });
 
-  testWidgets('edits and deletes the same movement from Trans.', (
+  testWidgets('the detail sheet changes the category, deletes and undoes', (
     tester,
   ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     await db.insertExpenseFromParser(
-      id: 'manual-edit-delete',
+      id: 'manual-detail',
       dateEpochMs: DateTime.now().millisecondsSinceEpoch,
       amountCents: -500,
       currency: 'PEN',
       accountId: AppDatabase.defaultAccountId,
       vendor: 'Comida',
-      description: 'Gasto original',
+      description: 'Pan',
       sourceApp: 'Manual',
     );
     await _pumpHome(tester, db);
 
-    await tester.tap(find.text('Gasto original'));
+    await tester.tap(find.text('Pan'));
     await tester.pumpAndSettle();
-    expect(find.text('Editar transacción'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Gasto original'),
-      'Gasto editado',
-    );
-    await tester.tap(find.text('Guardar'));
+    await tester.tap(find.text('Mercado'));
     await tester.pumpAndSettle();
+    expect(find.textContaining('Mercado · Efectivo'), findsOneWidget);
 
-    final edited = await db.select(db.expenses).getSingle();
-    expect(edited.id, 'manual-edit-delete');
-    expect(edited.description, 'Gasto editado');
-    expect(edited.amountCents, -500);
-    expect(find.text('Gasto editado'), findsOneWidget);
-
-    await tester.tap(find.text('Gasto editado'));
+    await tester.tap(find.text('Pan'));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('Eliminar transacción'));
+    await tester.tap(find.text('Eliminar'));
     await tester.pumpAndSettle();
-
     expect(await db.select(db.expenses).get(), isEmpty);
-    expect(find.text('Gasto editado'), findsNothing);
-    expect(tester.takeException(), isNull);
+    expect(find.text('Movimiento eliminado'), findsOneWidget);
+
+    await tester.tap(find.text('Deshacer'));
+    await tester.pumpAndSettle();
+    final restored = await db.select(db.expenses).getSingle();
+    expect(restored.id, 'manual-detail');
+    expect(find.text('Pan'), findsOneWidget);
     await _unmount(tester);
   });
 
-  testWidgets('the FAB opens Añadir manual and saves a new expense', (
+  testWidgets('+ → Manual registers with the keypad and can be undone', (
     tester,
   ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     await _pumpHome(tester, db);
 
-    await tester.tap(find.bySemanticsLabel('Añadir'));
+    await tester.tap(find.byKey(const ValueKey('fab')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Añadir manual'));
+    await tester.tap(find.text('Manual'));
     await tester.pumpAndSettle();
-    expect(find.text('Nueva transacción'), findsOneWidget);
+    expect(find.text('Escribe el monto'), findsOneWidget);
 
-    await tester.enterText(
-      find.widgetWithText(TextField, 'ej. rappi pizza 42 soles con la visa'),
-      'almuerzo 18.50 con yape',
-    );
-    await tester.tap(find.text('Interpretar'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Guardar'));
+    for (final key in ['1', '8', '.', '5', '0', '9']) {
+      final button = find.byKey(ValueKey('keypad-$key'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+    }
+    await tester.tap(find.text('Guardar S/ 18.50'));
     await tester.pumpAndSettle();
 
     final saved = await db.select(db.expenses).getSingle();
     expect(saved.amountCents, -1850);
-    expect(saved.sourceApp, 'Yape');
-    expect(saved.description, 'Almuerzo');
-    expect(find.text('Almuerzo'), findsOneWidget);
-    expect(find.text('Yape'), findsOneWidget);
+    expect(saved.sourceApp, 'Manual');
+    expect(find.text('Gasto de S/ 18.50 registrado'), findsOneWidget);
+    expect(find.text('Registrado ·'), findsOneWidget);
+
+    // The pill of the new row undoes it.
+    await tester.tap(find.text('Deshacer').last);
+    await tester.pumpAndSettle();
+    expect(await db.select(db.expenses).get(), isEmpty);
     await _unmount(tester);
   });
 
-  testWidgets('editing a captured expense keeps its capture and merchant', (
-    tester,
-  ) async {
+  testWidgets('a captured expense shows where it came from', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     await db.insertCapture(id: 'cap-1', imagePath: '/x.eac', hash: 'h1');
@@ -188,29 +192,14 @@ void main() {
       sourceApp: 'Yape',
     );
     await _pumpHome(tester, db);
-    expect(find.text('OCR 91%'), findsOneWidget);
-
-    await tester.tap(find.text('Bodega Don Pepe'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Bodega Don Pepe'),
-      'Pan y leche',
-    );
-    await tester.tap(find.text('Guardar'));
-    await tester.pumpAndSettle();
-
-    final edited = await db.select(db.expenses).getSingle();
-    expect(edited.captureId, 'cap-1');
-    expect(edited.vendor, 'Bodega Don Pepe');
-    expect(edited.sourceApp, 'Yape');
-    expect(edited.description, 'Pan y leche');
-    expect(find.text('OCR 91%'), findsOneWidget);
+    expect(find.text('Bodega Don Pepe'), findsOneWidget);
+    expect(find.text('Compartido'), findsOneWidget);
+    // Sharing was used, so the "Prueba la función principal" notice is gone.
+    expect(find.text('Prueba la función principal'), findsNothing);
     await _unmount(tester);
   });
 
-  testWidgets('a transfer can be created and edited from the form', (
-    tester,
-  ) async {
+  testWidgets('a transfer moves money between two accounts', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     await db
@@ -224,26 +213,35 @@ void main() {
             updatedAt: 0,
           ),
         );
-    await db.insertTransfer(
-      id: 'tr-1',
-      dateEpochMs: DateTime.now().millisecondsSinceEpoch,
-      amountCents: 10000,
-      currency: 'PEN',
-      sourceAccountId: AppDatabase.defaultAccountId,
-      destinationAccountId: 'savings',
-      description: 'Ahorro',
-    );
     await _pumpHome(tester, db);
 
-    await tester.tap(find.text('Ahorro'));
+    await tester.tap(find.byKey(const ValueKey('fab')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '100.00'), '150');
-    await tester.tap(find.text('Guardar'));
+    await tester.tap(find.text('Manual'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Transferencia'));
+    await tester.pumpAndSettle();
+    for (final key in ['1', '0', '0']) {
+      final button = find.byKey(ValueKey('keypad-$key'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+    }
+    // DESDE Efectivo, then HACIA Ahorros (the only other account).
+    for (final chip in [
+      find.text('Efectivo').first,
+      find.text('Ahorros').last,
+    ]) {
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Guardar S/ 100.00'));
     await tester.pumpAndSettle();
 
     final rows = await db.select(db.expenses).get();
-    expect(rows.map((r) => r.amountCents).toSet(), {-15000, 15000});
-    expect(rows.every((r) => r.origination == 'tr-1'), isTrue);
+    expect(rows.map((r) => r.amountCents).toSet(), {-10000, 10000});
+    expect(find.text('Efectivo → Ahorros'), findsOneWidget);
     await _unmount(tester);
   });
 }

@@ -34,13 +34,13 @@ void main() {
           a.name: Fmt.signedMoney(a.balanceCents / 100),
       };
       // Values shown by the prototype's Cuentas screen. The card was overpaid
-      // (+349.70), which the screen shows as "Por pagar S/. 0.00".
+      // (+349.70), which the screen shows as "Por pagar S/ 0.00".
       expect(accounts, {
-        'Efectivo': 'S/. 1,214.40',
-        'BCP Soles': 'S/. 2,002.30',
-        'Interbank Soles': 'S/. 5,136.00',
-        'BCP Visa': 'S/. 349.70',
-        'BCP Ahorro': 'S/. 10,444.80',
+        'Efectivo': 'S/ 1,214.40',
+        'BCP Soles': 'S/ 2,002.30',
+        'Interbank Soles': 'S/ 5,136.00',
+        'BCP Visa': 'S/ 349.70',
+        'BCP Ahorro': 'S/ 10,444.80',
       });
     },
   );
@@ -56,12 +56,12 @@ void main() {
     expect(analysis.current, hasLength(64));
     expect(
       insights[InsightKind.pace]!.title,
-      'A este ritmo cerrarás septiembre en S/. 4,894.20',
+      'A este ritmo cerrarás setiembre en S/ 4,894.20',
     );
     expect(
       insights[InsightKind.pace]!.body,
-      '14% más que agosto (S/. 4,302.80). Te quedan 5 días y S/. 461.50 de '
-      'presupuesto: unos S/. 92.30 por día.',
+      '14% más que agosto (S/ 4,302.80). Te quedan 5 días y S/ 461.50 de '
+      'presupuesto: unos S/ 92.30 por día.',
     );
     expect(
       insights[InsightKind.habit]!.title,
@@ -69,17 +69,17 @@ void main() {
     );
     expect(
       insights[InsightKind.habit]!.body,
-      'Llevas S/. 399.10 en Rappi, casi todos entre las 19:00 y 22:00; vas '
-      'camino a 11 pedidos. Bajando a 2 por semana ahorrarías ~S/. 97.56 al '
+      'Llevas S/ 399.10 en Rappi, casi todos entre las 19:00 y 22:00; vas '
+      'camino a 11 pedidos. Bajando a 2 por semana ahorrarías ~S/ 97.56 al '
       'mes.',
     );
     expect(
       insights[InsightKind.subscriptions]!.title,
-      'Pagas S/. 103.60/mes en 4 suscripciones',
+      'Pagas S/ 103.60/mes en 4 suscripciones',
     );
     expect(
       insights[InsightKind.unusual]!.title,
-      'Zapatillas Nike Pegasus · S/. 389.00',
+      'Zapatillas Nike Pegasus · S/ 389.00',
     );
   });
 
@@ -107,9 +107,12 @@ void main() {
   });
 
   test('amount formatting', () {
-    expect(Fmt.money(5451), 'S/. 5,451.00');
-    expect(Fmt.signedMoney(-448.9), '-S/. 448.90');
-    expect(Fmt.short(2482), '2,482');
+    expect(Fmt.money(5451), 'S/ 5,451.00');
+    expect(Fmt.money0(2400), 'S/ 2,400');
+    expect(Fmt.net(-25), '\u2212S/ 25.00');
+    expect(Fmt.net0(1542), '+S/ 1,542');
+    expect(Fmt.signedMoney(-448.9), '\u2212S/ 448.90');
+    expect(Fmt.short(3200), '3.2k');
     expect(Fmt.short(249), '249.00');
   });
 }

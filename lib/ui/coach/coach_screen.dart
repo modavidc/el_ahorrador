@@ -59,9 +59,9 @@ class _CoachScreenState extends State<CoachScreen> {
       today: AppClock.now(),
     );
     final questions = [
-      '¿Puedo gastar S/. 300 este finde?',
+      '¿Puedo gastar S/ 300 este finde?',
       '¿Qué suscripciones me sobran?',
-      'Plan para ahorrar S/. 500',
+      'Plan para ahorrar S/ 500',
       '¿Por qué gasto más que en ${analysis.previousMonthLong}?',
     ];
     final insights = analysis

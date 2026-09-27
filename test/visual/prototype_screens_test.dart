@@ -12,13 +12,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:el_ahorrador/core/app_clock.dart';
 import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/features/ledger/demo_seed.dart';
+import 'package:el_ahorrador/features/ledger/demo_seed_v3.dart';
 import 'package:el_ahorrador/theme/design_tokens.dart';
 import 'package:el_ahorrador/ui/app_home.dart';
 
-/// Renders the v1 screens with the prototype's data, fonts and phone size
-/// (370×824 viewport, 32px status bar, 30px gesture bar) and writes PNGs to
-/// `$VISUAL_OUT` for side-by-side comparison with the design captures.
+/// Renders the v3 screens with the prototype's data, fonts and phone size
+/// (370×824 inside the 10px frame; 36px status bar, 18px gesture area) and
+/// writes PNGs to `$VISUAL_OUT` for side-by-side comparison with the design
+/// captures.
 ///
 ///     VISUAL_OUT=/tmp/visual flutter test test/visual
 ///
@@ -36,11 +37,14 @@ void main() {
       await loader.load();
     }
 
-    await load('Roboto', [
-      for (final w in [400, 500, 600, 700]) 'Roboto-$w.ttf',
+    await load(DesignText.family, [
+      for (final w in [400, 500, 600, 700, 800]) 'SchibstedGrotesk-$w.ttf',
     ]);
     await load('MaterialSymbolsRounded', ['MaterialSymbolsRounded.ttf']);
-    AppClock.pin(DemoSeed.today);
+    await load('MaterialSymbolsRoundedFilled', [
+      'MaterialSymbolsRoundedFilled.ttf',
+    ]);
+    AppClock.pin(DemoSeedV3.today);
   });
 
   Future<void> capture(
@@ -51,12 +55,12 @@ void main() {
     tester.view
       ..physicalSize = const Size(740, 1648)
       ..devicePixelRatio = 2
-      ..padding = const FakeViewPadding(top: 64, bottom: 60)
-      ..viewPadding = const FakeViewPadding(top: 64, bottom: 60);
+      ..padding = const FakeViewPadding(top: 72, bottom: 36)
+      ..viewPadding = const FakeViewPadding(top: 72, bottom: 36);
     addTearDown(tester.view.reset);
 
     final db = AppDatabase.forTesting(NativeDatabase.memory());
-    await tester.runAsync(() => DemoSeed.load(db));
+    await tester.runAsync(() => DemoSeedV3.load(db));
 
     final boundary = GlobalKey();
     await tester.pumpWidget(
@@ -88,33 +92,25 @@ void main() {
     await tester.runAsync(db.close);
   }
 
-  Future<void> tap(WidgetTester tester, String text) async {
-    await tester.tap(find.text(text).first);
+  Future<void> tap(WidgetTester tester, Finder finder) async {
+    await tester.tap(finder);
     await tester.pumpAndSettle();
   }
 
+  Future<void> fab(WidgetTester t) => tap(t, find.byKey(const ValueKey('fab')));
+
   final screens = <String, Future<void> Function(WidgetTester)?>{
-    '01_trans_diario': null,
-    '02_trans_calendario': (t) => tap(t, 'Calendario'),
-    '03_trans_mensual': (t) => tap(t, 'Mensual'),
-    '04_trans_total': (t) => tap(t, 'Total'),
-    '05_fab_menu': (t) async {
-      await t.tap(find.bySemanticsLabel('Añadir'));
-      await t.pumpAndSettle();
+    '03_mov': null,
+    '11_cal': (t) => tap(t, find.text('Calendario')),
+    '12_mensual': (t) => tap(t, find.text('Mensual')),
+    '13_fab': fab,
+    '14_manual': (t) async {
+      await fab(t);
+      await tap(t, find.text('Manual'));
     },
-    '06_stats': (t) => tap(t, 'Estad.'),
-    '07_cat_detail': (t) async {
-      await tap(t, 'Estad.');
-      await tap(t, 'Comida');
-    },
-    '08_coach': (t) => tap(t, 'Coach'),
-    '09_cuentas': (t) => tap(t, 'Cuentas'),
-    '10_ajustes': (t) => tap(t, 'Ajustes'),
-    '11_add': (t) async {
-      await t.tap(find.bySemanticsLabel('Añadir'));
-      await t.pumpAndSettle();
-      await tap(t, 'Añadir manual');
-    },
+    'streak': (t) => tap(t, find.bySemanticsLabel(RegExp('^Racha'))),
+    'search': (t) => tap(t, find.bySemanticsLabel('Buscar')),
+    'detail': (t) => tap(t, find.text('Menú').first),
   };
 
   for (final entry in screens.entries) {

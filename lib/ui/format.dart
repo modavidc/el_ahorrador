@@ -1,4 +1,4 @@
-/// Formatting exactly as the v1 prototype does it.
+/// Formatting exactly as the v3 prototype does it (`capture-core.js`).
 abstract final class Fmt {
   static const months = [
     'Ene',
@@ -23,7 +23,7 @@ abstract final class Fmt {
     'junio',
     'julio',
     'agosto',
-    'septiembre',
+    'setiembre',
     'octubre',
     'noviembre',
     'diciembre',
@@ -45,18 +45,39 @@ abstract final class Fmt {
     return '${value < 0 ? '-' : ''}${_group(whole)}.$decimals';
   }
 
-  /// "S/. 1,234.50" (sign kept inside the number: "S/. -5.00").
-  static String money(double value) => 'S/. ${number(value)}';
+  /// Typographic minus used before amounts ("−S/ 16.00").
+  static const minus = '\u2212';
 
-  /// Signed total: "-S/. 448.90" or "S/. 1,372.50".
+  /// "S/ 1,234.50" (sign kept inside the number: "S/ -5.00").
+  static String money(double value) => 'S/ ${number(value)}';
+
+  /// "S/ 1,235": whole soles (`f0`).
+  static String money0(double value) =>
+      'S/ ${value < 0 ? '-' : ''}${_group(value.abs().round().toString())}';
+
+  /// Signed total: "−S/ 448.90" or "S/ 1,372.50".
   static String signedMoney(double value) =>
-      '${value < 0 ? '-' : ''}S/. ${number(value.abs())}';
+      '${value < 0 ? minus : ''}S/ ${number(value.abs())}';
 
-  /// Calendar cell amounts: ≥1000 without decimals ("2,482"), otherwise
-  /// two decimals ("249.00").
+  /// Net with an explicit sign: "+S/ 392.00", "−S/ 25.00".
+  static String net(double value) =>
+      '${value < 0 ? minus : '+'}S/ ${number(value.abs())}';
+
+  /// Whole-soles net: "+S/ 1,542".
+  static String net0(double value) =>
+      '${value < 0 ? minus : '+'}${money0(value.abs())}';
+
+  /// Calendar cell amounts: ≥1000 as thousands ("3.2k"), otherwise two
+  /// decimals ("146.30").
   static String short(double value) => value >= 1000
-      ? _group(value.round().toString())
+      ? '${(value / 1000).toStringAsFixed(1)}k'
       : value.toStringAsFixed(2);
+
+  /// "Setiembre"
+  static String monthTitle(int month) {
+    final name = monthsLong[month - 1];
+    return name[0].toUpperCase() + name.substring(1);
+  }
 
   static String twoDigits(int value) => value.toString().padLeft(2, '0');
 

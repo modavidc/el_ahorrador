@@ -173,7 +173,7 @@ abstract final class DemoSeed {
       ('BCP Soles', 'demo_group_bank', 'Incluye pagos Yape', null),
       ('Interbank Soles', 'demo_group_bank', 'Cuenta sueldo', null),
       ('BCP Visa', 'demo_group_card', null, 600000),
-      ('BCP Ahorro', 'demo_group_savings', 'Meta: S/. 12,000', null),
+      ('BCP Ahorro', 'demo_group_savings', 'Meta: S/ 12,000', null),
     ]) {
       ids[name] = await repository.create(
         name: name,

@@ -157,7 +157,7 @@ class _BudgetFieldState extends State<_BudgetField> {
         const SizedBox(width: DesignSpacing.md),
         Expanded(child: Text(widget.category, style: DesignText.body)),
         Text(
-          'S/.',
+          'S/',
           style: DesignText.body.copyWith(color: DesignColors.textTertiary),
         ),
         const SizedBox(width: DesignSpacing.xs),

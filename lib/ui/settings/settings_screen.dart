@@ -120,7 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingRow.link(
             icon: DesignIcons.payments,
             label: 'Moneda principal',
-            value: 'PEN · S/.',
+            value: 'PEN · S/',
             onTap: _soon,
           ),
           _SettingRow.link(

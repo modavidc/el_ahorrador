@@ -8,8 +8,8 @@
 ## Alcance
 
 - El objetivo es la v1 descrita en `README.md` y en `design/`.
-- `design/tokens.json` y el prototipo `design/*.html` son la fuente de verdad
-  visual. En `lib/ui` todo color, estilo de texto, ícono y sombra sale de
+- El handoff v3 (`design/README.md`, `design/Tema El Ahorrador v3.dc.html` y
+  `design/capture-core.js`) es la fuente de verdad visual y de producto. En `lib/ui` todo color, estilo de texto, ícono y sombra sale de
   `lib/theme/design_tokens.dart`; `test/design_tokens_usage_test.dart` falla
   con hex, `fontSize`, `Icons.` o emojis literales.
 - Tras cambiar la interfaz, compara con el prototipo:

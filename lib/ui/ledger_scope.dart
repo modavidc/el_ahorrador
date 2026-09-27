@@ -4,13 +4,14 @@ import 'package:flutter/widgets.dart';
 
 import '../features/ledger/ledger.dart';
 
-/// Everything the v1 screens read, kept up to date from the database.
+/// Everything the screens read, kept up to date from the database.
 final class LedgerData {
   const LedgerData({
     required this.repository,
     required this.movements,
     required this.accounts,
     required this.budgets,
+    required this.monthlyBudgetCents,
     required this.loaded,
   });
 
@@ -18,6 +19,7 @@ final class LedgerData {
   final List<Movement> movements;
   final List<LedgerAccount> accounts;
   final Map<String, int> budgets;
+  final int monthlyBudgetCents;
   final bool loaded;
 }
 
@@ -42,6 +44,7 @@ class _LedgerProviderState extends State<LedgerProvider> {
   List<Movement>? _movements;
   List<LedgerAccount>? _accounts;
   Map<String, int>? _budgets;
+  int? _monthlyBudget;
 
   @override
   void initState() {
@@ -50,7 +53,12 @@ class _LedgerProviderState extends State<LedgerProvider> {
     _subscriptions
       ..add(r.watchMovements().listen((v) => setState(() => _movements = v)))
       ..add(r.watchAccounts().listen((v) => setState(() => _accounts = v)))
-      ..add(r.watchBudgets().listen((v) => setState(() => _budgets = v)));
+      ..add(r.watchBudgets().listen((v) => setState(() => _budgets = v)))
+      ..add(
+        r.watchMonthlyBudget().listen(
+          (v) => setState(() => _monthlyBudget = v),
+        ),
+      );
   }
 
   @override
@@ -68,6 +76,8 @@ class _LedgerProviderState extends State<LedgerProvider> {
       movements: _movements ?? const [],
       accounts: _accounts ?? const [],
       budgets: _budgets ?? const {},
+      monthlyBudgetCents:
+          _monthlyBudget ?? LedgerRepository.defaultMonthlyBudgetCents,
       loaded: _movements != null && _accounts != null && _budgets != null,
     ),
     child: widget.child,

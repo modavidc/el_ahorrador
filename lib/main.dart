@@ -18,6 +18,7 @@ import 'data/app_database.dart';
 import 'data/daos.dart';
 import 'data/historical_import.dart';
 import 'features/ledger/demo_seed.dart';
+import 'features/ledger/demo_seed_v3.dart';
 import 'theme/design_tokens.dart';
 import 'ui/app_home.dart';
 import 'widgets/expense_edit_dialog.dart';
@@ -146,7 +147,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
     if (kDebugMode &&
         DemoSeed.enabled &&
         (await db.select(db.expenses).get()).isEmpty) {
-      await DemoSeed.load(db);
+      await DemoSeedV3.load(db);
     }
 
     final interruptedCaptures = await db.failInterruptedCaptures();

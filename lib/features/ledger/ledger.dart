@@ -1,8 +1,32 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../data/app_database.dart';
+import '../../data/daos.dart';
 
 enum MovementType { income, expense, transfer }
+
+/// How a movement entered the app; every origin but [manual] shows its label
+/// next to the row ("Compartido", "Captura", "Boleta", "Voz").
+enum MovementOrigin {
+  manual(null),
+  shared('Compartido'),
+  screenshot('Captura'),
+  receipt('Boleta'),
+  voice('Voz');
+
+  const MovementOrigin(this.label);
+
+  final String? label;
+
+  /// Value stored in `captures.meta_json` → `origin`.
+  String get key => name;
+
+  static MovementOrigin fromKey(String? key) =>
+      values.where((o) => o.key == key).firstOrNull ?? shared;
+}
 
 /// One row of the ledger as the v1 screens show it: a transaction of the
 /// prototype's data model
@@ -21,6 +45,7 @@ final class Movement {
     this.toAccount,
     this.method,
     this.ocrPercent,
+    this.origin = MovementOrigin.manual,
   });
 
   final String id;
@@ -40,6 +65,8 @@ final class Movement {
 
   /// OCR confidence of the capture that created the movement.
   final int? ocrPercent;
+
+  final MovementOrigin origin;
 
   double get amount => amountCents / 100;
 
@@ -80,6 +107,26 @@ class LedgerRepository {
 
   static const _paymentApps = {'yape': 'Yape', 'plin': 'Plin'};
 
+  /// `app_settings` key of the monthly budget (onboarding step 2 and
+  /// Presupuestos).
+  static const monthlyBudgetKey = 'monthly_budget_cents';
+
+  /// Budget used until the user sets one (the prototype's S/ 2,400).
+  static const defaultMonthlyBudgetCents = 240000;
+
+  Stream<int> watchMonthlyBudget() =>
+      (_db.select(
+        _db.appSettings,
+      )..where((s) => s.key.equals(monthlyBudgetKey))).watchSingleOrNull().map(
+        (row) => int.tryParse(row?.value ?? '') ?? defaultMonthlyBudgetCents,
+      );
+
+  Future<void> setMonthlyBudget(int cents) => _db
+      .into(_db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(key: monthlyBudgetKey, value: '$cents'),
+      );
+
   Stream<List<Movement>> watchMovements() {
     final db = _db;
     final query = db.select(db.expenses).join([
@@ -111,6 +158,7 @@ class LedgerRepository {
           subcategory: row.readTableOrNull(db.subcategories)?.name,
           accountName: row.readTableOrNull(db.accounts)?.name,
           ocrConfidence: row.readTableOrNull(db.captures)?.ocrConfidence,
+          captureMeta: row.readTableOrNull(db.captures)?.metaJson,
         );
         final transferId = r.expense.origination;
         if (transferId != null && r.expense.vendor == 'Transferencia') {
@@ -182,6 +230,131 @@ class LedgerRepository {
   Future<void> clearBudget(String category) =>
       (_db.delete(_db.budgets)..where((b) => b.category.equals(category))).go();
 
+  /// Registers a movement from the manual entry sheet (or voice) and
+  /// returns its id. Categories are matched by name and created when the
+  /// database does not have them yet (older installs use another taxonomy).
+  Future<String> addEntry({
+    required MovementType type,
+    required int amountCents,
+    required String account,
+    String? category,
+    String? toAccount,
+    String? note,
+    DateTime? at,
+    String sourceApp = 'Manual',
+  }) async {
+    final db = _db;
+    final id = const Uuid().v4();
+    final when = (at ?? DateTime.now()).millisecondsSinceEpoch;
+    final text = _nonEmpty(note);
+    await db.transaction(() async {
+      final from = await _accountId(account);
+      if (type == MovementType.transfer) {
+        final to = await _accountId(toAccount);
+        if (from == null || to == null) {
+          throw ArgumentError('Elige dos cuentas distintas.');
+        }
+        await db.insertTransfer(
+          id: id,
+          dateEpochMs: when,
+          amountCents: amountCents,
+          currency: 'PEN',
+          sourceAccountId: from,
+          destinationAccountId: to,
+          sourceAccount: account,
+          destinationAccount: toAccount,
+          description: text,
+        );
+        return;
+      }
+      await db.insertExpenseFromParser(
+        id: id,
+        dateEpochMs: when,
+        amountCents: type == MovementType.income ? amountCents : -amountCents,
+        currency: 'PEN',
+        categoryId: category == null ? null : await _categoryId(category),
+        accountId: from,
+        account: account,
+        description: text,
+        sourceApp: sourceApp,
+      );
+    });
+    return id;
+  }
+
+  /// Deletes a movement (both halves of a transfer) and returns the rows so
+  /// "Deshacer" can put them back with [restore].
+  Future<List<Expense>> delete(Movement m) async {
+    final db = _db;
+    final where = m.type == MovementType.transfer
+        ? (($ExpensesTable e) => e.origination.equals(m.id))
+        : (($ExpensesTable e) => e.id.equals(m.id));
+    return db.transaction(() async {
+      final rows = await (db.select(db.expenses)..where(where)).get();
+      await (db.delete(db.expenses)..where(where)).go();
+      return rows;
+    });
+  }
+
+  Future<void> restore(List<Expense> rows) => _db.batch(
+    (b) => b.insertAll(_db.expenses, rows, mode: InsertMode.insertOrReplace),
+  );
+
+  /// Changes the category of an income or expense (detail sheet chips).
+  Future<void> setCategory(Movement m, String category) async {
+    final id = await _categoryId(category);
+    await (_db.update(_db.expenses)..where((e) => e.id.equals(m.id))).write(
+      ExpensesCompanion(
+        categoryId: Value(id),
+        subcategoryId: const Value(null),
+        updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+      ),
+    );
+  }
+
+  /// Registers the same movement again today ("Repetir").
+  Future<String> repeat(Movement m) => addEntry(
+    type: m.type,
+    amountCents: m.amountCents,
+    account: m.account,
+    category: m.type == MovementType.transfer ? null : m.category,
+    toAccount: m.toAccount,
+    note: m.note,
+  );
+
+  Future<String?> _accountId(String? name) async {
+    if (name == null) return null;
+    final row = await (_db.select(
+      _db.accounts,
+    )..where((a) => a.name.equals(name))).getSingleOrNull();
+    return row?.id;
+  }
+
+  Future<String> _categoryId(String name) async {
+    final db = _db;
+    final existing = await (db.select(
+      db.categories,
+    )..where((c) => c.name.equals(name))).getSingleOrNull();
+    if (existing != null) return existing.id;
+    final count = await db.categories.count().getSingle();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final id = const Uuid().v4();
+    await db
+        .into(db.categories)
+        .insert(
+          CategoriesCompanion.insert(
+            id: id,
+            name: name,
+            icon: '',
+            color: '',
+            order: count,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    return id;
+  }
+
   Movement _fromRow(_Row r) {
     final e = r.expense;
     final type = e.amountCents >= 0
@@ -190,6 +363,7 @@ class LedgerRepository {
     // Manual entries store the chosen category name in `vendor`; captures
     // store the merchant there and resolve the category through its id.
     final isManual = (e.sourceApp ?? '').toLowerCase() == 'manual';
+    final isVoice = (e.sourceApp ?? '').toLowerCase() == 'voz';
     final category =
         r.category ?? (isManual ? _nonEmpty(e.vendor) : null) ?? 'Otros';
     final note =
@@ -209,6 +383,9 @@ class LedgerRepository {
       ocrPercent: e.captureId == null
           ? null
           : int.tryParse(r.ocrConfidence ?? ''),
+      origin: e.captureId == null
+          ? (isVoice ? MovementOrigin.voice : MovementOrigin.manual)
+          : MovementOrigin.fromKey(_metaOrigin(r.captureMeta)),
     );
   }
 
@@ -232,6 +409,16 @@ class LedgerRepository {
     );
   }
 
+  static String? _metaOrigin(String? metaJson) {
+    if (metaJson == null) return null;
+    try {
+      final meta = jsonDecode(metaJson);
+      return meta is Map ? meta['origin'] as String? : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
   static String? _nonEmpty(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
@@ -245,6 +432,7 @@ final class _Row {
     required this.subcategory,
     required this.accountName,
     required this.ocrConfidence,
+    this.captureMeta,
   });
 
   final Expense expense;
@@ -252,4 +440,5 @@ final class _Row {
   final String? subcategory;
   final String? accountName;
   final String? ocrConfidence;
+  final String? captureMeta;
 }

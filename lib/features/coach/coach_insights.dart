@@ -226,11 +226,11 @@ final class CoachAnalysis {
           );
       return after > 0
           ? 'Sí, con cuidado. Te quedan ${Fmt.money(budgetLeft)} de presupuesto '
-                'para $left días. Si gastas S/. 300 este finde te quedarían '
+                'para $left días. Si gastas S/ 300 este finde te quedarían '
                 '${Fmt.money(after)} (${Fmt.money(after / left)}/día).'
                 '${top == null ? '' : ' Lo que más te aprieta es ${top.$1}: ya vas en ${(top.$2 * 100).round()}% de su tope.'}'
           : 'Mejor no. Te quedan ${Fmt.money(budgetLeft)} de presupuesto para '
-                '$left días; gastar S/. 300 te dejaría ${Fmt.money(after.abs())} '
+                '$left días; gastar S/ 300 te dejaría ${Fmt.money(after.abs())} '
                 'por encima. Un tope razonable para el finde sería '
                 '${Fmt.money(math.max(0, budgetLeft * 0.4))}.';
     }
@@ -252,7 +252,7 @@ final class CoachAnalysis {
           ? 0.0
           : orders.fold(0.0, (t, m) => t + m.amount) / orders.length;
       final delivery = math.max(0, projected - 8.6) * average;
-      return 'Plan para ahorrar S/. 500 el próximo mes:\n'
+      return 'Plan para ahorrar S/ 500 el próximo mes:\n'
           '· Delivery a 2 veces/semana (vas camino a ${projected.round()} '
           'pedidos): ~${Fmt.money(delivery.toDouble())}\n'
           '· Revisa suscripciones que se solapan\n'

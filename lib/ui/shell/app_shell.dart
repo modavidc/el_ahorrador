@@ -19,23 +19,27 @@ final class ShellDestination {
   final bool showFab;
 }
 
-/// One action of the FAB menu.
+/// One action of the + menu.
 final class FabAction {
   const FabAction({
     required this.label,
+    required this.subtitle,
     required this.icon,
-    required this.color,
     required this.onSelected,
+    this.capture = false,
   });
 
   final String label;
+  final String subtitle;
   final IconData icon;
-  final Color color;
   final VoidCallback onSelected;
+
+  /// Capture actions sit in the second group with a neutral tile.
+  final bool capture;
 }
 
-/// v1 shell: 5-item bottom navigation (58px) and the primary FAB with its
-/// menu (Añadir manual · Escanear recibo · Preguntar al Coach).
+/// v3 shell: 5-tab navigation with a pill on the active tab and the red +
+/// with its menu (REGISTRAR · CAPTURA).
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
@@ -95,7 +99,8 @@ class _AppShellState extends State<AppShell> {
   final _visited = <int>{0};
   bool _fabOpen = false;
 
-  static const navHeight = 58.0;
+  /// Navigation bar without the gesture area (86px − 18px in the prototype).
+  static const navHeight = 68.0;
 
   @override
   void initState() {
@@ -118,25 +123,28 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final insets = MediaQuery.paddingOf(context);
+    final bottomInset = insets.bottom < 18 ? 18.0 : insets.bottom;
+    final navTop = navHeight + bottomInset;
     final index = _controller.index;
     final showFab =
         widget.destinations[index].showFab && !_controller.fabHidden;
+    final actions = widget.fabActions(_controller);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: DesignColors.surfaceCard,
+        statusBarColor: DesignColors.paper,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: DesignColors.background,
+        systemNavigationBarColor: DesignColors.paper,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: DesignColors.background,
+        backgroundColor: DesignColors.paper,
         body: Stack(
           children: [
             Column(
               children: [
-                Container(height: insets.top, color: DesignColors.surfaceCard),
+                SizedBox(height: insets.top),
                 Expanded(
                   child: MediaQuery.removePadding(
                     context: context,
@@ -159,53 +167,37 @@ class _AppShellState extends State<AppShell> {
                 _BottomNavigation(
                   destinations: widget.destinations,
                   selected: index,
+                  bottomInset: bottomInset,
                   onSelected: _controller.select,
-                ),
-                Container(
-                  height: insets.bottom,
-                  color: DesignColors.background,
                 ),
               ],
             ),
-            if (_fabOpen)
+            if (_fabOpen) ...[
               Positioned.fill(
                 child: GestureDetector(
                   onTap: () => setState(() => _fabOpen = false),
-                  child: ColoredBox(
-                    color: DesignColors.scrim,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        24,
-                        0,
-                        24,
-                        insets.bottom + navHeight + 80,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          for (final (i, action)
-                              in widget.fabActions(_controller).indexed) ...[
-                            if (i > 0) const SizedBox(height: 14),
-                            _FabMenuItem(
-                              action: action,
-                              onTap: () {
-                                setState(() => _fabOpen = false);
-                                action.onSelected();
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: const ColoredBox(color: DesignColors.scrim),
                 ),
               ),
+              Positioned(
+                right: 16,
+                bottom: navTop + 18 + 62 + 14,
+                width: 270,
+                child: _FabMenu(
+                  actions: actions,
+                  onSelected: (action) {
+                    setState(() => _fabOpen = false);
+                    action.onSelected();
+                  },
+                ),
+              ),
+            ],
             if (showFab)
               Positioned(
-                right: 20,
-                bottom: insets.bottom + navHeight + 8,
+                right: 18,
+                bottom: navTop + 18,
                 child: _Fab(
+                  key: const ValueKey('fab'),
                   open: _fabOpen,
                   onTap: () => setState(() => _fabOpen = !_fabOpen),
                 ),
@@ -221,19 +213,22 @@ class _BottomNavigation extends StatelessWidget {
   const _BottomNavigation({
     required this.destinations,
     required this.selected,
+    required this.bottomInset,
     required this.onSelected,
   });
 
   final List<ShellDestination> destinations;
   final int selected;
+  final double bottomInset;
   final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) => Container(
-    height: _AppShellState.navHeight,
+    height: _AppShellState.navHeight + bottomInset,
+    padding: EdgeInsets.fromLTRB(6, 6, 6, bottomInset),
     decoration: const BoxDecoration(
-      color: DesignColors.surfaceCard,
-      border: Border(top: BorderSide(color: DesignColors.border)),
+      color: DesignColors.paper,
+      border: Border(top: BorderSide(color: DesignColors.line)),
     ),
     child: Row(
       children: [
@@ -250,20 +245,34 @@ class _BottomNavigation extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Sym(
-                      d.icon,
-                      size: 24,
-                      color: i == selected
-                          ? DesignColors.primary
-                          : DesignColors.textTertiary,
+                    Container(
+                      width: 56,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: i == selected ? DesignColors.blush : null,
+                        borderRadius: BorderRadius.circular(DesignRadius.pill),
+                      ),
+                      child: Sym(
+                        i == selected ? DesignIcons.filled(d.icon) : d.icon,
+                        size: 22,
+                        color: i == selected
+                            ? DesignColors.ink
+                            : DesignColors.ink2,
+                      ),
                     ),
                     const SizedBox(height: 3),
-                    Text(
-                      d.label,
-                      style: DesignText.micro.copyWith(
-                        color: i == selected
-                            ? DesignColors.primary
-                            : DesignColors.textTertiary,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Text(
+                        d.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: DesignText.nav.copyWith(
+                          color: i == selected
+                              ? DesignColors.ink
+                              : DesignColors.ink2,
+                        ),
                       ),
                     ),
                   ],
@@ -277,7 +286,7 @@ class _BottomNavigation extends StatelessWidget {
 }
 
 class _Fab extends StatelessWidget {
-  const _Fab({required this.open, required this.onTap});
+  const _Fab({super.key, required this.open, required this.onTap});
 
   final bool open;
   final VoidCallback onTap;
@@ -285,71 +294,116 @@ class _Fab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: open ? 'Cerrar menú' : 'Añadir',
+    label: open ? 'Cerrar menú' : 'Registrar',
     child: GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 56,
-        height: 56,
+        width: 62,
+        height: 62,
         decoration: BoxDecoration(
-          color: DesignColors.primary,
-          shape: BoxShape.circle,
+          color: DesignColors.red,
+          borderRadius: BorderRadius.circular(22),
           boxShadow: DesignShadows.fab,
         ),
         alignment: Alignment.center,
-        child: AnimatedRotation(
-          turns: open ? 0.125 : 0,
-          duration: const Duration(milliseconds: 200),
-          child: const Sym(
-            DesignIcons.add,
-            size: 28,
-            color: DesignColors.onPrimary,
-          ),
+        child: Sym(
+          open ? DesignIcons.close : DesignIcons.add,
+          size: 30,
+          color: DesignColors.card,
         ),
       ),
     ),
   );
 }
 
-class _FabMenuItem extends StatelessWidget {
-  const _FabMenuItem({required this.action, required this.onTap});
+class _FabMenu extends StatelessWidget {
+  const _FabMenu({required this.actions, required this.onSelected});
 
-  final FabAction action;
-  final VoidCallback onTap;
+  final List<FabAction> actions;
+  final ValueChanged<FabAction> onSelected;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: onTap,
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-          decoration: BoxDecoration(
-            color: DesignColors.fabLabel,
-            borderRadius: BorderRadius.circular(DesignRadius.sm),
-          ),
-          child: Text(
-            action.label,
-            style: DesignText.bodyMedium.copyWith(
-              color: DesignColors.textInverse,
-            ),
-          ),
-        ),
-        const SizedBox(width: DesignSpacing.md),
-        Container(
-          width: 48,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: DesignColors.surfaceCard,
-            shape: BoxShape.circle,
-            boxShadow: DesignShadows.fabAction,
-          ),
-          child: Sym(action.icon, size: 22, color: action.color),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final groups = [
+      ('REGISTRAR', actions.where((a) => !a.capture)),
+      ('CAPTURA', actions.where((a) => a.capture)),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: DesignColors.paper,
+        borderRadius: BorderRadius.circular(DesignRadius.menu),
+        boxShadow: DesignShadows.menu,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (title, items) in groups)
+            if (items.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                child: Text(
+                  title,
+                  style: DesignText.menuGroup.copyWith(
+                    color: DesignColors.ink2,
+                  ),
+                ),
+              ),
+              for (final action in items)
+                Semantics(
+                  button: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onSelected(action),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: action.capture
+                                  ? DesignColors.tile
+                                  : DesignColors.blush,
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Sym(
+                              action.icon,
+                              size: 20,
+                              color: action.capture
+                                  ? DesignColors.ink
+                                  : DesignColors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  action.label,
+                                  style: DesignText.body14Bold,
+                                ),
+                                Text(
+                                  action.subtitle,
+                                  style: DesignText.small.copyWith(
+                                    color: DesignColors.ink2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+        ],
+      ),
+    );
+  }
 }

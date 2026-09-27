@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FAF6F1; font-family: 'Schibsted Grotesk', system-ui, sans-serif; color: #1C1917; }
+  a { color: #D33F2B; text-decoration: none; }
+  a:hover { color: #A82E1E; text-decoration: underline; }
+</style>
+</helmet>
+<div style="max-width:1100px;margin:0 auto;padding:40px 20px 80px;display:flex;flex-direction:column;gap:40px;">
+  <header style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between;">
+    <div style="max-width:620px;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#6E6660;">AUDITORÍA UI/UX · 27 SET 2026</div>
+      <h1 style="margin:10px 0 0;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.02;">El Ahorrador v2 → v3</h1>
+      <p style="margin:12px 0 0;font-size:16px;line-height:1.55;color:#4A433D;text-wrap:pretty;">Revisión de <a href="Tema El Ahorrador v3.dc.html">Tema El Ahorrador v3</a> frente a v2 en 8 áreas y {{ nCats }} categorías, puntuadas del 1 al 100. El puntaje global es el promedio ponderado por el peso de cada área.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;background:#fff;border-radius:26px;padding:18px 24px;box-shadow:0 1px 2px rgba(60,30,10,.06);">
+      <div style="width:96px;height:96px;border-radius:999px;background:{{ ring }};display:flex;align-items:center;justify-content:center;"><div style="width:76px;height:76px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;letter-spacing:-.03em;">{{ total }}</div></div>
+      <div><div style="font-size:13px;font-weight:700;color:#6E6660;">Puntaje global v3 · v2 era {{ total2 }}</div><div style="font-size:20px;font-weight:800;margin-top:2px;">{{ verdict }}</div><div style="font-size:13px;color:#6E6660;margin-top:2px;">{{ nP0 }} críticos · {{ nP1 }} importantes · {{ nP2 }} mejoras</div></div>
+    </div>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:14px;">
+    <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;">Puntaje por área</h2>
+    <div style="background:#fff;border-radius:22px;padding:6px 20px;box-shadow:0 1px 2px rgba(60,30,10,.06);">
+      <sc-for list="{{ areas }}" as="a" hint-placeholder-count="8">
+        <div role="button" tabindex="0" onClick="{{ a.onClick }}" style="display:grid;grid-template-columns:minmax(0,1.4fr) 60px minmax(0,2fr) 48px;gap:16px;align-items:center;min-height:56px;border-top:{{ a.bt }};cursor:pointer;">
+          <div><div style="font-size:15px;font-weight:700;">{{ a.name }}</div><div style="font-size:12px;color:#6E6660;">{{ a.count }} categorías</div></div>
+          <span style="font-size:13px;color:#6E6660;">Peso {{ a.w }}%</span>
+          <div style="height:8px;border-radius:4px;background:#F1EAE2;"><div style="height:100%;border-radius:4px;background:{{ a.c }};width:{{ a.bar }};"></div></div>
+          <span style="font-size:18px;font-weight:800;text-align:right;color:{{ a.c }};">{{ a.score }}<span style="display:block;font-size:11px;font-weight:600;color:#6E6660;">v2 {{ a.score2 }}</span></span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px;">
+    <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;">Lo que falta para 90</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;">
+      <sc-for list="{{ top }}" as="t" hint-placeholder-count="6">
+        <div style="background:#fff;border-radius:22px;padding:18px;box-shadow:0 1px 2px rgba(60,30,10,.06);display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:800;color:#8A817A;">{{ t.n }}</span><span style="padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;background:{{ t.pbg }};color:{{ t.pfg }};">{{ t.p }}</span><span style="margin-left:auto;font-size:12px;font-weight:700;color:#1E7D47;">{{ t.gain }}</span></div>
+          <div style="font-size:16px;font-weight:700;line-height:1.3;">{{ t.title }}</div>
+          <div style="font-size:14px;line-height:1.5;color:#4A433D;text-wrap:pretty;">{{ t.how }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;">
+      <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;">Las {{ nCats }} categorías</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <sc-for list="{{ filters }}" as="fl" hint-placeholder-count="6"><span role="button" tabindex="0" onClick="{{ fl.onClick }}" style="min-height:36px;padding:0 14px;border-radius:999px;display:flex;align-items:center;font-size:13px;font-weight:700;cursor:pointer;background:{{ fl.bg }};color:{{ fl.fg }};border:1.5px solid {{ fl.bd }};">{{ fl.label }}</span></sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+        <div style="background:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 1px 2px rgba(60,30,10,.06);display:grid;grid-template-columns:34px minmax(0,1fr) 56px;gap:4px 14px;align-items:start;">
+          <span style="font-size:13px;font-weight:700;color:#8A817A;padding-top:2px;">{{ r.n }}</span>
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:15px;font-weight:700;">{{ r.name }}</span><span style="font-size:12px;color:#6E6660;">{{ r.areaName }}</span><span style="padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;background:{{ r.pbg }};color:{{ r.pfg }};">{{ r.p }}</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 16px;margin-top:8px;font-size:13px;line-height:1.45;">
+              <div><span style="font-weight:700;color:#1E7D47;">Bien · </span><span style="color:#4A433D;">{{ r.good }}</span></div>
+              <div><span style="font-weight:700;color:#D33F2B;">Problema · </span><span style="color:#4A433D;">{{ r.bad }}</span></div>
+              <div><span style="font-weight:700;color:#1C1917;">Recomendación · </span><span style="color:#4A433D;">{{ r.fix }}</span></div>
+              <sc-if value="{{ r.hasV3 }}" hint-placeholder-val="{{ false }}"><div style="grid-column:1/-1;"><span style="font-weight:700;color:#1E7D47;">En v3 · </span><span style="color:#4A433D;">{{ r.v3 }}</span></div></sc-if>
+            </div>
+          </div>
+          <span style="font-size:22px;font-weight:800;text-align:right;color:{{ r.c }};">{{ r.s }}<span style="display:block;font-size:11px;font-weight:600;color:#6E6660;">{{ r.was }}</span></span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;">
+    <div style="background:#fff;border-radius:22px;padding:22px;box-shadow:0 1px 2px rgba(60,30,10,.06);">
+      <h3 style="margin:0;font-size:17px;font-weight:800;">Lo que ya funciona</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:14px;line-height:1.5;color:#4A433D;">
+        <sc-for list="{{ wins }}" as="w" hint-placeholder-count="5"><div>{{ w }}</div></sc-for>
+      </div>
+    </div>
+    <div style="background:#1C1917;color:#fff;border-radius:22px;padding:22px;">
+      <h3 style="margin:0;font-size:17px;font-weight:800;">Riesgos antes de lanzar</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:14px;line-height:1.5;color:#DDD5CC;">
+        <sc-for list="{{ risks }}" as="w" hint-placeholder-count="4"><div>{{ w }}</div></sc-for>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { f: 'Todas' };
+  renderVals() {
+    const AREAS = { UX: ['UX y usabilidad', 25], LAY: ['Jerarquía y layout', 20], SYS: ['Consistencia visual', 15], TCA: ['Tipografía, color y accesibilidad', 15], CMP: ['Componentes e interacción', 10], ICO: ['Iconografía', 5], RES: ['Responsive', 5], POL: ['Polish y detalles', 5] };
+    const D = [
+      ['UX', 'Registro manual', 78, 'Monto primero, teclado propio, frecuentes de un toque, Hoy/Ayer y cuenta en la misma hoja.', 'Todo cabe en una sola hoja muy alta; en pantallas bajas el botón Guardar queda bajo el pliegue.', 'Dividir en dos alturas: monto + categoría arriba, cuenta/fecha/nota plegadas en “Más detalles”.', 'P2'],
+      ['UX', 'Transferencias', 72, 'Desde/Hacia con chips; la cuenta origen se excluye del destino.', 'La transferencia aparece en la lista pero no mueve saldos en Cuentas.', 'Descontar y sumar saldos en ambas cuentas y mostrar el cambio en el toast.', 'P1'],
+      ['UX', 'Compartir 1 imagen (Yape)', 84, 'Flujo completo: comprobante → compartir → lectura → registrado con regla y Deshacer.', 'La lectura siempre tarda lo mismo aunque la regla sea obvia.', 'Si una regla coincide al 100%, registrar directo y mostrar solo el toast.', 'P2'],
+      ['UX', 'Compartir 7 imágenes', 80, 'Progreso por imagen y resumen con registrados, duplicado y errores.', 'Los errores no tienen acción propia; solo el de monto ilegible llega a Por revisar.', 'Botón “Reintentar” en la imagen con error y “Ver original” en el duplicado.', 'P2'],
+      ['UX', 'Captura en segundo plano', 76, 'Se bloquea con explicación clara y atajo a permisos.', 'El aviso flotante no muestra la categoría sugerida para cambiarla antes de guardar.', 'Añadir un chip de categoría editable en el aviso flotante.', 'P2'],
+      ['UX', 'Bandeja Por revisar', 80, 'Se completa el dato faltante en la misma tarjeta, sin pantallas extra.', 'El botón Aprobar deshabilitado no dice qué falta.', 'Cambiar el texto del botón a “Falta categoría” o “Falta monto” mientras esté deshabilitado.', 'P1'],
+      ['UX', 'Descubribilidad de la captura', 52, 'El botón + muestra los 3 modos de captura.', 'La función estrella vive dentro de Ajustes; en Movimientos solo aparece si hay pendientes.', 'Tarjeta fija en Movimientos cuando hay menos de 3 capturas en la semana: “Comparte desde Yape y se registra solo”.', 'P0'],
+      ['UX', 'Navegación principal', 70, '5 pestañas iguales a v11; estado activo claro con pastilla.', 'El + solo existe en Movimientos y Estadísticas; en Coach y Cuentas no se puede registrar.', 'Mostrar el + en todas las pestañas salvo Ajustes y Coach (donde tapa el input).', 'P1'],
+      ['UX', 'Búsqueda', 64, 'Filtra al escribir por nota, categoría y cuenta.', 'Solo busca en setiembre y no tiene filtros por monto o tipo.', 'Añadir chips de filtro (Gastos, Ingresos, Captura) y buscar en todos los meses.', 'P2'],
+      ['UX', 'Onboarding', 58, '3 pasos claros y breves con CTA grande.', 'El presupuesto que eliges no se aplica: la app sigue usando S/ 2,400.', 'Guardar el monto del paso 2 como presupuesto real y reflejarlo en la tarjeta roja.', 'P0'],
+      ['UX', 'Presupuestos', 56, 'Vista total con marca de hoy y barras por categoría.', 'No se pueden editar ni el total ni los topes por categoría.', 'Tocar una categoría abre un stepper para su tope; el total se recalcula.', 'P1'],
+      ['UX', 'Estadísticas', 74, 'Gastos/Ingresos, Semana/Mes/Año, barras y dona coherentes.', 'La vista Año usa datos estimados y la barra 28–30 aparece vacía.', 'Ocultar semanas futuras y marcar los datos del año como reales o quitarlos.', 'P2'],
+      ['UX', 'Detalle por categoría', 78, 'Total, tope y lista de movimientos en un toque.', 'No muestra comparación con el mes anterior.', 'Añadir “vs agosto: −12%” bajo el total.', 'P2'],
+      ['UX', 'Coach', 68, 'Chat, sugerencias, estado “Pensando…” e historial con búsqueda.', 'Las respuestas son fijas y el cálculo del finde depende del texto del saldo.', 'Calcular respuestas con los datos (saldo, días, categorías) y no con texto formateado.', 'P1'],
+      ['UX', 'Cuentas', 58, 'Patrimonio, activos/deudas y grupos claros; crear cuenta funciona.', 'Faltan editar, ocultar, reordenar y eliminar cuentas, que sí estaban en v11.', 'Menú ⋮ por cuenta con Editar, Ocultar y Eliminar; reordenar por arrastre.', 'P1'],
+      ['UX', 'Ajustes', 60, 'Grupos Hábito, Finanzas, Coach, App y Soporte; subpáginas funcionales.', 'Varias filas solo muestran “disponible pronto” y el modo oscuro no cambia nada.', 'Ocultar las filas sin función hasta tenerlas; implementar el modo oscuro o retirarlo.', 'P1'],
+      ['UX', 'Racha', 80, 'Hoja con semana, mejor racha y CTA para registrar.', 'El día de hoy no se marca aunque ya registraste.', 'Marcar hoy como cumplido apenas exista un movimiento del día.', 'P2'],
+      ['UX', 'Escanear boleta', 76, 'Cámara con marco, línea de lectura y resultado editable.', 'No se puede corregir el monto ni la categoría antes de guardar.', 'Resultado con chips editables igual que en Por revisar.', 'P2'],
+      ['UX', 'Dictar', 74, 'Transcripción visible y chips de lo entendido.', 'Si algo está mal hay que ir al formulario completo.', 'Permitir tocar cada chip para corregirlo ahí mismo.', 'P2'],
+      ['UX', 'Deshacer', 86, 'Toast con Deshacer en todas las altas y etiqueta “Registrado · Deshacer” en la fila.', 'Eliminar un movimiento no se puede deshacer.', 'Añadir Deshacer también al eliminar.', 'P1'],
+      ['LAY', 'Tarjeta “Puedes gastar hoy”', 88, 'Una cifra dominante, contexto y barra con marca de hoy. Es la mejor pieza del sistema.', 'Ingresos/Gastos dentro de la tarjeta compiten un poco con la cifra.', 'Bajar los montos internos a 14px o moverlos fuera de la tarjeta.', 'P2'],
+      ['LAY', 'Lista de movimientos', 84, 'Días agrupados en tarjetas, número de día en negrita y neto a la derecha.', 'Solo se ven 6 días, sin “Ver más”.', 'Carga infinita o botón “Ver días anteriores”.', 'P2'],
+      ['LAY', 'Cabecera de Movimientos', 62, 'Mes, racha y búsqueda en una sola fila.', 'Las flechas de mes no hacen nada y la derecha está siempre gris.', 'Conectar la navegación de meses o quitar las flechas.', 'P1'],
+      ['LAY', 'Hojas inferiores', 76, 'Mismo contenedor, asa y animación en todas.', 'La hoja de registro llega casi al tope y tapa la pantalla completa.', 'Limitar a 85% de alto con scroll interno y el CTA siempre visible.', 'P2'],
+      ['LAY', 'Ajustes: orden', 72, 'Captura arriba, luego grupos por tema.', 'El bloque de Captura (8 filas) empuja todo lo demás muy abajo.', 'Resumir Captura en una tarjeta con estado + “Ver todo”, y mover las 7 funciones a su propia página.', 'P1'],
+      ['LAY', 'Espaciado vertical', 80, 'Ritmo de 22/8px entre secciones y títulos, constante.', 'En Estadísticas hay 4 tarjetas seguidas sin respiro visual.', 'Agrupar barras y dona en una sola tarjeta con pestañas.', 'P2'],
+      ['SYS', 'Tokens de color', 84, 'Papel, tinta y rojo con roles claros; el rojo solo para lo importante.', 'Hay 4 grises cálidos cercanos (#6E6660, #8A817A, #A8A09A, #C9BFB5) sin una regla clara.', 'Reducir a 2 grises de texto y 1 de borde.', 'P2'],
+      ['SYS', 'Chips y segmentos', 74, 'Segmento blanco sobre beige para pestañas; chip negro para selección.', 'Chips blancos y beige se usan para lo mismo en pantallas distintas.', 'Un solo chip: beige apagado, negro activo.', 'P2'],
+      ['SYS', 'Tarjetas', 86, 'Blanco, radio 22, sombra mínima, separadores internos iguales.', '—', 'Mantener.', 'OK'],
+      ['SYS', 'Títulos de sección', 82, 'Mayúsculas pequeñas en gris, siempre igual.', 'Estadísticas y Presupuestos repiten “POR CATEGORÍA”.', 'Nombres únicos: “En qué se fue” y “Topes por categoría”.', 'P2'],
+      ['TCA', 'Tipografía', 82, 'Una sola familia (Schibsted Grotesk), extra negrita para cifras.', 'Pesos 600/700/800 mezclados en filas vecinas.', 'Usar 600 para texto, 800 solo para cifras y títulos.', 'P2'],
+      ['TCA', 'Contraste de texto secundario', 58, 'El texto principal tiene buen contraste.', '#8A817A sobre #FAF6F1 queda cerca de 3.6:1 en textos de 12px.', 'Subir el texto secundario a #6E6660 como mínimo.', 'P1'],
+      ['TCA', 'Tamaños mínimos', 56, 'Cuerpo en 14–15px.', 'Calendario usa 9px, la navegación y chips de 11–12px.', 'Mínimo 11px en el calendario y 12px en etiquetas.', 'P1'],
+      ['TCA', 'Áreas táctiles', 62, 'Filas de 60px y botones principales de 52–56px.', 'Chips de 32–36px y el “Deshacer” en línea quedan debajo de 44px.', 'Chips de 40px mínimo y Deshacer como botón en el toast.', 'P1'],
+      ['TCA', 'Color de montos', 80, 'Ingresos en verde, gastos en tinta, rojo solo para alertas.', 'Las transferencias usan el mismo gris que las etiquetas.', 'Icono de flechas y texto en tinta para transferencias.', 'P2'],
+      ['CMP', 'Interruptores', 84, 'Toda la fila es tocable, animación suave.', 'Sin estado de foco visible con teclado.', 'Añadir anillo de foco de 2px.', 'P2'],
+      ['CMP', 'Teclado numérico', 78, 'Límite de 2 decimales y borrar.', 'Sin respuesta háptica simulada ni pulsación visible en algunas teclas.', 'Estado presionado más evidente y vibración corta.', 'P2'],
+      ['CMP', 'Botón + y menú', 80, 'Separa Registrar y Captura con descripciones.', 'El menú tapa el botón + en pantallas bajas.', 'Anclar el menú encima del + con 12px de separación.', 'P2'],
+      ['CMP', 'Estados vacíos', 74, 'Bandeja vacía, búsqueda sin resultados y día sin movimientos.', 'Coach sin historial y Cuentas sin cuentas no tienen estado vacío.', 'Añadirlos con una acción clara.', 'P2'],
+      ['CMP', 'Estados de carga', 62, 'Indicadores en escaneo, lectura y Coach.', 'No hay esqueletos al abrir pantallas.', 'Esqueletos de filas de 300ms en Movimientos y Estadísticas.', 'P2'],
+      ['ICO', 'Consistencia de iconos', 86, 'Material Symbols Rounded en todo, relleno solo en activos.', 'Algunas elecciones son poco claras (“pin” para decimales).', 'Cambiar por “decimal_increase” o “123”.', 'P2'],
+      ['ICO', 'Iconos de categoría', 82, 'Color por categoría en fondo suave.', 'Nueve colores distintos pesan junto al rojo de marca.', 'Bajar saturación de los tonos no rojos.', 'P2'],
+      ['RES', 'Ancho 360px', 60, 'Layout en flex y grid, sin anchos fijos en contenido.', 'No se probó a 360px; la tarjeta roja y la cabecera pueden apretarse.', 'Probar a 360px y reducir la cifra grande a 48px en ese ancho.', 'P1'],
+      ['RES', 'Textos largos', 70, 'Elipsis en notas de movimiento.', 'Nombres de cuenta largos rompen chips en el formulario.', 'Elipsis y ancho máximo en chips.', 'P2'],
+      ['POL', 'Animaciones', 80, 'Entradas cortas (rise, up, drop) y coherentes.', 'La hoja de lote no anima la llegada de cada resultado.', 'Aparición escalonada de cada fila del lote.', 'P2'],
+      ['POL', 'Microcopy', 82, 'Tono cercano y peruano (“Yapeaste”, “Te quedan…”).', 'Mezcla “Registrado”, “Guardado” y “Aprobado” para lo mismo.', 'Usar “Registrado” siempre que entre un movimiento.', 'P2'],
+      ['POL', 'Datos de ejemplo', 66, 'Montos y comercios creíbles para Lima.', 'Algunos números no cuadran (saldos de cuentas fijos que no cambian).', 'Derivar saldos de los movimientos.', 'P2'],
+    ];
+    const V3 = {
+      'Transferencias': [84, 'Mueve saldos en ambas cuentas y se muestra en tinta con icono de flechas.'],
+      'Bandeja Por revisar': [88, 'El botón dice “Falta el monto” o “Falta la categoría” hasta que se completa.'],
+      'Descubribilidad de la captura': [82, 'Tarjeta en Movimientos con los 3 pasos, “Probar ahora” y “Más formas”; se puede cerrar.'],
+      'Navegación principal': [78, 'El + aparece también en Cuentas, Presupuestos y detalle de categoría.'],
+      'Búsqueda': [78, 'Filtros Todo, Gastos, Ingresos y Captura.'],
+      'Onboarding': [84, 'El presupuesto del paso 2 se aplica en la tarjeta roja y en Presupuestos.'],
+      'Presupuestos': [82, 'Total con −/+ S/ 100 y tope por categoría con −/+ S/ 20.'],
+      'Estadísticas': [78, 'Se quitó la semana futura vacía.'],
+      'Coach': [72, 'La respuesta del finde se calcula con el saldo real.'],
+      'Cuentas': [82, 'Editar nombre y saldo, ocultar y eliminar; las ocultas no suman.'],
+      'Ajustes': [86, 'Se quitaron modo oscuro, copia de seguridad, borrar datos y ayuda sin función. Solo quedan filas que funcionan.'],
+      'Racha': [86, 'Hoy se marca cuando ya hay un movimiento del día.'],
+      'Escanear boleta': [82, 'Botón Editar abre el formulario con los datos leídos.'],
+      'Deshacer': [92, 'Eliminar también se puede deshacer.'],
+      'Lista de movimientos': [88, 'Botón “Ver días anteriores”.'],
+      'Cabecera de Movimientos': [80, 'Se quitaron las flechas de mes sin función.'],
+      'Ajustes: orden': [84, 'Captura resumida en una fila que abre su propia página con las 7 funciones.'],
+      'Títulos de sección': [88, '“En qué se fue” y “Topes por categoría”.'],
+      'Contraste de texto secundario': [82, 'Texto secundario subió a #6E6660 en toda la app.'],
+      'Tamaños mínimos': [84, 'Calendario en 11px; navegación y etiquetas en 12px.'],
+      'Áreas táctiles': [84, 'Chips a 40px; steppers y cierres de 40–44px.'],
+      'Color de montos': [86, 'Transferencias en tinta.'],
+      'Ancho 360px': [80, 'Tweak de ancho 390/360; navegación con etiquetas de 11px y elipsis, sin desbordes.'],
+      'Textos largos': [84, 'Elipsis en cuentas, pendientes y chips de cuenta del formulario.'],
+      'Coach': [84, 'Respuestas calculadas con saldo, días, categorías, suscripciones y comparación con agosto; entiende “¿cuánto gasté en X?”.'],
+      'Dictar': [84, 'Categoría y cuenta se cambian tocando el chip antes de guardar.'],
+      'Chips y segmentos': [86, 'Un solo chip en toda la app: beige apagado y negro activo.'],
+      'Registro manual': [86, 'Monto y categoría arriba; cuenta, fecha y nota plegadas en una fila resumen.'],
+      'Captura en segundo plano': [86, 'El aviso flotante trae un chip de categoría que se cambia antes de Guardar.'],
+      'Hojas inferiores': [86, 'Alto máximo 85% con scroll interno; Guardar queda fijo abajo.'],
+      'Datos de ejemplo': [84, 'Los saldos se mueven con cada gasto, ingreso, transferencia, boleta y dictado.'],
+      'Navegación principal': [84, 'El + está en Movimientos, Estadísticas, Cuentas, Presupuestos y detalle de categoría.'],
+      'Búsqueda': [84, 'Filtros Todo, Gastos, Ingresos y Captura con texto libre.'],
+      'Estadísticas': [86, 'Se quitó la vista Año estimada; barras y dona en una sola tarjeta con pestañas.'],
+      'Espaciado vertical': [86, 'Estadísticas pasó de 4 a 3 bloques.'],
+      'Detalle por categoría': [86, 'Chip “vs agosto: ±N%” bajo el total.'],
+      'Compartir 7 imágenes': [88, '“Reintentar” en el error y “Ver original” en el duplicado.'],
+      'Escanear boleta': [88, 'Categoría y cuenta editables con chips antes de guardar.'],
+      'Animaciones': [86, 'Las filas del lote aparecen una tras otra con subida suave.'],
+      'Cabecera de Movimientos': [86, 'Sin flechas decorativas; mes, racha y búsqueda.'],
+      'Interruptores': [88, 'Anillo de foco de 2px en todos los botones.'],
+      'Teclado numérico': [86, 'Tecla se hunde al tocar (escala .94 + fondo) y vibración corta de 8ms.'],
+      'Botón + y menú': [84, 'Menú anclado 14px sobre el +, que cambia a ×.'],
+      'Estados vacíos': [86, 'Coach sin historial, Cuentas vacías y Estadísticas sin datos del periodo, cada uno con una acción.'],
+      'Estados de carga': [82, 'Esqueleto de 380ms al entrar a Movimientos y Estadísticas.'],
+      'Microcopy': [86, '“Registrado” unificado en las altas.'],
+    };
+    const PR = { P0: ['#FBE3DE', '#A82E1E'], P1: ['#FDF1DC', '#8A5300'], P2: ['#EEE8E1', '#4A433D'], OK: ['#E6F3EA', '#1E7D47'] };
+    const col = (s) => s >= 80 ? '#1E7D47' : s >= 65 ? '#C77A12' : '#D33F2B';
+    const s3 = (d) => V3[d[1]] ? V3[d[1]][0] : d[2];
+    const areaScore = {}, areaScore2 = {}; Object.keys(AREAS).forEach((k) => { const l = D.filter((d) => d[0] === k); areaScore[k] = Math.round(l.reduce((a, d) => a + s3(d), 0) / l.length); areaScore2[k] = Math.round(l.reduce((a, d) => a + d[2], 0) / l.length); });
+    const total = Math.round(Object.keys(AREAS).reduce((a, k) => a + areaScore[k] * AREAS[k][1], 0) / 100);
+    const total2 = Math.round(Object.keys(AREAS).reduce((a, k) => a + areaScore2[k] * AREAS[k][1], 0) / 100);
+    const f = this.state.f, set = (p) => this.setState(p);
+    const areas = Object.keys(AREAS).map((k, i) => ({ name: AREAS[k][0], w: AREAS[k][1], count: D.filter((d) => d[0] === k).length, score: areaScore[k], score2: areaScore2[k], bar: areaScore[k] + '%', c: col(areaScore[k]), bt: i ? '1px solid #F1EAE2' : 'none', onClick: () => set({ f: k }) }));
+    const keys = ['Todas', 'P0', 'P1', 'P2', ...Object.keys(AREAS)];
+    const lab = (k) => AREAS[k] ? AREAS[k][0].split(',')[0].split(' y ')[0] : k === 'Todas' ? 'Todas' : k === 'P0' ? 'Críticos' : k === 'P1' ? 'Importantes' : 'Mejoras';
+    const filters = keys.map((k) => ({ label: lab(k), onClick: () => set({ f: k }), bg: f === k ? '#1C1917' : '#fff', fg: f === k ? '#fff' : '#1C1917', bd: f === k ? '#1C1917' : '#E3D9CF' }));
+    const rows = D.map((d, i) => ({ n: i + 1, area: d[0], areaName: AREAS[d[0]][0], name: d[1], s: s3(d), was: V3[d[1]] ? 'v2 ' + d[2] : '', hasV3: !!V3[d[1]], v3: V3[d[1]] ? V3[d[1]][1] : '', good: d[3], bad: d[4], fix: d[5], p: V3[d[1]] && V3[d[1]][0] >= 80 ? 'OK' : d[6], c: col(s3(d)), pbg: PR[V3[d[1]] && V3[d[1]][0] >= 80 ? 'OK' : d[6]][0], pfg: PR[V3[d[1]] && V3[d[1]][0] >= 80 ? 'OK' : d[6]][1] }))
+      .filter((r) => f === 'Todas' || r.area === f || r.p === f).sort((a, b) => (f === 'Todas' ? a.s - b.s : 0));
+    const pOf = (d) => V3[d[1]] && V3[d[1]][0] >= 80 ? 'OK' : d[6];
+    const TOP = [
+      ['Coach con datos reales', 'Calcular todas las respuestas con saldo, días restantes y categorías; hoy solo la del finde usa datos reales.', 'P1', '+1'],
+      ['Probar a 360px', 'Revisar la tarjeta roja, la cabecera y el formulario en 360px; bajar la cifra grande a 48px si aprieta.', 'P1', '+1'],
+      ['Registro en dos alturas', 'Monto y categoría arriba; cuenta, fecha y nota en “Más detalles” para que Guardar siempre se vea.', 'P2', '+0.5'],
+      ['Esqueletos de carga', '300ms de filas grises al abrir Movimientos y Estadísticas.', 'P2', '+0.5'],
+      ['Estados vacíos faltantes', 'Coach sin historial y Cuentas vacías con una acción clara.', 'P2', '+0.5'],
+      ['Un solo tipo de chip', 'Beige apagado y negro activo en todas las pantallas.', 'P2', '+0.5'],
+    ];
+    const top = TOP.map((t, i) => ({ n: String(i + 1).padStart(2, '0'), title: t[0], how: t[1], p: t[2], gain: t[3] + ' pts', pbg: PR[t[2]][0], pfg: PR[t[2]][1] }));
+    return {
+      nCats: D.length, total, ring: `conic-gradient(${col(total)} ${total}%, #F1EAE2 0)`, verdict: total >= 85 ? 'Listo para lanzar' : total >= 75 ? 'Sólido, con pendientes' : 'Necesita trabajo',
+      total2, nP0: D.filter((d) => pOf(d) === 'P0').length, nP1: D.filter((d) => pOf(d) === 'P1').length, nP2: D.filter((d) => pOf(d) === 'P2').length,
+      areas, filters, rows, top,
+      wins: ['v3 resolvió los 2 críticos: captura visible y presupuesto real.', 'La tarjeta “Puedes gastar hoy” da una sola respuesta clara al abrir la app.', 'Las 7 funciones de captura funcionan de punta a punta, con Deshacer.', 'Sistema visual consistente: papel, tinta y rojo con roles definidos.', 'Por revisar permite corregir el dato faltante sin salir de la tarjeta.', 'Microcopy cercano y local.'],
+      risks: ['Las respuestas del Coach siguen siendo fijas salvo el finde: un tester lo notará rápido.', 'Sin prueba en 360px: muchos Android de gama media usan ese ancho.', 'Los datos arrancan de ejemplo; en la prueba real deben empezar vacíos con buenos estados vacíos.'],
+    };
+  }
+}
+</script>
+</body>
+</html>
