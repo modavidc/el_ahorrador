@@ -5,7 +5,6 @@ import 'package:el_ahorrador/features/capture/domain/capture_rule.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// Reglas de captura: "Si llega de Yape con “Yapeaste”" → type, account and
 /// category, each changed by tapping its chip.

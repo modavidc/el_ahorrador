@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 
 import 'package:el_ahorrador/core/clock/app_clock.dart';
-import 'package:el_ahorrador/features/coach/domain/coach_analysis.dart';
+import 'package:el_ahorrador/core/format/fmt.dart';
+import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
+import 'package:el_ahorrador/features/coach/application/coach_controller.dart';
+import 'package:el_ahorrador/features/coach/domain/coach.dart';
 import 'package:el_ahorrador/features/ledger/presentation/ledger_scope.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
+import 'package:el_ahorrador/features/settings/domain/app_preferences.dart';
 
-/// Coach of the v1 prototype: actionable insights (not statistics) and
-/// decision questions.
+/// Coach (v3): "Lo que veo en setiembre", chat with suggestions, and the
+/// history of conversations.
 class CoachScreen extends StatefulWidget {
-  const CoachScreen({super.key, this.onShowBudget, this.onShowCategory});
+  const CoachScreen({
+    super.key,
+    required this.controller,
+    required this.preferences,
+  });
 
-  final VoidCallback? onShowBudget;
-  final ValueChanged<String>? onShowCategory;
+  final CoachController controller;
+  final AppPreferences preferences;
 
   @override
   State<CoachScreen> createState() => _CoachScreenState();
@@ -21,8 +28,9 @@ class CoachScreen extends StatefulWidget {
 class _CoachScreenState extends State<CoachScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  final _chat = <(bool, String)>[]; // (fromUser, text)
-  final _dismissed = <InsightKind>{};
+  late final Stream<String> _tone = widget.preferences.watchText(
+    TextPreference.coachTone,
+  );
 
   @override
   void dispose() {
@@ -31,316 +39,215 @@ class _CoachScreenState extends State<CoachScreen> {
     super.dispose();
   }
 
-  void _ask(CoachAnalysis analysis, String question) {
-    if (question.trim().isEmpty) return;
-    setState(() {
-      _chat
-        ..add((true, question.trim()))
-        ..add((false, analysis.answer(question)));
-      _input.clear();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  CoachContext _context(String tone) {
+    final data = LedgerScope.of(context);
+    return CoachContext(
+      movements: data.movements,
+      budgetCents: data.monthlyBudgetCents,
+      today: AppClock.now(),
+      tone: CoachTone.fromLabel(tone),
+    );
   }
+
+  Future<void> _ask(String question, String tone) async {
+    _input.clear();
+    final asking = widget.controller.ask(question, _context(tone));
+    _toBottom();
+    await asking;
+    _toBottom();
+  }
+
+  void _toBottom() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  });
+
+  void _openHistory() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ConversationsScreen(
+        controller: widget.controller,
+        onOpen: (c) {
+          widget.controller.open(c);
+          Navigator.of(context).pop();
+        },
+      ),
+    ),
+  );
 
   @override
-  Widget build(BuildContext context) {
-    final ledger = LedgerScope.of(context);
-    final analysis = CoachAnalysis(
-      movements: ledger.movements,
-      budgets: ledger.budgets,
-      today: AppClock.now(),
-    );
-    final questions = [
-      '¿Puedo gastar S/ 300 este finde?',
-      '¿Qué suscripciones me sobran?',
-      'Plan para ahorrar S/ 500',
-      '¿Por qué gasto más que en ${analysis.previousMonthLong}?',
-    ];
-    final insights = analysis
-        .insights()
-        .where((i) => !_dismissed.contains(i.kind))
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: const BoxDecoration(
-            color: DesignColors.surfaceCard,
-            border: Border(bottom: BorderSide(color: DesignColors.border)),
-          ),
-          child: Row(
+  Widget build(BuildContext context) => StreamBuilder<String>(
+    stream: _tone,
+    builder: (context, toneSnapshot) {
+      final tone = toneSnapshot.data ?? TextPreference.coachTone.defaultValue;
+      final coach = _context(tone);
+      return ListenableBuilder(
+        listenable: widget.controller,
+        builder: (context, _) {
+          final c = widget.controller;
+          return Stack(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: DesignColors.primary,
-                  borderRadius: BorderRadius.circular(DesignRadius.tile),
-                ),
-                child: const Sym(
-                  DesignIcons.autoAwesome,
-                  size: 20,
-                  color: DesignColors.onPrimary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Coach', style: DesignText.headline),
+              ListView(
+                controller: _scroll,
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 110),
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 56),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text('Coach', style: DesignText.tabTitle),
+                        ),
+                        IconAction(
+                          icon: DesignIcons.history,
+                          label: 'Historial',
+                          onTap: _openHistory,
+                        ),
+                        IconAction(
+                          icon: DesignIcons.editSquare,
+                          label: 'Nueva conversación',
+                          onTap: c.reset,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Transform.translate(
+                    offset: const Offset(0, -6),
+                    child: Text(
+                      'Tono ${tone.toLowerCase()} · analizó '
+                      '${coach.month.movements.length} movimientos',
+                      style: DesignText.label13.copyWith(
+                        color: DesignColors.ink2,
+                      ),
+                    ),
+                  ),
+                  if (c.isEmpty) ...[
+                    const SizedBox(height: 12),
                     Text(
-                      'Analizó ${analysis.current.length} movimientos de '
-                      '${analysis.monthLong}',
-                      style: DesignText.caption.copyWith(
-                        color: DesignColors.textTertiary,
+                      'Lo que veo en ${coach.monthName}',
+                      style: DesignText.style(
+                        22,
+                        FontWeight.w800,
+                        letterSpacing: -.02,
+                        height: 1.2,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    for (final insight in insightsFor(coach)) ...[
+                      _InsightCard(insight: insight),
+                      const SizedBox(height: 10),
+                    ],
                   ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            controller: _scroll,
-            padding: const EdgeInsets.all(12),
-            children: [
-              if (insights.isEmpty && _chat.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48),
-                  child: Text(
-                    'Registra movimientos este mes y aquí verás consejos '
-                    'para decidir mejor.',
-                    textAlign: TextAlign.center,
-                    style: DesignText.body.copyWith(
-                      color: DesignColors.textTertiary,
-                    ),
-                  ),
-                ),
-              for (final (i, insight) in insights.indexed) ...[
-                if (i > 0) const SizedBox(height: 10),
-                _InsightCard(insight: insight, actions: _actionsFor(insight)),
-              ],
-              for (final (fromUser, text) in _chat) ...[
-                const SizedBox(height: 10),
-                _Bubble(fromUser: fromUser, text: text),
-              ],
-            ],
-          ),
-        ),
-        Container(
-          decoration: const BoxDecoration(
-            color: DesignColors.surfaceCard,
-            border: Border(top: BorderSide(color: DesignColors.border)),
-          ),
-          child: Column(
-            children: [
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                  itemCount: questions.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(width: DesignSpacing.sm),
-                  itemBuilder: (context, i) => _Pill(
-                    label: questions[i],
-                    onTap: () => _ask(analysis, questions[i]),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                child: Row(
-                  children: [
-                    Expanded(
+                  const SizedBox(height: 6),
+                  for (final m in c.messages) ...[
+                    _Bubble(message: m),
+                    const SizedBox(height: 8),
+                  ],
+                  if (c.thinking)
+                    Align(
+                      alignment: Alignment.centerLeft,
                       child: Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: DesignColors.inputFill,
-                          border: Border.all(color: DesignColors.borderInput),
-                          borderRadius: BorderRadius.circular(
-                            DesignRadius.pill,
-                          ),
+                          color: DesignColors.card,
+                          borderRadius: BorderRadius.circular(DesignRadius.cta),
                         ),
-                        child: TextField(
-                          controller: _input,
-                          style: DesignText.body,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (q) => _ask(analysis, q),
-                          decoration: InputDecoration.collapsed(
-                            hintText: 'Pregúntale al Coach...',
-                            hintStyle: DesignText.body.copyWith(
-                              color: DesignColors.textTertiary,
-                            ),
+                        child: Text(
+                          'Pensando…',
+                          style: DesignText.body14.copyWith(
+                            color: DesignColors.ink2,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: DesignSpacing.sm),
-                    Semantics(
-                      button: true,
-                      label: 'Enviar',
-                      child: GestureDetector(
-                        onTap: () => _ask(analysis, _input.text),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: DesignColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Sym(
-                            DesignIcons.arrowUpward,
-                            size: 20,
-                            color: DesignColors.onPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final q in suggestionsFor(coach))
+                        _SuggestionChip(label: q, onTap: () => _ask(q, tone)),
+                    ],
+                  ),
+                ],
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 10,
+                child: _InputBar(
+                  controller: _input,
+                  onSend: () => _ask(_input.text, tone),
                 ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  (String, VoidCallback, String, VoidCallback) _actionsFor(Insight insight) {
-    void dismiss(String message) {
-      setState(() => _dismissed.add(insight.kind));
-      showDsToast(context, message);
-    }
-
-    void open() {
-      final category = insight.category;
-      if (category != null) widget.onShowCategory?.call(category);
-    }
-
-    return switch (insight.kind) {
-      InsightKind.pace => (
-        'Ver presupuesto',
-        () => widget.onShowBudget?.call(),
-        'Entendido',
-        () => dismiss('Te aviso si el ritmo cambia'),
-      ),
-      InsightKind.habit => (
-        'Poner tope',
-        () => showDsToast(context, 'Próximamente'),
-        'Ver pedidos',
-        open,
-      ),
-      InsightKind.subscriptions => (
-        'Revisar',
-        open,
-        'Ignorar',
-        () => dismiss('No volveré a mostrar esta sugerencia'),
-      ),
-      InsightKind.unusual => (
-        'Fue único',
-        () => dismiss('Marcado como gasto único'),
-        'Es normal',
-        () => dismiss('Anotado, ajusto tu referencia'),
-      ),
-    };
-  }
+          );
+        },
+      );
+    },
+  );
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.insight, required this.actions});
+  const _InsightCard({required this.insight});
 
   final Insight insight;
-  final (String, VoidCallback, String, VoidCallback) actions;
-
-  static final _looks = {
-    InsightKind.pace: (
-      'Ritmo del mes',
-      DesignIcons.speed,
-      CategoryStyle.of(Category.servicios),
-    ),
-    InsightKind.habit: (
-      'Hábito detectado',
-      DesignIcons.deliveryDining,
-      CategoryStyle.of(Category.comida),
-    ),
-    InsightKind.subscriptions: (
-      'Suscripciones',
-      DesignIcons.subscriptions,
-      CategoryStyle.of(Category.ocio),
-    ),
-    InsightKind.unusual: (
-      'Gasto inusual',
-      DesignIcons.error,
-      CategoryStyle.of(Category.transporte),
-    ),
-  };
 
   @override
   Widget build(BuildContext context) {
-    final (kicker, icon, colors) = _looks[insight.kind]!;
-    final (primary, onPrimary, secondary, onSecondary) = actions;
-    return DsCard(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      child: Column(
+    final (icon, background, color) = switch (insight.kind) {
+      InsightKind.topCategory => (
+        DesignIcons.trendingUp,
+        DesignColors.blush,
+        DesignColors.red,
+      ),
+      InsightKind.capture => (
+        DesignIcons.autoAwesome,
+        DesignColors.greenSoft,
+        DesignColors.green,
+      ),
+      InsightKind.monthClose => (
+        DesignIcons.event,
+        DesignColors.amberSoft,
+        DesignColors.amber,
+      ),
+    };
+    return PaperCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.background,
-                  borderRadius: BorderRadius.circular(DesignRadius.sm),
-                ),
-                child: Sym(icon, size: 18, color: colors.foreground),
-              ),
-              const SizedBox(width: DesignSpacing.sm),
-              Text(
-                kicker.toUpperCase(),
-                style: DesignText.microStrong.copyWith(
-                  color: colors.foreground,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
+          IconTile(
+            icon: icon,
+            color: color,
+            background: background,
+            size: 36,
+            iconSize: 20,
+            radius: DesignRadius.md,
           ),
-          const SizedBox(height: 10),
-          Text(insight.title, style: DesignText.headline.copyWith(height: 1.3)),
-          const SizedBox(height: DesignSpacing.xs),
-          Text(
-            insight.body,
-            style: DesignText.label.copyWith(
-              color: DesignColors.textSecondary,
-              height: 1.45,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(insight.title, style: DesignText.rowAmount),
+                const SizedBox(height: 2),
+                Text(
+                  insight.body,
+                  style: DesignText.body14.copyWith(
+                    color: DesignColors.ink2,
+                    height: 1.45,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: DesignSpacing.md),
-          Row(
-            children: [
-              _Pill(label: primary, onTap: onPrimary, primary: true),
-              const SizedBox(width: DesignSpacing.sm),
-              _Pill(label: secondary, onTap: onSecondary),
-            ],
           ),
         ],
       ),
@@ -348,89 +255,269 @@ class _InsightCard extends StatelessWidget {
   }
 }
 
-/// Pill button: primary (34px, filled) or outlined; chips use the 30px
-/// outlined variant.
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.onTap, this.primary});
+class _Bubble extends StatelessWidget {
+  const _Bubble({required this.message});
 
-  final String label;
-  final VoidCallback onTap;
-
-  /// null → question chip (30px, 12px text).
-  final bool? primary;
+  final ChatMessage message;
 
   @override
   Widget build(BuildContext context) {
-    final chip = primary == null;
-    final filled = primary ?? false;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: chip ? 30 : 34,
-        padding: EdgeInsets.symmetric(horizontal: chip ? 12 : 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled ? DesignColors.primary : DesignColors.surfaceCard,
-          border: filled ? null : Border.all(color: DesignColors.borderInput),
-          borderRadius: BorderRadius.circular(DesignRadius.pill),
-        ),
-        child: Text(
-          label,
-          style: chip
-              ? DesignText.caption.copyWith(color: DesignColors.textSecondary)
-              : filled
-              ? DesignText.labelMedium.copyWith(color: DesignColors.onPrimary)
-              : DesignText.label.copyWith(color: DesignColors.textSecondary),
+    final user = message.fromUser;
+    return Align(
+      alignment: user ? Alignment.centerRight : Alignment.centerLeft,
+      child: FractionallySizedBox(
+        widthFactor: user ? .8 : .88,
+        alignment: user ? Alignment.centerRight : Alignment.centerLeft,
+        child: Align(
+          alignment: user ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            padding: user
+                ? const EdgeInsets.symmetric(horizontal: 14, vertical: 10)
+                : const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: user ? DesignColors.ink : DesignColors.card,
+              borderRadius: user
+                  ? const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(4),
+                    )
+                  : const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(18),
+                    ),
+              boxShadow: user ? null : DesignShadows.card,
+            ),
+            child: Text(
+              message.text,
+              style: user
+                  ? DesignText.body14.copyWith(
+                      color: DesignColors.card,
+                      height: 1.4,
+                    )
+                  : DesignText.input.copyWith(height: 1.5),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _Bubble extends StatelessWidget {
-  const _Bubble({required this.fromUser, required this.text});
+class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({required this.label, required this.onTap});
 
-  final bool fromUser;
-  final String text;
+  final String label;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
-    child: FractionallySizedBox(
-      widthFactor: 0.84,
-      alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Align(
-        alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 13),
-          decoration: BoxDecoration(
-            color: fromUser ? DesignColors.primary : DesignColors.surfaceCard,
-            borderRadius: fromUser
-                ? const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(4),
-                  )
-                : const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                    bottomLeft: Radius.circular(4),
-                    bottomRight: Radius.circular(16),
-                  ),
-            boxShadow: DesignShadows.bubble,
-          ),
-          child: Text(
-            text,
-            style: DesignText.body.copyWith(
-              color: fromUser
-                  ? DesignColors.onPrimary
-                  : DesignColors.textPrimary,
-              height: 1.45,
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(DesignRadius.pill),
+          border: Border.all(color: DesignColors.lineStrong, width: 1.5),
+        ),
+        child: Text(label, style: DesignText.body14Semi),
+      ),
+    ),
+  );
+}
+
+class _InputBar extends StatelessWidget {
+  const _InputBar({required this.controller, required this.onSend});
+
+  final TextEditingController controller;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(6),
+    decoration: BoxDecoration(
+      color: DesignColors.card,
+      borderRadius: BorderRadius.circular(DesignRadius.card),
+      boxShadow: DesignShadows.floating,
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            onSubmitted: (_) => onSend(),
+            textInputAction: TextInputAction.send,
+            style: DesignText.input,
+            decoration: InputDecoration(
+              isCollapsed: true,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 13,
+              ),
+              hintText: 'Pregúntale a tu coach',
+              hintStyle: DesignText.input.copyWith(color: DesignColors.ink2),
             ),
           ),
         ),
-      ),
+        Semantics(
+          button: true,
+          label: 'Enviar',
+          excludeSemantics: true,
+          child: GestureDetector(
+            onTap: onSend,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: DesignColors.red,
+                borderRadius: BorderRadius.circular(DesignRadius.lg),
+              ),
+              child: const Center(
+                child: Sym(
+                  DesignIcons.arrowUpward,
+                  size: 22,
+                  color: DesignColors.card,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     ),
+  );
+}
+
+/// Conversaciones: search and past conversations by week and month.
+class ConversationsScreen extends StatefulWidget {
+  const ConversationsScreen({
+    super.key,
+    required this.controller,
+    required this.onOpen,
+  });
+
+  final CoachController controller;
+  final ValueChanged<Conversation> onOpen;
+
+  @override
+  State<ConversationsScreen> createState() => _ConversationsScreenState();
+}
+
+class _ConversationsScreenState extends State<ConversationsScreen> {
+  late final Stream<List<Conversation>> _history = widget.controller
+      .watchHistory();
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder<List<Conversation>>(
+    stream: _history,
+    builder: (context, snapshot) {
+      final today = AppClock.now();
+      final weekStart = DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).subtract(Duration(days: today.weekday - 1));
+      final q = _query.toLowerCase();
+      final all = [
+        for (final c in snapshot.data ?? const <Conversation>[])
+          if ('${c.title} ${c.preview}'.toLowerCase().contains(q)) c,
+      ];
+      final groups = <String, List<Conversation>>{};
+      for (final c in all) {
+        final title = c.startedAt.isAfter(weekStart)
+            ? 'Esta semana'
+            : Fmt.monthTitle(c.startedAt.month);
+        groups.putIfAbsent(title, () => []).add(c);
+      }
+      return SubPage(
+        title: 'Conversaciones',
+        children: [
+          SearchBox(
+            hint: 'Buscar en conversaciones',
+            onChanged: (v) => setState(() => _query = v),
+          ),
+          if (snapshot.hasData && all.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 40),
+              child: Column(
+                children: [
+                  const IconTile(
+                    icon: DesignIcons.forum,
+                    color: DesignColors.red,
+                    background: DesignColors.blush,
+                    size: 56,
+                    iconSize: 28,
+                    radius: 18,
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Sin conversaciones', style: DesignText.sheetTitle),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pregúntale algo a tu coach y aparecerá aquí.',
+                    textAlign: TextAlign.center,
+                    style: DesignText.body14.copyWith(color: DesignColors.ink2),
+                  ),
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: SheetButton.ink(
+                      label: 'Hacer una pregunta',
+                      height: 48,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          for (final MapEntry(key: title, value: items) in groups.entries) ...[
+            SectionHeader(title: title),
+            PaperCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+              child: Column(
+                children: [
+                  for (final (i, c) in items.indexed)
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onOpen(c),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: i == 0
+                              ? null
+                              : const Border(
+                                  top: BorderSide(color: DesignColors.lineSoft),
+                                ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.title, style: DesignText.rowAmount),
+                            const SizedBox(height: 2),
+                            Text(
+                              c.preview,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DesignText.label13.copyWith(
+                                color: DesignColors.ink2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+    },
   );
 }

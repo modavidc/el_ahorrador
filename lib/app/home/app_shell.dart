@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
+import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:flutter/services.dart';
 
 import 'package:el_ahorrador/design_system/tokens.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// One destination of the bottom navigation.
 final class ShellDestination {

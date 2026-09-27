@@ -95,11 +95,11 @@ class AccountRepository {
   }
 
   AccountBalance _readBalance(QueryRow row) {
-    final starting = row.read<int>('starting_balance_cents') ?? 0;
+    final starting = row.readNullable<int>('starting_balance_cents') ?? 0;
     return AccountBalance(
-      accountId: row.read<String>('account_id')!,
+      accountId: row.read<String>('account_id'),
       startingBalanceCents: starting,
-      balanceCents: starting + (row.read<int>('movement_cents') ?? 0),
+      balanceCents: starting + (row.readNullable<int>('movement_cents') ?? 0),
       startingBalanceDate: row.readNullable<int>('starting_balance_date'),
     );
   }

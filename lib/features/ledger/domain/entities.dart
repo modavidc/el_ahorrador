@@ -80,6 +80,7 @@ final class LedgerAccount {
     this.description,
     this.creditLimitCents,
     this.isDefault = false,
+    this.isHidden = false,
   });
 
   final String id;
@@ -87,6 +88,9 @@ final class LedgerAccount {
 
   /// The account manual entries and unmatched captures fall back to.
   final bool isDefault;
+
+  /// Hidden accounts do not add to the totals of Cuentas.
+  final bool isHidden;
   final String? groupId;
   final String groupName;
   final bool isLiability;

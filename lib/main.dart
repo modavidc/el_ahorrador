@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +9,6 @@ import 'package:el_ahorrador/app/dependencies.dart';
 import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/core/database/daos.dart';
 import 'package:el_ahorrador/features/import/data/historical_import.dart';
-import 'package:el_ahorrador/features/ledger/data/demo_seed_v1.dart';
 import 'package:el_ahorrador/features/ledger/data/demo_seed.dart';
 import 'package:el_ahorrador/core/security/app_lock_gate.dart';
 import 'package:el_ahorrador/core/security/app_lock_settings.dart';
@@ -69,7 +67,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
 
   /// Created here so a share that opens the app is queued before the
   /// interface exists.
-  late final _dependencies = AppDependencies(db);
+  late final _dependencies = AppDependencies(db, historicalImport: kDebugMode);
   StreamSubscription<SharedMedia>? _sub;
 
   @override
@@ -103,7 +101,7 @@ class _MisGastosAppState extends State<MisGastosApp> {
     }
     // Prototype data for visual checks: --dart-define=DEMO_DATA=true.
     if (kDebugMode &&
-        DemoSeed.enabled &&
+        DemoSeedV3.enabled &&
         (await db.select(db.expenses).get()).isEmpty) {
       await DemoSeedV3.load(db);
     }

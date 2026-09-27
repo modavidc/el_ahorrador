@@ -71,10 +71,15 @@ class Accounts extends Table {
   /// Credit line of a card account, shown as "Por pagar · línea S/. X".
   IntColumn get creditLimitCents => integer().nullable()();
 
+  /// Hidden accounts stay usable but do not add to the totals (Cuentas →
+  /// Ocultar).
+  BoolColumn get isHidden => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('AccountGroupRow')
 class AccountGroups extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -157,7 +162,7 @@ class AppDatabase extends _$AppDatabase {
   static const defaultAccountGroupId = 'group_default';
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -230,6 +235,11 @@ class AppDatabase extends _$AppDatabase {
         }
         if (!await _hasColumn('accounts', 'credit_limit_cents')) {
           await m.addColumn(accounts, accounts.creditLimitCents);
+        }
+      }
+      if (from < 8) {
+        if (!await _hasColumn('accounts', 'is_hidden')) {
+          await m.addColumn(accounts, accounts.isHidden);
         }
       }
     },

@@ -71,18 +71,9 @@ void main() {
         i.contains('/presentation/'),
   );
 
-  // Screens from before v3, rewritten on the ports in phase 3.
-  const pendingRewrite = [
-    'lib/features/accounts/presentation/legacy/',
-    'lib/features/settings/presentation/settings_screen.dart',
-    'lib/features/settings/presentation/budgets_screen.dart',
-  ];
-
   check(
     'presentation does not reach data or the database',
-    (p) =>
-        layerOf(p) == 'presentation' &&
-        !pendingRewrite.any((pending) => p.startsWith(pending)),
+    (p) => layerOf(p) == 'presentation',
     (i) =>
         i.startsWith('package:drift') ||
         i.contains('/data/') ||

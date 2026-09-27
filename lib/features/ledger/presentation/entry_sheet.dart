@@ -8,7 +8,6 @@ import 'package:el_ahorrador/features/ledger/domain/month_summary.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// What the manual sheet registered, for the toast and the "Registrado"
 /// pill.
@@ -728,7 +727,7 @@ class MovementDetailSheet extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _OutlineButton(
+                child: OutlineAction(
                   icon: DesignIcons.delete,
                   label: 'Eliminar',
                   color: DesignColors.red,
@@ -737,7 +736,7 @@ class MovementDetailSheet extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _OutlineButton(
+                child: OutlineAction(
                   icon: DesignIcons.contentCopy,
                   label: 'Repetir',
                   color: DesignColors.ink,
@@ -798,47 +797,6 @@ class _IconChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _OutlineButton extends StatelessWidget {
-  const _OutlineButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(DesignRadius.lg),
-          border: Border.all(color: DesignColors.lineStrong, width: 1.5),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Sym(icon, size: 20, color: color),
-              const SizedBox(width: 6),
-              Text(label, style: DesignText.rowAmount.copyWith(color: color)),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 /// Streak: days in a row, best streak, this week and "Registrar ahora".

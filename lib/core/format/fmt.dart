@@ -93,4 +93,10 @@ abstract final class Fmt {
     }
     return buffer.toString();
   }
+
+  /// "1,234.50" → 123450; null when the text is not a number.
+  static int? parseCents(String text) {
+    final value = double.tryParse(text.replaceAll(',', '').trim());
+    return value == null ? null : (value * 100).round();
+  }
 }

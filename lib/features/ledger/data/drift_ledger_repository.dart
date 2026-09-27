@@ -91,7 +91,7 @@ class DriftLedgerRepository implements LedgerRepository {
     return _db
         .customSelect(
           'SELECT a.id, a.name, a.group_id, a."order" AS ord, '
-          'a.description, a.credit_limit_cents, a.is_default, '
+          'a.description, a.credit_limit_cents, a.is_default, a.is_hidden, '
           'g.name AS group_name, g.type AS group_type, '
           'a.starting_balance_cents + COALESCE(SUM(e.amount_cents), 0) '
           'AS balance_cents '
@@ -119,6 +119,7 @@ class DriftLedgerRepository implements LedgerRepository {
                 description: row.readNullable<String>('description'),
                 creditLimitCents: row.readNullable<int>('credit_limit_cents'),
                 isDefault: row.read<bool>('is_default'),
+                isHidden: row.read<bool>('is_hidden'),
               ),
           ],
         );

@@ -12,6 +12,9 @@ import 'package:el_ahorrador/features/ledger/data/drift_ledger_repository.dart';
 /// checks and demos: `--dart-define=DEMO_DATA=true`. The tester build starts
 /// empty.
 abstract final class DemoSeedV3 {
+  /// `--dart-define=DEMO_DATA=true` loads it into an empty debug install.
+  static const enabled = bool.fromEnvironment('DEMO_DATA');
+
   /// The prototype's clock: Sunday 27 September 2026, 21:40.
   static final today = DateTime(2026, 9, 27, 21, 40);
 

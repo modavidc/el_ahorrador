@@ -1,387 +1,590 @@
-import 'dart:async';
-
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
-import 'package:el_ahorrador/core/database/app_database.dart';
-import 'package:el_ahorrador/features/settings/data/drift_app_preferences.dart';
-import 'package:el_ahorrador/features/settings/domain/app_preferences.dart';
-import 'package:el_ahorrador/features/import/data/historical_import.dart';
-import 'package:el_ahorrador/features/import/presentation/debug_import_screen.dart';
+import 'package:el_ahorrador/core/clock/app_clock.dart';
+import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/core/security/app_lock_settings.dart';
 import 'package:el_ahorrador/core/security/local_auth_service.dart';
+import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
-import 'package:el_ahorrador/features/settings/presentation/budgets_screen.dart';
+import 'package:el_ahorrador/features/capture/domain/background_capture.dart';
+import 'package:el_ahorrador/features/capture/presentation/capture_hub_screen.dart';
+import 'package:el_ahorrador/features/ledger/domain/month_summary.dart';
+import 'package:el_ahorrador/features/ledger/presentation/ledger_scope.dart';
+import 'package:el_ahorrador/features/settings/domain/app_preferences.dart';
+import 'package:el_ahorrador/features/stats/domain/stats.dart';
 
-/// Ajustes of the v1 prototype: Coach e IA, General, Datos, Seguridad.
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({
-    super.key,
-    required this.db,
-    this.lockAuthenticator,
-    this.onOpenInbox,
-    this.onOpenRules,
+/// Where Ajustes leads outside itself; the app shell decides how to open
+/// each place.
+final class SettingsLinks {
+  const SettingsLinks({
+    required this.openCapture,
+    required this.openStreak,
+    required this.openBudgets,
+    required this.openAccounts,
+    required this.openCategory,
+    required this.openCoachHistory,
+    required this.showWelcome,
+    this.coachModel,
+    this.runImport,
   });
 
-  final AppDatabase db;
+  final VoidCallback openCapture;
+  final VoidCallback openStreak;
+  final VoidCallback openBudgets;
+  final VoidCallback openAccounts;
+  final ValueChanged<Category> openCategory;
+  final VoidCallback openCoachHistory;
+  final VoidCallback showWelcome;
 
-  /// Captura → Por revisar and Reglas de captura.
-  final VoidCallback? onOpenInbox;
-  final VoidCallback? onOpenRules;
+  /// Personalizar Coach → Modelo de IA (OpenAI key); null hides the row.
+  final VoidCallback? coachModel;
+
+  /// Debug builds: historical import from assets/import.
+  final VoidCallback? runImport;
+}
+
+/// Ajustes (v3): capture card, Hábito, Finanzas, Coach e IA, App, Soporte.
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({
+    super.key,
+    required this.preferences,
+    required this.capture,
+    required this.links,
+    this.lockAuthenticator,
+    this.version = '',
+  });
+
+  final AppPreferences preferences;
+  final BackgroundCapture capture;
+  final SettingsLinks links;
 
   /// Confirms changes to the fingerprint lock; the system prompt by default.
   final LocalAuthenticator? lockAuthenticator;
+  final String version;
+
+  void _push(BuildContext context, Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  Widget build(BuildContext context) {
+    final data = LedgerScope.of(context);
+    final today = AppClock.now();
+    final streak = streakDays(data.movements, today);
+    final appLock = AppLockScope.maybeOf(context);
+    return StreamBuilder<Map<Preference, bool>>(
+      stream: preferences.watch(),
+      builder: (context, prefs) {
+        bool on(Preference p) => prefs.data?[p] ?? p.defaultValue;
+        return StreamBuilder<String>(
+          stream: preferences.watchText(TextPreference.reminderTime),
+          builder: (context, time) => StreamBuilder<String>(
+            stream: preferences.watchText(TextPreference.coachTone),
+            builder: (context, tone) => ListView(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 40),
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Ajustes', style: DesignText.tabTitle),
+                  ),
+                ),
+                _ProfileCard(streak: streak),
+                const SectionHeader(title: 'Captura'),
+                StreamBuilder<BackgroundCaptureState>(
+                  stream: capture.watch(),
+                  builder: (context, state) => CaptureStatusCard(
+                    state: state.data ?? BackgroundCaptureState.unsupported,
+                    onToggle: () =>
+                        capture.setEnabled(!(state.data?.enabled ?? false)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                PaperCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 2,
+                  ),
+                  child: FeatureRow(
+                    icon: DesignIcons.bolt,
+                    title: 'Funciones de captura',
+                    subtitle: 'Por revisar, permisos y reglas',
+                    accent: true,
+                    first: true,
+                    onTap: links.openCapture,
+                  ),
+                ),
+                SettingsGroup(
+                  title: 'Hábito',
+                  rows: [
+                    SettingRow(
+                      first: true,
+                      icon: DesignIcons.notificationsActive,
+                      label: 'Recordatorios y recaps',
+                      value: on(Preference.dailyReminder)
+                          ? 'Diario ${time.data ?? TextPreference.reminderTime.defaultValue}'
+                          : 'Apagado',
+                      onTap: () => _push(
+                        context,
+                        RemindersScreen(preferences: preferences),
+                      ),
+                    ),
+                    SettingRow(
+                      icon: DesignIcons.localFireDepartment,
+                      label: 'Mi racha',
+                      value: '$streak ${streak == 1 ? 'día' : 'días'}',
+                      onTap: links.openStreak,
+                    ),
+                  ],
+                ),
+                SettingsGroup(
+                  title: 'Finanzas',
+                  rows: [
+                    SettingRow(
+                      first: true,
+                      icon: DesignIcons.category,
+                      label: 'Categorías',
+                      value:
+                          '${Category.expenses.length + 1} + ${Category.incomes.length - 1}',
+                      onTap: () => _push(
+                        context,
+                        LedgerScope.forward(
+                          context,
+                          child: CategoriesScreen(onOpen: links.openCategory),
+                        ),
+                      ),
+                    ),
+                    SettingRow(
+                      icon: DesignIcons.savings,
+                      label: 'Presupuestos',
+                      value: on(Preference.useMonthlyBudget)
+                          ? Fmt.money0(data.monthlyBudgetCents / 100)
+                          : 'Apagado',
+                      onTap: links.openBudgets,
+                    ),
+                    SettingRow(
+                      icon: DesignIcons.accountBalanceWallet,
+                      label: 'Cuentas',
+                      value:
+                          '${data.accounts.length} '
+                          '${data.accounts.length == 1 ? 'cuenta' : 'cuentas'}',
+                      onTap: links.openAccounts,
+                    ),
+                  ],
+                ),
+                SettingsGroup(
+                  title: 'Coach e IA',
+                  rows: [
+                    SettingRow(
+                      first: true,
+                      icon: DesignIcons.tune,
+                      label: 'Personalizar Coach',
+                      value:
+                          'Coach · ${tone.data ?? TextPreference.coachTone.defaultValue}',
+                      onTap: () => _push(
+                        context,
+                        CoachSettingsScreen(
+                          preferences: preferences,
+                          onOpenHistory: links.openCoachHistory,
+                          onOpenModel: links.coachModel,
+                        ),
+                      ),
+                    ),
+                    ToggleRow(
+                      icon: DesignIcons.autoAwesome,
+                      label: 'Categorizar automáticamente',
+                      subtitle: 'Sugiere la categoría de cada captura',
+                      value: on(Preference.autoCategorize),
+                      onTap: () => preferences.set(
+                        Preference.autoCategorize,
+                        !on(Preference.autoCategorize),
+                      ),
+                    ),
+                  ],
+                ),
+                SettingsGroup(
+                  title: 'App',
+                  rows: [
+                    SettingRow(
+                      first: true,
+                      icon: appLock?.enabled ?? false
+                          ? DesignIcons.lock
+                          : DesignIcons.lockOpen,
+                      label: 'Seguridad',
+                      value: appLock?.enabled ?? false
+                          ? 'Huella'
+                          : 'Sin bloqueo',
+                      onTap: () => _push(
+                        context,
+                        AppLockScope(
+                          settings: appLock ?? AppLockSettings.disabled(),
+                          child: SecurityScreen(
+                            authenticator: lockAuthenticator,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SettingRow(
+                      icon: DesignIcons.replay,
+                      label: 'Ver bienvenida',
+                      onTap: links.showWelcome,
+                    ),
+                  ],
+                ),
+                SettingsGroup(
+                  title: 'Soporte',
+                  rows: [
+                    SettingRow(
+                      first: true,
+                      icon: DesignIcons.info,
+                      label: 'Acerca de',
+                      value: version.isEmpty ? '' : 'v$version',
+                      onTap: () => showUndoToast(
+                        context,
+                        'El Ahorrador${version.isEmpty ? '' : ' v$version'}'
+                        ' · datos en este dispositivo',
+                      ),
+                    ),
+                    if (kDebugMode && links.runImport != null)
+                      SettingRow(
+                        icon: DesignIcons.download,
+                        label: 'Import histórico (debug)',
+                        onTap: links.runImport,
+                      ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: Text(
+                    'El Ahorrador${version.isEmpty ? '' : ' · v$version'} · '
+                    'datos en este dispositivo',
+                    textAlign: TextAlign.center,
+                    style: DesignText.small.copyWith(color: DesignColors.ink2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  late final AppPreferences _preferences = DriftAppPreferences(widget.db);
-  late final StreamSubscription<Map<Preference, bool>> _subscription;
-  Map<Preference, bool> _values = {
-    for (final p in Preference.values) p: p.defaultValue,
-  };
-  String _version = '';
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.streak});
+
+  final int streak;
 
   @override
-  void initState() {
-    super.initState();
-    _subscription = _preferences.watch().listen(
-      (values) => setState(() => _values = values),
-    );
-    PackageInfo.fromPlatform()
-        .then((info) {
-          if (mounted) setState(() => _version = info.version);
-        })
-        .catchError((Object _) {});
-  }
+  Widget build(BuildContext context) => PaperCard(
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+    child: Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: const BoxDecoration(
+            color: DesignColors.red,
+            shape: BoxShape.circle,
+          ),
+          child: const Center(
+            child: Sym(DesignIcons.savings, size: 24, color: DesignColors.card),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('El Ahorrador', style: DesignText.headlineBold),
+              Text(
+                'Datos en este dispositivo · racha de $streak '
+                '${streak == 1 ? 'día' : 'días'}',
+                style: DesignText.label13.copyWith(color: DesignColors.ink2),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Recordatorios: daily reminder and its hour, recaps and notices.
+class RemindersScreen extends StatelessWidget {
+  const RemindersScreen({super.key, required this.preferences});
+
+  final AppPreferences preferences;
 
   @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
+  Widget build(BuildContext context) => StreamBuilder<Map<Preference, bool>>(
+    stream: preferences.watch(),
+    builder: (context, prefs) {
+      bool on(Preference p) => prefs.data?[p] ?? p.defaultValue;
+      ToggleRow toggle(
+        Preference p,
+        String label, {
+        IconData? icon,
+        String? subtitle,
+        bool first = false,
+      }) => ToggleRow(
+        icon: icon,
+        label: label,
+        subtitle: subtitle,
+        first: first,
+        value: on(p),
+        onTap: () => preferences.set(p, !on(p)),
+      );
+      return StreamBuilder<String>(
+        stream: preferences.watchText(TextPreference.reminderTime),
+        builder: (context, time) => SubPage(
+          title: 'Recordatorios',
+          children: [
+            SettingsGroup(
+              title: 'Recordatorio diario',
+              rows: [
+                toggle(
+                  Preference.dailyReminder,
+                  'Recordarme registrar mis gastos',
+                  icon: DesignIcons.notifications,
+                  first: true,
+                ),
+                ChoiceRow(
+                  label: 'Hora del aviso',
+                  options: const ['20:00', '21:00', '22:00'],
+                  selected:
+                      time.data ?? TextPreference.reminderTime.defaultValue,
+                  onSelected: (v) =>
+                      preferences.setText(TextPreference.reminderTime, v),
+                ),
+              ],
+            ),
+            SettingsGroup(
+              title: 'Resúmenes',
+              rows: [
+                toggle(
+                  Preference.weeklyRecap,
+                  'Recap semanal',
+                  icon: DesignIcons.calendarViewWeek,
+                  subtitle: 'Lunes 09:00',
+                  first: true,
+                ),
+                toggle(
+                  Preference.monthlyRecap,
+                  'Recap mensual',
+                  icon: DesignIcons.calendarMonth,
+                  subtitle: 'Día 1 · 09:00',
+                ),
+              ],
+            ),
+            SettingsGroup(
+              title: 'Avisos',
+              rows: [
+                toggle(
+                  Preference.coachTips,
+                  'Avisos del Coach',
+                  icon: DesignIcons.autoAwesome,
+                  first: true,
+                ),
+                toggle(
+                  Preference.budgetAlert,
+                  'Alerta al 80% del presupuesto',
+                  icon: DesignIcons.warning,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
-  void _soon() => showDsToast(context, 'Próximamente');
+/// Personalizar Coach: tone, unusual spending and memory.
+class CoachSettingsScreen extends StatelessWidget {
+  const CoachSettingsScreen({
+    super.key,
+    required this.preferences,
+    required this.onOpenHistory,
+    this.onOpenModel,
+  });
 
-  Future<void> _toggleLock(AppLockSettings appLock) async {
+  final AppPreferences preferences;
+  final VoidCallback onOpenHistory;
+  final VoidCallback? onOpenModel;
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder<Map<Preference, bool>>(
+    stream: preferences.watch(),
+    builder: (context, prefs) {
+      bool on(Preference p) => prefs.data?[p] ?? p.defaultValue;
+      return StreamBuilder<String>(
+        stream: preferences.watchText(TextPreference.coachTone),
+        builder: (context, tone) => SubPage(
+          title: 'Personalizar Coach',
+          children: [
+            SettingsGroup(
+              title: 'Identidad',
+              rows: [
+                ChoiceRow(
+                  first: true,
+                  label: 'Tono',
+                  options: const ['Directo', 'Amable', 'Motivador'],
+                  selected: tone.data ?? TextPreference.coachTone.defaultValue,
+                  onSelected: (v) =>
+                      preferences.setText(TextPreference.coachTone, v),
+                ),
+              ],
+            ),
+            SettingsGroup(
+              title: 'Avisos proactivos',
+              rows: [
+                ToggleRow(
+                  first: true,
+                  icon: DesignIcons.error,
+                  label: 'Detectar gastos inusuales',
+                  value: on(Preference.detectUnusual),
+                  onTap: () => preferences.set(
+                    Preference.detectUnusual,
+                    !on(Preference.detectUnusual),
+                  ),
+                ),
+              ],
+            ),
+            SettingsGroup(
+              title: 'Memoria',
+              rows: [
+                ToggleRow(
+                  first: true,
+                  icon: DesignIcons.history,
+                  label: 'Recordar conversaciones anteriores',
+                  subtitle: 'Guarda tus chats en este dispositivo',
+                  value: on(Preference.coachMemory),
+                  onTap: () => preferences.set(
+                    Preference.coachMemory,
+                    !on(Preference.coachMemory),
+                  ),
+                ),
+                SettingRow(
+                  icon: DesignIcons.forum,
+                  label: 'Historial de conversaciones',
+                  onTap: onOpenHistory,
+                ),
+              ],
+            ),
+            if (onOpenModel != null)
+              SettingsGroup(
+                title: 'Inteligencia artificial',
+                rows: [
+                  SettingRow(
+                    first: true,
+                    icon: DesignIcons.memory,
+                    label: 'Modelo de IA',
+                    subtitle: 'OpenAI con tu propia clave',
+                    onTap: onOpenModel,
+                  ),
+                ],
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// Seguridad: lock the app with the fingerprint or the phone's lock.
+class SecurityScreen extends StatelessWidget {
+  const SecurityScreen({super.key, this.authenticator});
+
+  final LocalAuthenticator? authenticator;
+
+  Future<void> _toggle(BuildContext context, AppLockSettings appLock) async {
     // Both turning the lock on and off require the device owner, so a
     // borrowed unlocked phone cannot change it and enabling it proves the
     // device can actually unlock the app afterwards.
-    final result =
-        await (widget.lockAuthenticator ?? SystemLocalAuthenticator())
-            .authenticate();
-    if (!mounted) return;
+    final result = await (authenticator ?? SystemLocalAuthenticator())
+        .authenticate();
+    if (!context.mounted) return;
     switch (result) {
       case LocalAuthenticationResult.authenticated:
         await appLock.setEnabled(!appLock.enabled);
       case LocalAuthenticationResult.unavailable:
-        showDsToast(
+        showUndoToast(
           context,
           'Configura una huella o un bloqueo de pantalla en tu teléfono primero.',
         );
       case LocalAuthenticationResult.rejected:
       case LocalAuthenticationResult.error:
-        showDsToast(context, 'No se pudo confirmar tu identidad.');
+        showUndoToast(context, 'No se pudo confirmar tu identidad.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final appLock = AppLockScope.maybeOf(context);
-    _SettingRow toggle(IconData icon, String label, Preference p) =>
-        _SettingRow.toggle(
-          icon: icon,
-          label: label,
-          value: _values[p]!,
-          onTap: () => _preferences.set(p, !_values[p]!),
-        );
-
-    final groups = <(String, List<_SettingRow>)>[
-      if (widget.onOpenInbox != null && widget.onOpenRules != null)
-        (
-          'Captura',
-          [
-            _SettingRow.link(
-              icon: DesignIcons.inbox,
-              label: 'Por revisar',
-              value: '',
-              onTap: widget.onOpenInbox!,
-            ),
-            _SettingRow.link(
-              icon: DesignIcons.rule,
-              label: 'Reglas de captura',
-              value: '',
-              onTap: widget.onOpenRules!,
-            ),
-          ],
-        ),
-      (
-        'Coach e IA',
-        [
-          toggle(
-            DesignIcons.autoAwesome,
-            'Categorizar automáticamente',
-            Preference.autoCategorize,
-          ),
-          toggle(
-            DesignIcons.documentScanner,
-            'Guardar recibos OCR sin revisar',
-            Preference.saveOcrWithoutReview,
-          ),
-          toggle(
-            DesignIcons.notifications,
-            'Resumen semanal del Coach',
-            Preference.weeklyCoachSummary,
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.memory,
-            label: 'Modelo',
-            value: 'OpenAI',
-            onTap: _soon,
-          ),
-        ],
-      ),
-      (
-        'General',
-        [
-          _SettingRow.link(
-            icon: DesignIcons.payments,
-            label: 'Moneda principal',
-            value: 'PEN · S/',
-            onTap: _soon,
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.calendarMonth,
-            label: 'Inicio de mes',
-            value: 'Día 1',
-            onTap: _soon,
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.dateRange,
-            label: 'Inicio de semana',
-            value: 'Domingo',
-            onTap: _soon,
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.category,
-            label: 'Categorías',
-            onTap: _soon,
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.savings,
-            label: 'Presupuestos',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => BudgetsScreen(db: widget.db),
-              ),
-            ),
-          ),
-        ],
-      ),
-      (
-        'Datos',
-        [
-          _SettingRow.link(
-            icon: DesignIcons.tableView,
-            label: 'Exportar a Excel',
-            onTap: _soon,
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.uploadFile,
-            label: 'Importar desde Money Manager',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => DebugImportScreen(
-                  runImport: (log) => runHistoricalImport(widget.db, log),
-                ),
-              ),
-            ),
-          ),
-          _SettingRow.link(
-            icon: DesignIcons.backup,
-            label: 'Copia de seguridad',
-            onTap: _soon,
-          ),
-        ],
-      ),
-      (
-        'Seguridad',
-        [
-          if (appLock != null)
-            _SettingRow.toggle(
+    return SubPage(
+      title: 'Seguridad',
+      children: [
+        SettingsGroup(
+          title: 'Bloqueo',
+          rows: [
+            ToggleRow(
+              first: true,
               icon: DesignIcons.lock,
               label: 'Bloqueo con huella',
-              value: appLock.enabled,
-              onTap: () => _toggleLock(appLock),
+              subtitle: 'Pide tu huella o el bloqueo del teléfono al abrir',
+              value: appLock?.enabled ?? false,
+              onTap: appLock == null ? () {} : () => _toggle(context, appLock),
             ),
-          _SettingRow.link(
-            icon: DesignIcons.darkMode,
-            label: 'Tema',
-            value: 'Claro',
-            onTap: _soon,
-          ),
-        ],
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: const BoxDecoration(
-            color: DesignColors.surfaceCard,
-            border: Border(bottom: BorderSide(color: DesignColors.border)),
-          ),
-          child: Text('Ajustes', style: DesignText.title),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              for (final (i, (title, rows)) in groups.indexed) ...[
-                if (i > 0) const SizedBox(height: DesignSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
-                  child: Text(
-                    title.toUpperCase(),
-                    style: DesignText.captionMedium.copyWith(
-                      color: DesignColors.textTertiary,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ),
-                DsCard(
-                  child: Column(
-                    children: [
-                      for (final (j, row) in rows.indexed)
-                        row.build(first: j == 0),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: DesignSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.only(top: 4, bottom: 84),
-                child: Text(
-                  [
-                    'El Ahorrador',
-                    if (_version.isNotEmpty) 'v$_version',
-                    'datos locales',
-                  ].join(' · '),
-                  textAlign: TextAlign.center,
-                  style: DesignText.caption.copyWith(
-                    color: DesignColors.textDisabled,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ],
     );
   }
 }
 
-/// 52px settings row: icon, label, then a value + chevron or a toggle.
-final class _SettingRow {
-  const _SettingRow.link({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.value = '',
-  }) : toggle = null;
+/// Categorías: expenses and incomes with their caps; each opens its detail.
+class CategoriesScreen extends StatelessWidget {
+  const CategoriesScreen({super.key, required this.onOpen});
 
-  const _SettingRow.toggle({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required bool value,
-  }) : toggle = value,
-       value = '';
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool? toggle;
-  final VoidCallback onTap;
-
-  Widget build({required bool first}) => Semantics(
-    button: true,
-    toggled: toggle,
-    label: label,
-    excludeSemantics: true,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 52),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          border: first
-              ? null
-              : const Border(top: BorderSide(color: DesignColors.borderSubtle)),
-        ),
-        child: Row(
-          children: [
-            Sym(icon, size: 20, color: DesignColors.textSecondary),
-            const SizedBox(width: DesignSpacing.md),
-            Expanded(child: Text(label, style: DesignText.body)),
-            if (value.isNotEmpty) ...[
-              const SizedBox(width: DesignSpacing.md),
-              Text(
-                value,
-                style: DesignText.label.copyWith(
-                  color: DesignColors.textTertiary,
-                ),
-              ),
-            ],
-            if (toggle case final on?) ...[
-              const SizedBox(width: DesignSpacing.md),
-              _Toggle(value: on),
-            ] else ...[
-              const SizedBox(width: DesignSpacing.md),
-              const Sym(
-                DesignIcons.chevronRight,
-                size: 18,
-                color: DesignColors.textDisabled,
-              ),
-            ],
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// 40×24 toggle: primary track when on, grey when off.
-class _Toggle extends StatelessWidget {
-  const _Toggle({required this.value});
-
-  final bool value;
+  final ValueChanged<Category> onOpen;
 
   @override
-  Widget build(BuildContext context) => AnimatedContainer(
-    duration: const Duration(milliseconds: 150),
-    width: 40,
-    height: 24,
-    padding: const EdgeInsets.all(3),
-    alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-    decoration: BoxDecoration(
-      color: value ? DesignColors.primary : DesignColors.toggleTrackOff,
-      borderRadius: BorderRadius.circular(DesignRadius.pill),
-    ),
-    child: Container(
-      width: 18,
-      height: 18,
-      decoration: BoxDecoration(
-        color: DesignColors.onPrimary,
-        shape: BoxShape.circle,
-        boxShadow: DesignShadows.knob,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final budgets = LedgerScope.of(context).budgets;
+    SettingRow row(Category c, bool first, {bool cap = true}) {
+      final limit = budgetFor(c, budgets);
+      return SettingRow(
+        first: first,
+        icon: CategoryStyle.of(c).icon,
+        label: c.label,
+        value: !cap
+            ? ''
+            : limit == null
+            ? 'Sin tope'
+            : 'Tope ${Fmt.money0(limit / 100)}',
+        onTap: () => onOpen(c),
+      );
+    }
+
+    final expenses = [...Category.expenses, Category.otros];
+    final incomes = [Category.sueldo, Category.extra];
+    return SubPage(
+      title: 'Categorías',
+      children: [
+        SettingsGroup(
+          title: 'Gastos',
+          rows: [for (final (i, c) in expenses.indexed) row(c, i == 0)],
+        ),
+        SettingsGroup(
+          title: 'Ingresos',
+          rows: [
+            for (final (i, c) in incomes.indexed) row(c, i == 0, cap: false),
+          ],
+        ),
+      ],
+    );
+  }
 }

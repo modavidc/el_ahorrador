@@ -7,7 +7,6 @@ import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// Capture sheet of v3: "Leyendo comprobante…" → "Registrado" for one
 /// image, "Leyendo 3 de 7…" → "7 imágenes procesadas" for several.

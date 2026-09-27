@@ -149,7 +149,36 @@ void main() {
     },
     'rules': (t) async {
       await tap(t, find.text('Ajustes'));
+      await tap(t, find.text('Funciones de captura'));
       await tap(t, find.text('Reglas de captura'));
+    },
+    '20_stats': (t) => tap(t, find.text('Estadísticas')),
+    '21_dona': (t) async {
+      await tap(t, find.text('Estadísticas'));
+      await tap(t, find.bySemanticsLabel('Ver categorías'));
+    },
+    '22_budgets': (t) async {
+      await tap(t, find.text('Estadísticas'));
+      await tap(t, find.text('Presupuestos'));
+    },
+    '23_cat_detail': (t) async {
+      await tap(t, find.text('Estadísticas'));
+      await tap(t, find.text('Casa').first);
+    },
+    '30_coach': (t) => tap(t, find.text('Coach')),
+    '31_coach_chat': (t) async {
+      await tap(t, find.text('Coach'));
+      await tap(t, find.text('¿Cuánto gasté en Comida?'));
+    },
+    '40_cuentas': (t) => tap(t, find.text('Cuentas')),
+    '41_cuenta_edit': (t) async {
+      await tap(t, find.text('Cuentas'));
+      await tap(t, find.text('Yape').last);
+    },
+    '50_ajustes': (t) => tap(t, find.text('Ajustes')),
+    '51_captura_fn': (t) async {
+      await tap(t, find.text('Ajustes'));
+      await tap(t, find.text('Funciones de captura'));
     },
   };
 

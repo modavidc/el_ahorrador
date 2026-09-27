@@ -10,7 +10,6 @@ import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/features/ledger/presentation/ledger_scope.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// Ids registered in this session: their rows show "Registrado · Deshacer"
 /// until the app restarts.
@@ -76,8 +75,23 @@ class _MovementsScreenState extends State<MovementsScreen> {
   DateTime? _selectedDay;
   final _queryController = TextEditingController();
 
+  /// Presupuestos → "Usar presupuesto mensual" hides the budget card.
+  bool _useBudget = Preference.useMonthlyBudget.defaultValue;
+  StreamSubscription<Map<Preference, bool>>? _preferences;
+
+  @override
+  void initState() {
+    super.initState();
+    _preferences = widget.preferences.watch().listen(
+      (p) => setState(
+        () => _useBudget = p[Preference.useMonthlyBudget] ?? _useBudget,
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _preferences?.cancel();
     _queryController.dispose();
     super.dispose();
   }
@@ -126,8 +140,10 @@ class _MovementsScreenState extends State<MovementsScreen> {
           onSearch: _toggleSearch,
         ),
         if (_search) ...[
-          _SearchField(
+          SearchBox(
             controller: _queryController,
+            hint: 'Buscar por nota o categoría',
+            autofocus: true,
             onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 10),
@@ -181,8 +197,10 @@ class _MovementsScreenState extends State<MovementsScreen> {
 
     return [
       if (!filtering) ...[
-        const SizedBox(height: 12),
-        _BudgetCard(summary: summary),
+        if (_useBudget) ...[
+          const SizedBox(height: 12),
+          _BudgetCard(summary: summary),
+        ],
         _Notices(
           movements: data.movements,
           preferences: widget.preferences,
@@ -460,45 +478,6 @@ class _Header extends StatelessWidget {
                   color: DesignColors.ink2,
                 ),
               ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.controller, required this.onChanged});
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 48,
-    margin: const EdgeInsets.only(bottom: 0),
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    decoration: BoxDecoration(
-      color: DesignColors.card,
-      borderRadius: BorderRadius.circular(DesignRadius.lg),
-      boxShadow: DesignShadows.card,
-    ),
-    child: Row(
-      children: [
-        const Sym(DesignIcons.search, size: 20, color: DesignColors.ink2),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            onChanged: onChanged,
-            style: DesignText.input,
-            decoration: InputDecoration(
-              isCollapsed: true,
-              border: InputBorder.none,
-              hintText: 'Buscar por nota o categoría',
-              hintStyle: DesignText.input.copyWith(color: DesignColors.ink2),
             ),
           ),
         ),

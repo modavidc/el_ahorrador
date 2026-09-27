@@ -2,12 +2,26 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:flutter/services.dart';
+
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// Building blocks of the v3 design (`design/Tema El Ahorrador v3.dc.html`).
+
+/// Material Symbols glyph with the prototype's `line-height: 1` box.
+class Sym extends StatelessWidget {
+  const Sym(this.icon, {super.key, required this.size, this.color});
+
+  final IconData icon;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) =>
+      Icon(icon, size: size, color: color ?? DesignColors.textPrimary);
+}
 
 /// White card: radius 22 and the soft paper shadow.
 class PaperCard extends StatelessWidget {
@@ -709,6 +723,594 @@ class DsToggle extends StatelessWidget {
           ),
         ),
       ),
+    ),
+  );
+}
+
+/// Round 44px icon button of headers (search, history, +).
+class IconAction extends StatelessWidget {
+  const IconAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = DesignColors.ink2,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    excludeSemantics: true,
+    child: GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(child: Sym(icon, size: 24, color: color)),
+      ),
+    ),
+  );
+}
+
+/// "EFECTIVO ··········· S/ 145.00" above a group card.
+class SectionHeader extends StatelessWidget {
+  const SectionHeader({super.key, required this.title, this.trailing});
+
+  final String title;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = DesignText.label13Bold.copyWith(
+      color: DesignColors.ink2,
+      letterSpacing: .02 * 13,
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 22, 4, 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(title.toUpperCase(), style: style)),
+          if (trailing != null) Text(trailing!, style: style),
+        ],
+      ),
+    );
+  }
+}
+
+/// White card with an icon, a title, a line of help and one action.
+class EmptyState extends StatelessWidget {
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.action,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => PaperCard(
+    padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+    child: Column(
+      children: [
+        Sym(icon, size: 32, color: DesignColors.red),
+        const SizedBox(height: 8),
+        Text(title, textAlign: TextAlign.center, style: DesignText.cardTitle),
+        const SizedBox(height: 4),
+        Text(
+          body,
+          textAlign: TextAlign.center,
+          style: DesignText.body14.copyWith(
+            color: DesignColors.ink2,
+            height: 1.45,
+          ),
+        ),
+        if (action != null) ...[
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: SheetButton(label: action!, height: 48, onTap: onAction),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+/// Beige suggestion chip ("Interbank").
+class TileChip extends StatelessWidget {
+  const TileChip({super.key, required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: DesignColors.tile,
+          borderRadius: BorderRadius.circular(DesignRadius.pill),
+        ),
+        child: Text(label, style: DesignText.label13Semi),
+      ),
+    ),
+  );
+}
+
+/// Small uppercase label above a form field ("SALDO INICIAL").
+class FieldLabel extends StatelessWidget {
+  const FieldLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 14, bottom: 6),
+    child: Text(
+      text,
+      style: DesignText.smallBold.copyWith(color: DesignColors.ink2),
+    ),
+  );
+}
+
+/// White input with the 1.5px beige border of v3 forms; [amount] makes it
+/// 18/700 and accepts only numbers with two decimals.
+class FieldBox extends StatelessWidget {
+  const FieldBox({
+    super.key,
+    required this.controller,
+    this.hint,
+    this.amount = false,
+    this.keyboardType,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String? hint;
+  final bool amount;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = amount
+        ? DesignText.style(18, FontWeight.w700)
+        : DesignText.style(16, FontWeight.w400);
+    OutlineInputBorder border(Color c) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(DesignRadius.button),
+      borderSide: BorderSide(color: c, width: 1.5),
+    );
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: style,
+      keyboardType: keyboardType,
+      inputFormatters: amount
+          ? [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}'))]
+          : null,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: style.copyWith(color: DesignColors.inkFaint),
+        filled: true,
+        fillColor: DesignColors.card,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+        enabledBorder: border(DesignColors.lineStrong),
+        focusedBorder: border(DesignColors.ink),
+      ),
+    );
+  }
+}
+
+class ErrorText extends StatelessWidget {
+  const ErrorText(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: Text(
+      text,
+      style: DesignText.label13Semi.copyWith(color: DesignColors.red),
+    ),
+  );
+}
+
+/// 52px outlined action of sheets ("Eliminar", "Ocultar", "Repetir").
+class OutlineAction extends StatelessWidget {
+  const OutlineAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = DesignColors.ink,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(DesignRadius.lg),
+          border: Border.all(color: DesignColors.lineStrong, width: 1.5),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Sym(icon, size: 20, color: color),
+              const SizedBox(width: 6),
+              Text(label, style: DesignText.body14Bold.copyWith(color: color)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Message of a failed change, without the exception type.
+String friendlyError(Object e) => switch (e) {
+  StateError(:final message) => message,
+  ArgumentError(:final message) => '$message',
+  _ => 'No se pudo guardar. Inténtalo otra vez.',
+};
+
+/// Thin bar over a beige track; [ratio] is clamped to 0–1.
+class ProgressLine extends StatelessWidget {
+  const ProgressLine({
+    super.key,
+    required this.ratio,
+    required this.color,
+    this.height = 6,
+  });
+
+  final double ratio;
+  final Color color;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) => Container(
+      height: height,
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: DesignColors.chip,
+        borderRadius: BorderRadius.circular(height / 2),
+      ),
+      child: Container(
+        width: box.maxWidth * ratio.clamp(0, 1),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(height / 2),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Small colored pill with an icon ("vs agosto: +12%").
+class StatusPill extends StatelessWidget {
+  const StatusPill({
+    super.key,
+    required this.label,
+    required this.background,
+    required this.color,
+    this.icon,
+  });
+
+  final String label;
+  final Color background;
+  final Color color;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: BorderRadius.circular(DesignRadius.pill),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Sym(icon!, size: 14, color: color),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Text(
+            label,
+            style: DesignText.smallBold.copyWith(color: color),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Settings row: optional icon tile, label, optional subtitle and either a
+/// value with a chevron or a switch.
+class SettingRow extends StatelessWidget {
+  const SettingRow({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.subtitle,
+    this.value,
+    this.toggle,
+    this.first = false,
+    this.dot = false,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final String? subtitle;
+
+  /// Text on the right, followed by a chevron.
+  final String? value;
+
+  /// When not null, a switch replaces the value and chevron.
+  final bool? toggle;
+  final bool first;
+
+  /// Red dot before the chevron: something needs attention.
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: toggle == null,
+    toggled: toggle,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 60),
+        decoration: BoxDecoration(
+          border: first
+              ? null
+              : const Border(top: BorderSide(color: DesignColors.lineSoft)),
+        ),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              IconTile(
+                icon: icon!,
+                color: DesignColors.ink,
+                background: DesignColors.tile,
+                size: 36,
+                iconSize: 20,
+                radius: DesignRadius.md,
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: DesignText.row),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: DesignText.small.copyWith(
+                          color: DesignColors.ink2,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (toggle != null)
+              DsToggle(value: toggle!, onTap: onTap ?? () {})
+            else ...[
+              if (value != null && value!.isNotEmpty)
+                Text(
+                  value!,
+                  style: DesignText.body14.copyWith(color: DesignColors.ink2),
+                ),
+              if (dot) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: DesignColors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+              const Sym(
+                DesignIcons.chevronRight,
+                size: 20,
+                color: DesignColors.inkFaint,
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// [SettingRow] with a switch.
+class ToggleRow extends StatelessWidget {
+  const ToggleRow({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onTap,
+    this.icon,
+    this.subtitle,
+    this.first = false,
+  });
+
+  final String label;
+  final bool value;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final String? subtitle;
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) => SettingRow(
+    label: label,
+    icon: icon,
+    subtitle: subtitle,
+    toggle: value,
+    first: first,
+    onTap: onTap,
+  );
+}
+
+/// White card of rows under an optional section title.
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, this.title, required this.rows});
+
+  final String? title;
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (title != null)
+        SectionHeader(title: title!)
+      else
+        const SizedBox(height: 16),
+      PaperCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        child: Column(children: rows),
+      ),
+    ],
+  );
+}
+
+/// White search field with a magnifier, 48px tall.
+class SearchBox extends StatelessWidget {
+  const SearchBox({
+    super.key,
+    required this.hint,
+    required this.onChanged,
+    this.controller,
+    this.autofocus = false,
+  });
+
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final TextEditingController? controller;
+  final bool autofocus;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 48,
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: DesignColors.card,
+      borderRadius: BorderRadius.circular(DesignRadius.lg),
+      boxShadow: DesignShadows.card,
+    ),
+    child: Row(
+      children: [
+        const Sym(DesignIcons.search, size: 20, color: DesignColors.ink2),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            autofocus: autofocus,
+            onChanged: onChanged,
+            style: DesignText.input,
+            decoration: InputDecoration(
+              isCollapsed: true,
+              border: InputBorder.none,
+              hintText: hint,
+              hintStyle: DesignText.input.copyWith(color: DesignColors.ink2),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Setting with a few choices as chips ("Tono: Directo · Amable · …").
+class ChoiceRow extends StatelessWidget {
+  const ChoiceRow({
+    super.key,
+    required this.label,
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    this.first = false,
+  });
+
+  final String label;
+  final List<String> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    decoration: BoxDecoration(
+      border: first
+          ? null
+          : const Border(top: BorderSide(color: DesignColors.lineSoft)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: DesignText.row),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final o in options)
+              DsChip(
+                label: o,
+                selected: o == selected,
+                onTap: () => onSelected(o),
+              ),
+          ],
+        ),
+      ],
     ),
   );
 }

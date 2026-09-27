@@ -53,11 +53,11 @@ Las pantallas reciben **interfaces** (`LedgerRepository`, `AppPreferences`,
 | Funcionalidad | domain | data | application / presentation |
 |---|---|---|---|
 | `ledger` | `Movement`, `LedgerAccount`, `Category`, `LedgerRepository`, `MonthSummary`, intérprete de texto | `DriftLedgerRepository`, datos demo | Movimientos, registro manual, detalle, racha |
-| `capture` | `ReceiptReader`, `CaptureRule`, `CaptureService`, puertos (`OcrEngine`, `CaptureImageStore`, `CaptureRecords`, `CaptureRuleRepository`) | ML Kit, archivos cifrados, `captures` en drift, reglas en `app_settings` | `CaptureController`; hoja de lectura, Por revisar, Reglas |
-| `settings` | `AppPreferences` | `DriftAppPreferences` | Ajustes, Presupuestos |
-| `accounts` | — | repositorios de cuentas y grupos | Cuentas |
-| `stats` | — | — | Estadísticas |
-| `coach` | `CoachAnalysis` | — | Coach |
+| `capture` | `ReceiptReader`, `CaptureRule`, `CaptureService`, puertos (`OcrEngine`, `CaptureImageStore`, `CaptureRecords`, `CaptureRuleRepository`, `BackgroundCapture`) | ML Kit, archivos cifrados, `captures` en drift, reglas en `app_settings` | `CaptureController`; hoja de lectura, Por revisar, Reglas |
+| `settings` | `AppPreferences` (interruptores y textos) | `DriftAppPreferences` | Ajustes, Recordatorios, Personalizar Coach, Seguridad, Categorías |
+| `accounts` | `AccountGroup`, `AccountsRepository` | `DriftAccountsRepository` | Cuentas, Nueva cuenta, Editar cuenta |
+| `stats` | `StatsSummary`, `CategoryDetail` | — | Estadísticas, detalle por categoría, Presupuestos |
+| `coach` | `CoachContext`, insights, `CoachAssistant`, `LocalCoach`, `ConversationRepository` | historial en `app_settings` | `CoachController`; Coach, Conversaciones |
 | `import` | — | import histórico (solo debug) | pantalla de import |
 
 ## Cómo agregar algo

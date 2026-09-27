@@ -90,6 +90,11 @@ class LedgerScope extends InheritedWidget {
 
   final LedgerData data;
 
+  /// The same live data for a pushed route, which sits above the app's
+  /// provider in the navigator.
+  static Widget forward(BuildContext context, {required Widget child}) =>
+      LedgerProvider(repository: of(context).repository, child: child);
+
   static LedgerData of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<LedgerScope>()!.data;
 

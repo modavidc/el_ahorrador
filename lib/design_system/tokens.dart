@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:el_ahorrador/features/accounts/domain/account_group.dart';
 import 'package:el_ahorrador/features/ledger/domain/category.dart';
 
 export 'package:el_ahorrador/features/ledger/domain/category.dart';
@@ -153,6 +154,9 @@ abstract final class DesignText {
   );
   static final keypad = style(22, FontWeight.w700);
   static final cardTitle = style(17, FontWeight.w800);
+
+  /// Title of a form sheet ('Nueva cuenta'): 22/800, -0.02em.
+  static final sheetHeading = style(22, FontWeight.w800, letterSpacing: -.02);
   static final subTitle = style(17, FontWeight.w700);
   static final button = style(16, FontWeight.w700);
   static final row = style(15, FontWeight.w600);
@@ -310,6 +314,24 @@ abstract final class DesignIcons {
   static const shoppingCart = IconData(0xe8cc, fontFamily: _family);
   static const trendingDown = IconData(0xe8e3, fontFamily: _family);
   static const verifiedUser = IconData(0xf013, fontFamily: _family);
+  static const visibility = IconData(0xe8f4, fontFamily: _family);
+  static const visibilityOff = IconData(0xe8f5, fontFamily: _family);
+  static const forum = IconData(0xe8af, fontFamily: _family);
+  static const mail = IconData(0xe159, fontFamily: _family);
+  static const download = IconData(0xf090, fontFamily: _family);
+  static const lockOpen = IconData(0xe898, fontFamily: _family);
+  static const calendarViewWeek = IconData(0xefe8, fontFamily: _family);
+  static const warning = IconData(0xf083, fontFamily: _family);
+  static const notificationsActive = IconData(0xe7f7, fontFamily: _family);
+  static const remove = IconData(0xe15b, fontFamily: _family);
+  static const sync = IconData(0xe627, fontFamily: _family);
+  static const flashOff = IconData(0xe3e6, fontFamily: _family);
+  static const batterySaver = IconData(0xefde, fontFamily: _family);
+  static const rocketLaunch = IconData(0xeb9b, fontFamily: _family);
+  static const pictureInPicture = IconData(0xe8aa, fontFamily: _family);
+  static const donutLarge = IconData(0xe917, fontFamily: _family);
+  static const flash = IconData(0xe3e7, fontFamily: _family);
+  static const editSquare = IconData(0xf88d, fontFamily: _family);
   static const accountBalance = IconData(0xe84f, fontFamily: _family);
   static const accountBalanceWallet = IconData(0xe850, fontFamily: _family);
   static const add = IconData(0xe145, fontFamily: _family);
@@ -403,6 +425,35 @@ final class CategoryStyle {
 
   /// Style of a stored category name.
   static CategoryStyle forName(String? name) => of(Category.of(name));
+}
+
+/// Tile of each account group in Cuentas.
+final class AccountGroupStyle {
+  const AccountGroupStyle(this.foreground, this.icon);
+
+  final Color foreground;
+  final IconData icon;
+
+  Color get background => foreground.withAlpha(0x22);
+
+  static AccountGroupStyle of(AccountGroup group) => switch (group) {
+    AccountGroup.efectivo => const AccountGroupStyle(
+      Color(0xFF16A34A),
+      DesignIcons.payments,
+    ),
+    AccountGroup.bancos => const AccountGroupStyle(
+      Color(0xFF2563EB),
+      DesignIcons.accountBalance,
+    ),
+    AccountGroup.billeteras => const AccountGroupStyle(
+      Color(0xFF7C3AED),
+      DesignIcons.qrCode2,
+    ),
+    AccountGroup.tarjetas => const AccountGroupStyle(
+      Color(0xFF0EA5E9),
+      DesignIcons.creditCard,
+    ),
+  };
 }
 
 /// App-wide Material theme built from the tokens.

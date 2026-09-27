@@ -5,7 +5,7 @@ import 'package:el_ahorrador/core/database/app_database.dart';
 
 /// 'asset' suma a Assets en la pantalla de Cuentas, 'liability' suma a
 /// Liabilities. Cualquier otro valor guardado en la fila se trata como
-/// 'asset' (ver AccountGroup.type en la UI).
+/// 'asset' (ver AccountGroupRow.type en la UI).
 const accountGroupTypeAsset = 'asset';
 const accountGroupTypeLiability = 'liability';
 
@@ -15,7 +15,7 @@ class AccountGroupRepository {
   final AppDatabase _db;
   final Uuid _uuid;
 
-  Stream<List<AccountGroup>> watchAll() => (_db.select(
+  Stream<List<AccountGroupRow>> watchAll() => (_db.select(
     _db.accountGroups,
   )..orderBy([(row) => OrderingTerm.asc(row.order)])).watch();
 

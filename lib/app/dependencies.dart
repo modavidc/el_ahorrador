@@ -1,4 +1,13 @@
+import 'package:el_ahorrador/core/clock/app_clock.dart';
 import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/capture/data/unsupported_background_capture.dart';
+import 'package:el_ahorrador/features/capture/domain/background_capture.dart';
+import 'package:el_ahorrador/features/coach/application/coach_controller.dart';
+import 'package:el_ahorrador/features/coach/data/drift_conversation_repository.dart';
+import 'package:el_ahorrador/features/coach/domain/coach.dart';
+import 'package:el_ahorrador/features/import/data/historical_import.dart';
+import 'package:el_ahorrador/features/accounts/data/drift_accounts_repository.dart';
+import 'package:el_ahorrador/features/accounts/domain/accounts_repository.dart';
 import 'package:el_ahorrador/features/capture/application/capture_controller.dart';
 import 'package:el_ahorrador/features/capture/data/drift_capture_records.dart';
 import 'package:el_ahorrador/features/capture/data/drift_capture_rule_repository.dart';
@@ -18,7 +27,10 @@ final class AppDependencies {
     AppDatabase db, {
     OcrEngine? ocr,
     CaptureImageStore images = const EncryptedCaptureImageStore(),
+    BackgroundCapture backgroundCapture = const UnsupportedBackgroundCapture(),
+    CoachAssistant coachAssistant = const LocalCoach(),
     DateTime Function()? now,
+    bool historicalImport = false,
   }) {
     final ledger = DriftLedgerRepository(db);
     final captureRules = DriftCaptureRuleRepository(db);
@@ -33,29 +45,50 @@ final class AppDependencies {
     return AppDependencies._(
       database: db,
       ledger: ledger,
+      accounts: DriftAccountsRepository(db),
       preferences: DriftAppPreferences(db),
       captureRules: captureRules,
       capture: CaptureController(captureService),
+      backgroundCapture: backgroundCapture,
+      coach: CoachController(
+        assistant: coachAssistant,
+        history: DriftConversationRepository(db),
+        now: now ?? AppClock.now,
+      ),
+      runImport: historicalImport
+          ? (log) => runHistoricalImport(db, log)
+          : null,
     );
   }
 
   AppDependencies._({
     required this.database,
     required this.ledger,
+    required this.accounts,
     required this.preferences,
     required this.captureRules,
     required this.capture,
+    required this.backgroundCapture,
+    required this.coach,
+    required this.runImport,
   });
 
-  /// Raw database, only for the screens not yet moved to repositories
-  /// (legacy account editing, debug import).
   final AppDatabase database;
   final LedgerRepository ledger;
+  final AccountsRepository accounts;
   final AppPreferences preferences;
   final CaptureRuleRepository captureRules;
 
   /// Reads shared images for the whole life of the app.
   final CaptureController capture;
+  final BackgroundCapture backgroundCapture;
+  final CoachController coach;
 
-  void dispose() => capture.dispose();
+  /// Debug builds: imports assets/import/importar.csv.
+  final Future<void> Function(void Function(String line) log)? runImport;
+
+  void dispose() {
+    capture.dispose();
+    coach.dispose();
+  }
 }

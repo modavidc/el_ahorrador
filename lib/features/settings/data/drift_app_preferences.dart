@@ -37,6 +37,19 @@ class DriftAppPreferences implements AppPreferences {
     return row == null ? preference.defaultValue : row.value == 'true';
   }
 
+  @override
+  Stream<String> watchText(TextPreference preference) =>
+      (_db.select(_db.appSettings)..where((s) => s.key.equals(preference.key)))
+          .watchSingleOrNull()
+          .map((row) => row?.value ?? preference.defaultValue);
+
+  @override
+  Future<void> setText(TextPreference preference, String value) => _db
+      .into(_db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(key: preference.key, value: value),
+      );
+
   static const _dismissedKey = 'dismissed_notices';
 
   @override

@@ -1820,6 +1820,21 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isHiddenMeta = const VerificationMeta(
+    'isHidden',
+  );
+  @override
+  late final GeneratedColumn<bool> isHidden = GeneratedColumn<bool>(
+    'is_hidden',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_hidden" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1834,6 +1849,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     updatedAt,
     description,
     creditLimitCents,
+    isHidden,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1932,6 +1948,12 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         ),
       );
     }
+    if (data.containsKey('is_hidden')) {
+      context.handle(
+        _isHiddenMeta,
+        isHidden.isAcceptableOrUnknown(data['is_hidden']!, _isHiddenMeta),
+      );
+    }
     return context;
   }
 
@@ -1989,6 +2011,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.int,
         data['${effectivePrefix}credit_limit_cents'],
       ),
+      isHidden: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_hidden'],
+      )!,
     );
   }
 
@@ -2015,6 +2041,10 @@ class Account extends DataClass implements Insertable<Account> {
 
   /// Credit line of a card account, shown as "Por pagar · línea S/. X".
   final int? creditLimitCents;
+
+  /// Hidden accounts stay usable but do not add to the totals (Cuentas →
+  /// Ocultar).
+  final bool isHidden;
   const Account({
     required this.id,
     required this.name,
@@ -2028,6 +2058,7 @@ class Account extends DataClass implements Insertable<Account> {
     required this.updatedAt,
     this.description,
     this.creditLimitCents,
+    required this.isHidden,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2050,6 +2081,7 @@ class Account extends DataClass implements Insertable<Account> {
     if (!nullToAbsent || creditLimitCents != null) {
       map['credit_limit_cents'] = Variable<int>(creditLimitCents);
     }
+    map['is_hidden'] = Variable<bool>(isHidden);
     return map;
   }
 
@@ -2073,6 +2105,7 @@ class Account extends DataClass implements Insertable<Account> {
       creditLimitCents: creditLimitCents == null && nullToAbsent
           ? const Value.absent()
           : Value(creditLimitCents),
+      isHidden: Value(isHidden),
     );
   }
 
@@ -2094,6 +2127,7 @@ class Account extends DataClass implements Insertable<Account> {
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       description: serializer.fromJson<String?>(json['description']),
       creditLimitCents: serializer.fromJson<int?>(json['creditLimitCents']),
+      isHidden: serializer.fromJson<bool>(json['isHidden']),
     );
   }
   @override
@@ -2112,6 +2146,7 @@ class Account extends DataClass implements Insertable<Account> {
       'updatedAt': serializer.toJson<int>(updatedAt),
       'description': serializer.toJson<String?>(description),
       'creditLimitCents': serializer.toJson<int?>(creditLimitCents),
+      'isHidden': serializer.toJson<bool>(isHidden),
     };
   }
 
@@ -2128,6 +2163,7 @@ class Account extends DataClass implements Insertable<Account> {
     int? updatedAt,
     Value<String?> description = const Value.absent(),
     Value<int?> creditLimitCents = const Value.absent(),
+    bool? isHidden,
   }) => Account(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -2143,6 +2179,7 @@ class Account extends DataClass implements Insertable<Account> {
     creditLimitCents: creditLimitCents.present
         ? creditLimitCents.value
         : this.creditLimitCents,
+    isHidden: isHidden ?? this.isHidden,
   );
   Account copyWithCompanion(AccountsCompanion data) {
     return Account(
@@ -2164,6 +2201,7 @@ class Account extends DataClass implements Insertable<Account> {
       creditLimitCents: data.creditLimitCents.present
           ? data.creditLimitCents.value
           : this.creditLimitCents,
+      isHidden: data.isHidden.present ? data.isHidden.value : this.isHidden,
     );
   }
 
@@ -2181,7 +2219,8 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('description: $description, ')
-          ..write('creditLimitCents: $creditLimitCents')
+          ..write('creditLimitCents: $creditLimitCents, ')
+          ..write('isHidden: $isHidden')
           ..write(')'))
         .toString();
   }
@@ -2200,6 +2239,7 @@ class Account extends DataClass implements Insertable<Account> {
     updatedAt,
     description,
     creditLimitCents,
+    isHidden,
   );
   @override
   bool operator ==(Object other) =>
@@ -2216,7 +2256,8 @@ class Account extends DataClass implements Insertable<Account> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.description == this.description &&
-          other.creditLimitCents == this.creditLimitCents);
+          other.creditLimitCents == this.creditLimitCents &&
+          other.isHidden == this.isHidden);
 }
 
 class AccountsCompanion extends UpdateCompanion<Account> {
@@ -2232,6 +2273,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<int> updatedAt;
   final Value<String?> description;
   final Value<int?> creditLimitCents;
+  final Value<bool> isHidden;
   final Value<int> rowid;
   const AccountsCompanion({
     this.id = const Value.absent(),
@@ -2246,6 +2288,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.updatedAt = const Value.absent(),
     this.description = const Value.absent(),
     this.creditLimitCents = const Value.absent(),
+    this.isHidden = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AccountsCompanion.insert({
@@ -2261,6 +2304,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     required int updatedAt,
     this.description = const Value.absent(),
     this.creditLimitCents = const Value.absent(),
+    this.isHidden = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -2280,6 +2324,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<int>? updatedAt,
     Expression<String>? description,
     Expression<int>? creditLimitCents,
+    Expression<bool>? isHidden,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2295,6 +2340,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (description != null) 'description': description,
       if (creditLimitCents != null) 'credit_limit_cents': creditLimitCents,
+      if (isHidden != null) 'is_hidden': isHidden,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2312,6 +2358,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<int>? updatedAt,
     Value<String?>? description,
     Value<int?>? creditLimitCents,
+    Value<bool>? isHidden,
     Value<int>? rowid,
   }) {
     return AccountsCompanion(
@@ -2327,6 +2374,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       updatedAt: updatedAt ?? this.updatedAt,
       description: description ?? this.description,
       creditLimitCents: creditLimitCents ?? this.creditLimitCents,
+      isHidden: isHidden ?? this.isHidden,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2370,6 +2418,9 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (creditLimitCents.present) {
       map['credit_limit_cents'] = Variable<int>(creditLimitCents.value);
     }
+    if (isHidden.present) {
+      map['is_hidden'] = Variable<bool>(isHidden.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2391,6 +2442,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('updatedAt: $updatedAt, ')
           ..write('description: $description, ')
           ..write('creditLimitCents: $creditLimitCents, ')
+          ..write('isHidden: $isHidden, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2398,7 +2450,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
 }
 
 class $AccountGroupsTable extends AccountGroups
-    with TableInfo<$AccountGroupsTable, AccountGroup> {
+    with TableInfo<$AccountGroupsTable, AccountGroupRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -2478,7 +2530,7 @@ class $AccountGroupsTable extends AccountGroups
   static const String $name = 'account_groups';
   @override
   VerificationContext validateIntegrity(
-    Insertable<AccountGroup> instance, {
+    Insertable<AccountGroupRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2532,9 +2584,9 @@ class $AccountGroupsTable extends AccountGroups
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  AccountGroup map(Map<String, dynamic> data, {String? tablePrefix}) {
+  AccountGroupRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return AccountGroup(
+    return AccountGroupRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -2568,7 +2620,7 @@ class $AccountGroupsTable extends AccountGroups
   }
 }
 
-class AccountGroup extends DataClass implements Insertable<AccountGroup> {
+class AccountGroupRow extends DataClass implements Insertable<AccountGroupRow> {
   final String id;
   final String name;
 
@@ -2578,7 +2630,7 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
   final int order;
   final int createdAt;
   final int updatedAt;
-  const AccountGroup({
+  const AccountGroupRow({
     required this.id,
     required this.name,
     required this.type,
@@ -2609,12 +2661,12 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
     );
   }
 
-  factory AccountGroup.fromJson(
+  factory AccountGroupRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return AccountGroup(
+    return AccountGroupRow(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       type: serializer.fromJson<String>(json['type']),
@@ -2636,14 +2688,14 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
     };
   }
 
-  AccountGroup copyWith({
+  AccountGroupRow copyWith({
     String? id,
     String? name,
     String? type,
     int? order,
     int? createdAt,
     int? updatedAt,
-  }) => AccountGroup(
+  }) => AccountGroupRow(
     id: id ?? this.id,
     name: name ?? this.name,
     type: type ?? this.type,
@@ -2651,8 +2703,8 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
-  AccountGroup copyWithCompanion(AccountGroupsCompanion data) {
-    return AccountGroup(
+  AccountGroupRow copyWithCompanion(AccountGroupsCompanion data) {
+    return AccountGroupRow(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       type: data.type.present ? data.type.value : this.type,
@@ -2664,7 +2716,7 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
 
   @override
   String toString() {
-    return (StringBuffer('AccountGroup(')
+    return (StringBuffer('AccountGroupRow(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('type: $type, ')
@@ -2680,7 +2732,7 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is AccountGroup &&
+      (other is AccountGroupRow &&
           other.id == this.id &&
           other.name == this.name &&
           other.type == this.type &&
@@ -2689,7 +2741,7 @@ class AccountGroup extends DataClass implements Insertable<AccountGroup> {
           other.updatedAt == this.updatedAt);
 }
 
-class AccountGroupsCompanion extends UpdateCompanion<AccountGroup> {
+class AccountGroupsCompanion extends UpdateCompanion<AccountGroupRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> type;
@@ -2719,7 +2771,7 @@ class AccountGroupsCompanion extends UpdateCompanion<AccountGroup> {
        order = Value(order),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<AccountGroup> custom({
+  static Insertable<AccountGroupRow> custom({
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? type,
@@ -5550,6 +5602,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required int updatedAt,
       Value<String?> description,
       Value<int?> creditLimitCents,
+      Value<bool> isHidden,
       Value<int> rowid,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
@@ -5566,6 +5619,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<int> updatedAt,
       Value<String?> description,
       Value<int?> creditLimitCents,
+      Value<bool> isHidden,
       Value<int> rowid,
     });
 
@@ -5659,6 +5713,11 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<int> get creditLimitCents => $composableBuilder(
     column: $table.creditLimitCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isHidden => $composableBuilder(
+    column: $table.isHidden,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5756,6 +5815,11 @@ class $$AccountsTableOrderingComposer
     column: $table.creditLimitCents,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isHidden => $composableBuilder(
+    column: $table.isHidden,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AccountsTableAnnotationComposer
@@ -5808,6 +5872,9 @@ class $$AccountsTableAnnotationComposer
     column: $table.creditLimitCents,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isHidden =>
+      $composableBuilder(column: $table.isHidden, builder: (column) => column);
 
   Expression<T> expensesRefs<T extends Object>(
     Expression<T> Function($$ExpensesTableAnnotationComposer a) f,
@@ -5875,6 +5942,7 @@ class $$AccountsTableTableManager
                 Value<int> updatedAt = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<int?> creditLimitCents = const Value.absent(),
+                Value<bool> isHidden = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
@@ -5889,6 +5957,7 @@ class $$AccountsTableTableManager
                 updatedAt: updatedAt,
                 description: description,
                 creditLimitCents: creditLimitCents,
+                isHidden: isHidden,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5905,6 +5974,7 @@ class $$AccountsTableTableManager
                 required int updatedAt,
                 Value<String?> description = const Value.absent(),
                 Value<int?> creditLimitCents = const Value.absent(),
+                Value<bool> isHidden = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
@@ -5919,6 +5989,7 @@ class $$AccountsTableTableManager
                 updatedAt: updatedAt,
                 description: description,
                 creditLimitCents: creditLimitCents,
+                isHidden: isHidden,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6103,17 +6174,17 @@ class $$AccountGroupsTableTableManager
         RootTableManager<
           _$AppDatabase,
           $AccountGroupsTable,
-          AccountGroup,
+          AccountGroupRow,
           $$AccountGroupsTableFilterComposer,
           $$AccountGroupsTableOrderingComposer,
           $$AccountGroupsTableAnnotationComposer,
           $$AccountGroupsTableCreateCompanionBuilder,
           $$AccountGroupsTableUpdateCompanionBuilder,
           (
-            AccountGroup,
-            BaseReferences<_$AppDatabase, $AccountGroupsTable, AccountGroup>,
+            AccountGroupRow,
+            BaseReferences<_$AppDatabase, $AccountGroupsTable, AccountGroupRow>,
           ),
-          AccountGroup,
+          AccountGroupRow,
           PrefetchHooks Function()
         > {
   $$AccountGroupsTableTableManager(_$AppDatabase db, $AccountGroupsTable table)
@@ -6175,17 +6246,17 @@ typedef $$AccountGroupsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
       $AccountGroupsTable,
-      AccountGroup,
+      AccountGroupRow,
       $$AccountGroupsTableFilterComposer,
       $$AccountGroupsTableOrderingComposer,
       $$AccountGroupsTableAnnotationComposer,
       $$AccountGroupsTableCreateCompanionBuilder,
       $$AccountGroupsTableUpdateCompanionBuilder,
       (
-        AccountGroup,
-        BaseReferences<_$AppDatabase, $AccountGroupsTable, AccountGroup>,
+        AccountGroupRow,
+        BaseReferences<_$AppDatabase, $AccountGroupsTable, AccountGroupRow>,
       ),
-      AccountGroup,
+      AccountGroupRow,
       PrefetchHooks Function()
     >;
 typedef $$ExpensesTableCreateCompanionBuilder =

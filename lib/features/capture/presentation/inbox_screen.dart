@@ -6,7 +6,6 @@ import 'package:el_ahorrador/features/capture/domain/capture_service.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
-import 'package:el_ahorrador/design_system/legacy_widgets.dart';
 
 /// Por revisar: captured payments missing an amount or a category, completed
 /// inside their card and approved or discarded.

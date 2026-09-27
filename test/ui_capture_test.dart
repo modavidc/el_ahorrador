@@ -146,6 +146,8 @@ void main() {
     await pumpHome(tester);
     await tester.tap(find.text('Ajustes'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Funciones de captura'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Reglas de captura'));
     await tester.pumpAndSettle();
     expect(find.text('4 activas'), findsOneWidget);

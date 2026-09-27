@@ -5,28 +5,45 @@ import 'package:el_ahorrador/app/home/app_shell.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/features/accounts/presentation/accounts_screen.dart';
-import 'package:el_ahorrador/features/accounts/presentation/legacy/account_settings_screen.dart';
-import 'package:el_ahorrador/features/accounts/presentation/legacy/add_account_screen.dart';
 import 'package:el_ahorrador/features/capture/application/capture_controller.dart';
 import 'package:el_ahorrador/features/capture/domain/capture_models.dart';
+import 'package:el_ahorrador/features/capture/presentation/capture_hub_screen.dart';
 import 'package:el_ahorrador/features/capture/presentation/capture_sheet.dart';
 import 'package:el_ahorrador/features/capture/presentation/inbox_screen.dart';
 import 'package:el_ahorrador/features/capture/presentation/rules_screen.dart';
 import 'package:el_ahorrador/features/coach/presentation/coach_screen.dart';
+import 'package:el_ahorrador/features/import/presentation/debug_import_screen.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/presentation/entry_sheet.dart';
 import 'package:el_ahorrador/features/ledger/presentation/ledger_scope.dart';
 import 'package:el_ahorrador/features/ledger/presentation/movements_screen.dart';
-import 'package:el_ahorrador/features/ledger/presentation/period_scope.dart';
-import 'package:el_ahorrador/features/settings/presentation/budgets_screen.dart';
 import 'package:el_ahorrador/features/settings/presentation/settings_screen.dart';
 import 'package:el_ahorrador/features/stats/presentation/stats_screen.dart';
 
 /// Root of the interface (design handoff v3 in `design/`).
 class AppHome extends StatefulWidget {
-  const AppHome({super.key, required this.dependencies});
+  const AppHome({
+    super.key,
+    required this.dependencies,
+    this.version = '',
+    this.onShowWelcome,
+    this.onOpenCoachModel,
+    this.onScanReceipt,
+    this.onDictate,
+  });
 
   final AppDependencies dependencies;
+  final String version;
+
+  /// Ajustes → Ver bienvenida.
+  final VoidCallback? onShowWelcome;
+
+  /// Personalizar Coach → Modelo de IA.
+  final VoidCallback? onOpenCoachModel;
+
+  /// + → Escanear boleta and Dictar.
+  final VoidCallback? onScanReceipt;
+  final VoidCallback? onDictate;
 
   @override
   State<AppHome> createState() => _AppHomeState();
@@ -36,7 +53,6 @@ class _AppHomeState extends State<AppHome> {
   late final _repository = widget.dependencies.ledger;
   late final _preferences = widget.dependencies.preferences;
   final _shell = ShellController();
-  final _period = PeriodController();
   final _recent = RecentEntries();
   final _statsCategory = ValueNotifier<String?>(null);
 
@@ -55,7 +71,8 @@ class _AppHomeState extends State<AppHome> {
   bool _captureInBackground = false;
 
   static const _movements = 0;
-  static const _stats = 1;
+  static const _coach = 2;
+  static const _accounts = 3;
 
   @override
   void initState() {
@@ -147,7 +164,6 @@ class _AppHomeState extends State<AppHome> {
   void dispose() {
     _capture.removeListener(_onCapture);
     _shell.dispose();
-    _period.dispose();
     _recent.dispose();
     _statsCategory.dispose();
     super.dispose();
@@ -231,119 +247,199 @@ class _AppHomeState extends State<AppHome> {
   void _push(BuildContext context, WidgetBuilder builder) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: builder));
 
+  void _pushScoped(BuildContext context, Widget page) =>
+      _push(context, (_) => LedgerScope.forward(context, child: page));
+
+  void _openBudgets(BuildContext context) => _pushScoped(
+    context,
+    BudgetsScreen(ledger: _repository, preferences: _preferences),
+  );
+
+  void _openCategory(BuildContext context, Category category) => _pushScoped(
+    context,
+    CategoryDetailScreen(
+      category: category,
+      onOpenMovement: (m) => _openMovement(context, m),
+    ),
+  );
+
+  void _openPermissions(BuildContext context) => _push(
+    context,
+    (_) => PermissionsScreen(capture: widget.dependencies.backgroundCapture),
+  );
+
+  void _openCaptureHub(BuildContext context) => _push(
+    context,
+    (_) => CaptureHubScreen(
+      capture: widget.dependencies.backgroundCapture,
+      inboxCount: _inboxCount,
+      onTryShare: () => _openTryShare(context),
+      onOpenInbox: () => _openInbox(context),
+      onOpenRules: () => _openRules(context),
+      onOpenPermissions: () => _openPermissions(context),
+    ),
+  );
+
+  void _openCoachHistory(BuildContext context) => _push(
+    context,
+    (_) => ConversationsScreen(
+      controller: widget.dependencies.coach,
+      onOpen: (conversation) {
+        widget.dependencies.coach.open(conversation);
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        _shell.select(_coach);
+      },
+    ),
+  );
+
+  /// Captura en segundo plano from the + menu: the permissions it needs, or
+  /// how to share where the platform cannot capture.
+  Future<void> _startBackgroundCapture(BuildContext context) async {
+    final state = await widget.dependencies.backgroundCapture.watch().first;
+    if (!context.mounted) return;
+    if (!state.supported) return _openTryShare(context);
+    if (state.ready) {
+      await widget.dependencies.backgroundCapture.setEnabled(true);
+      if (context.mounted) {
+        showUndoToast(
+          context,
+          'Captura activa: toma una captura de pantalla de tu pago',
+        );
+      }
+      return;
+    }
+    await showPaperSheet<void>(
+      context,
+      builder: (sheet) => MissingPermissionsSheet(
+        missing: state.missingRequired,
+        onOpenPermissions: () {
+          Navigator.of(sheet).pop();
+          _openPermissions(context);
+        },
+      ),
+    );
+  }
+
+  SettingsLinks _settingsLinks(BuildContext context) => SettingsLinks(
+    openCapture: () => _openCaptureHub(context),
+    openStreak: () => _openStreak(context),
+    openBudgets: () => _openBudgets(context),
+    openAccounts: () => _shell.select(_accounts),
+    openCategory: (c) => _openCategory(context, c),
+    openCoachHistory: () => _openCoachHistory(context),
+    showWelcome: widget.onShowWelcome ?? () {},
+    coachModel: widget.onOpenCoachModel,
+    runImport: widget.dependencies.runImport == null
+        ? null
+        : () => _push(
+            context,
+            (_) => DebugImportScreen(runImport: widget.dependencies.runImport!),
+          ),
+  );
+
   @override
   Widget build(BuildContext context) => LedgerProvider(
     repository: _repository,
     child: RecentEntriesScope(
       entries: _recent,
-      child: PeriodScope(
-        controller: _period,
-        child: Builder(
-          builder: (context) {
-            _shellContext = context;
-            return AppShell(
-              controller: _shell,
-              destinations: [
-                ShellDestination(
-                  icon: DesignIcons.receiptLong,
-                  label: 'Movimientos',
-                  showFab: true,
-                  builder: (context) => MovementsScreen(
-                    preferences: _preferences,
-                    onAdd: () => _openEntry(context),
-                    onOpen: (m) => _openMovement(context, m),
-                    onUndo: (m) => _undo(context, m),
-                    onTryShare: () => _openTryShare(context),
-                    onStreak: () => _openStreak(context),
-                    inboxCount: _inboxCount,
-                    onOpenInbox: () => _openInbox(context),
-                  ),
+      child: Builder(
+        builder: (context) {
+          _shellContext = context;
+          return AppShell(
+            controller: _shell,
+            destinations: [
+              ShellDestination(
+                icon: DesignIcons.receiptLong,
+                label: 'Movimientos',
+                showFab: true,
+                builder: (context) => MovementsScreen(
+                  preferences: _preferences,
+                  onAdd: () => _openEntry(context),
+                  onOpen: (m) => _openMovement(context, m),
+                  onUndo: (m) => _undo(context, m),
+                  onTryShare: () => _openTryShare(context),
+                  onStreak: () => _openStreak(context),
+                  inboxCount: _inboxCount,
+                  onOpenInbox: () => _openInbox(context),
                 ),
-                ShellDestination(
-                  icon: DesignIcons.barChart,
-                  label: 'Estadísticas',
-                  showFab: true,
-                  builder: (_) => StatsScreen(categoryRequest: _statsCategory),
+              ),
+              ShellDestination(
+                icon: DesignIcons.barChart,
+                label: 'Estadísticas',
+                showFab: true,
+                builder: (context) => StatsScreen(
+                  ledger: _repository,
+                  preferences: _preferences,
+                  categoryRequest: _statsCategory,
+                  onOpenMovement: (m) => _openMovement(context, m),
                 ),
-                ShellDestination(
-                  icon: DesignIcons.autoAwesome,
-                  label: 'Coach',
-                  builder: (context) => CoachScreen(
-                    onShowBudget: () => _push(
-                      context,
-                      (_) => BudgetsScreen(db: widget.dependencies.database),
-                    ),
-                    onShowCategory: (category) {
-                      _statsCategory.value = category;
-                      _shell.select(_stats);
-                    },
-                  ),
+              ),
+              ShellDestination(
+                icon: DesignIcons.autoAwesome,
+                label: 'Coach',
+                builder: (_) => CoachScreen(
+                  controller: widget.dependencies.coach,
+                  preferences: _preferences,
                 ),
-                ShellDestination(
-                  icon: DesignIcons.accountBalanceWallet,
-                  label: 'Cuentas',
-                  showFab: true,
-                  builder: (context) => AccountsScreen(
-                    onEdit: () => _push(
-                      context,
-                      (_) => AccountSettingsScreen(
-                        db: widget.dependencies.database,
-                      ),
-                    ),
-                    onAdd: () => _push(
-                      context,
-                      (_) => AddAccountScreen(db: widget.dependencies.database),
-                    ),
-                  ),
+              ),
+              ShellDestination(
+                icon: DesignIcons.accountBalanceWallet,
+                label: 'Cuentas',
+                showFab: true,
+                builder: (_) =>
+                    AccountsScreen(accounts: widget.dependencies.accounts),
+              ),
+              ShellDestination(
+                icon: DesignIcons.settings,
+                label: 'Ajustes',
+                builder: (context) => SettingsScreen(
+                  preferences: _preferences,
+                  capture: widget.dependencies.backgroundCapture,
+                  links: _settingsLinks(context),
+                  version: widget.version,
                 ),
-                ShellDestination(
-                  icon: DesignIcons.settings,
-                  label: 'Ajustes',
-                  builder: (context) => SettingsScreen(
-                    db: widget.dependencies.database,
-                    onOpenInbox: () => _openInbox(context),
-                    onOpenRules: () => _openRules(context),
-                  ),
-                ),
-              ],
-              fabActions: (shell) => [
-                FabAction(
-                  label: 'Manual',
-                  subtitle: 'Monto, categoría y cuenta',
-                  icon: DesignIcons.editNote,
-                  onSelected: () => _openEntry(context),
-                ),
-                FabAction(
-                  label: 'Escanear boleta',
-                  subtitle: 'Foto del ticket',
-                  icon: DesignIcons.documentScanner,
-                  onSelected: () => showUndoToast(context, 'Próximamente'),
-                ),
-                FabAction(
-                  label: 'Dictar',
-                  subtitle: 'Dilo en voz alta',
-                  icon: DesignIcons.mic,
-                  onSelected: () => showUndoToast(context, 'Próximamente'),
-                ),
-                FabAction(
-                  label: 'Compartir comprobante',
-                  subtitle: 'Desde Yape o tu banco',
-                  icon: DesignIcons.share,
-                  capture: true,
-                  onSelected: () => _openTryShare(context),
-                ),
-                FabAction(
-                  label: 'Captura en segundo plano',
-                  subtitle: 'Requiere permisos',
-                  icon: DesignIcons.screenshotMonitor,
-                  capture: true,
-                  onSelected: () => showUndoToast(context, 'Próximamente'),
-                ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+            fabActions: (shell) => [
+              FabAction(
+                label: 'Manual',
+                subtitle: 'Monto, categoría y cuenta',
+                icon: DesignIcons.editNote,
+                onSelected: () => _openEntry(context),
+              ),
+              FabAction(
+                label: 'Escanear boleta',
+                subtitle: 'Foto del ticket',
+                icon: DesignIcons.documentScanner,
+                onSelected: () =>
+                    (widget.onScanReceipt ?? () => _soon(context))(),
+              ),
+              FabAction(
+                label: 'Dictar',
+                subtitle: 'Dilo en voz alta',
+                icon: DesignIcons.mic,
+                onSelected: () => (widget.onDictate ?? () => _soon(context))(),
+              ),
+              FabAction(
+                label: 'Compartir comprobante',
+                subtitle: 'Desde Yape o tu banco',
+                icon: DesignIcons.share,
+                capture: true,
+                onSelected: () => _openTryShare(context),
+              ),
+              FabAction(
+                label: 'Captura en segundo plano',
+                subtitle: 'Detecta tus capturas de pantalla',
+                icon: DesignIcons.screenshotMonitor,
+                capture: true,
+                onSelected: () => _startBackgroundCapture(context),
+              ),
+            ],
+          );
+        },
       ),
     ),
   );
+
+  void _soon(BuildContext context) => showUndoToast(context, 'Próximamente');
 }
