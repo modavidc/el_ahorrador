@@ -50,75 +50,131 @@ class CaptureService {
       final ocrFuture = _ocr.run(path);
       final stored = await _images.persist(path);
       captureId = await _records.create(imagePath: stored, hash: hash);
-      final ocr = await ocrFuture;
-      final reading = ReceiptReader.read(ocr.text, now: _now());
-
-      if (!reading.isReceipt) {
-        await _records.saveReading(
-          captureId,
-          text: ocr.text,
-          origin: origin,
-          confidence: ocr.confidence,
-        );
-        await _records.setStatus(captureId, CaptureRecordStatus.failed);
-        return CaptureOutcome(
-          status: CaptureStatus.notReceipt,
-          fileName: fileName,
-          captureId: captureId,
-        );
-      }
-
-      if (reading.operation != null) {
-        final sameOperation = await _records.findActive(
-          operation: reading.operation,
-          except: captureId,
-        );
-        if (sameOperation != null) {
-          await _records.setStatus(captureId, CaptureRecordStatus.failed);
-          return CaptureOutcome(
-            status: CaptureStatus.duplicate,
-            fileName: fileName,
-            captureId: captureId,
-            originalMovementId: sameOperation.movementId,
-            draft: sameOperation.draft,
-          );
-        }
-      }
-
-      final draft = await _draft(reading, ocr.confidence);
-      await _records.saveReading(
-        captureId,
-        text: ocr.text,
-        origin: origin,
-        confidence: ocr.confidence,
-        operation: reading.operation,
-        sourceApp: reading.source.label,
-        draft: draft,
-      );
-
-      if (draft.why != null) {
-        await _records.setStatus(captureId, CaptureRecordStatus.review);
-        return CaptureOutcome(
-          status: CaptureStatus.review,
-          fileName: fileName,
-          captureId: captureId,
-          draft: draft,
-        );
-      }
-      final movementId = await _register(captureId, draft, reading.source);
-      return CaptureOutcome(
-        status: CaptureStatus.registered,
-        fileName: fileName,
-        captureId: captureId,
-        movementId: movementId,
-        draft: draft,
-      );
+      return await _read(captureId, await ocrFuture, fileName, origin);
     } on Object {
       if (captureId != null) {
         await _records.setStatus(captureId, CaptureRecordStatus.failed);
       }
       return CaptureOutcome(status: CaptureStatus.failed, fileName: fileName);
     }
+  }
+
+  /// A payment notification (Yape, Plin, bank) read by the background
+  /// service: the same flow as an image, without OCR.
+  Future<CaptureOutcome> processText(
+    String text, {
+    required String sourceLabel,
+    MovementOrigin origin = MovementOrigin.screenshot,
+  }) async {
+    String? captureId;
+    try {
+      final hash = 'text:${_fingerprint(text)}';
+      final same = await _records.findActive(hash: hash);
+      if (same != null) {
+        return CaptureOutcome(
+          status: CaptureStatus.duplicate,
+          fileName: sourceLabel,
+          originalMovementId: same.movementId,
+          draft: same.draft,
+        );
+      }
+      captureId = await _records.create(imagePath: '', hash: hash);
+      return await _read(
+        captureId,
+        OcrResult(text, confidence: 100),
+        sourceLabel,
+        origin,
+      );
+    } on Object {
+      if (captureId != null) {
+        await _records.setStatus(captureId, CaptureRecordStatus.failed);
+      }
+      return CaptureOutcome(
+        status: CaptureStatus.failed,
+        fileName: sourceLabel,
+      );
+    }
+  }
+
+  /// FNV-1a of the text: the same notification twice is one payment.
+  static String _fingerprint(String text) {
+    var hash = 0x811c9dc5;
+    for (final unit in text.codeUnits) {
+      hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+    }
+    return hash.toRadixString(16);
+  }
+
+  /// Everything after the text is known: receipt, duplicates, rules and
+  /// the outcome.
+  Future<CaptureOutcome> _read(
+    String captureId,
+    OcrResult ocr,
+    String fileName,
+    MovementOrigin origin,
+  ) async {
+    final reading = ReceiptReader.read(ocr.text, now: _now());
+
+    if (!reading.isReceipt) {
+      await _records.saveReading(
+        captureId,
+        text: ocr.text,
+        origin: origin,
+        confidence: ocr.confidence,
+      );
+      await _records.setStatus(captureId, CaptureRecordStatus.failed);
+      return CaptureOutcome(
+        status: CaptureStatus.notReceipt,
+        fileName: fileName,
+        captureId: captureId,
+      );
+    }
+
+    if (reading.operation != null) {
+      final sameOperation = await _records.findActive(
+        operation: reading.operation,
+        except: captureId,
+      );
+      if (sameOperation != null) {
+        await _records.setStatus(captureId, CaptureRecordStatus.failed);
+        return CaptureOutcome(
+          status: CaptureStatus.duplicate,
+          fileName: fileName,
+          captureId: captureId,
+          originalMovementId: sameOperation.movementId,
+          draft: sameOperation.draft,
+        );
+      }
+    }
+
+    final draft = await _draft(reading, ocr.confidence);
+    await _records.saveReading(
+      captureId,
+      text: ocr.text,
+      origin: origin,
+      confidence: ocr.confidence,
+      operation: reading.operation,
+      sourceApp: reading.source.label,
+      draft: draft,
+    );
+
+    if (draft.why != null) {
+      await _records.setStatus(captureId, CaptureRecordStatus.review);
+      return CaptureOutcome(
+        status: CaptureStatus.review,
+        fileName: fileName,
+        captureId: captureId,
+        draft: draft,
+      );
+    }
+    final movementId = await _register(captureId, draft, reading.source);
+    return CaptureOutcome(
+      status: CaptureStatus.registered,
+      fileName: fileName,
+      captureId: captureId,
+      movementId: movementId,
+      draft: draft,
+    );
   }
 
   /// Payments waiting in Por revisar, newest first.

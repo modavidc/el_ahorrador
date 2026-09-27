@@ -341,7 +341,8 @@ class _PermissionsScreenState extends State<PermissionsScreen>
     CapturePermission.autostart => DesignIcons.rocketLaunch,
     CapturePermission.notifications => DesignIcons.notificationsActive,
     CapturePermission.battery => DesignIcons.batterySaver,
-    CapturePermission.overlay => DesignIcons.pictureInPicture,
+    CapturePermission.photos => DesignIcons.photoLibrary,
+    CapturePermission.alerts => DesignIcons.notifications,
     CapturePermission.recents => DesignIcons.lock,
   };
 

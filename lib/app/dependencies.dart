@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart' show TableUpdate;
+
 import 'package:el_ahorrador/core/clock/app_clock.dart';
 import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/features/capture/data/unsupported_background_capture.dart';
@@ -41,6 +43,14 @@ final class AppDependencies {
       rules: captureRules,
       ledger: ledger,
       now: now,
+    );
+    // Movements registered by the background engine come through another
+    // database connection; refresh the open screens.
+    backgroundCapture.captured.listen(
+      (_) => db.notifyUpdates({
+        TableUpdate.onTable(db.expenses),
+        TableUpdate.onTable(db.captures),
+      }),
     );
     return AppDependencies._(
       database: db,

@@ -1,19 +1,21 @@
 /// Capture of payments in the background: a service that watches new
 /// screenshots and payment notifications. Needs Android permissions that
-/// HyperOS (Xiaomi) keeps off by default.
+/// HyperOS (Xiaomi) keeps off by default. Autostart and "lock in recents"
+/// cannot be read by apps; the user confirms them after opening their page.
 enum CapturePermission {
-  autostart('Inicio automático', 'Sigue activa tras reiniciar', true),
+  photos(
+    'Acceso a tus capturas',
+    'Para leer las capturas de pantalla de pagos',
+    true,
+  ),
+  alerts('Mostrar avisos', 'Te avisa "Registrado" con Deshacer', true),
   notifications(
     'Acceso a notificaciones',
     'Lee avisos de Yape, Plin y bancos',
     true,
   ),
   battery('Batería sin restricciones', 'HyperOS no cerrará la captura', true),
-  overlay(
-    'Mostrar sobre otras apps',
-    'Aviso flotante al detectar un pago',
-    true,
-  ),
+  autostart('Inicio automático', 'Sigue activa tras reiniciar', true),
   recents('Bloquear en recientes', 'No se cierra al limpiar', false);
 
   const CapturePermission(this.title, this.subtitle, this.required);
@@ -65,4 +67,8 @@ abstract interface class BackgroundCapture {
 
   /// Checks the permissions again (after returning from system settings).
   Future<void> refresh();
+
+  /// Fires when the background engine registered something, so the open
+  /// interface can refresh.
+  Stream<void> get captured;
 }

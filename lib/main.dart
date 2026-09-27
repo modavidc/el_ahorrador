@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:share_handler/share_handler.dart';
 
 import 'package:el_ahorrador/core/observability/observability.dart';
+import 'package:el_ahorrador/features/capture/data/android_background_capture.dart';
+import 'package:el_ahorrador/features/capture/data/unsupported_background_capture.dart';
+import 'package:el_ahorrador/app/background_capture.dart';
 import 'package:el_ahorrador/app/dependencies.dart';
 import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/core/database/daos.dart';
@@ -46,6 +49,14 @@ Future<void> main() async {
   );
 }
 
+/// Entry point of the headless engine started by the Android capture
+/// service (see `BackgroundEngine.kt`).
+@pragma('vm:entry-point')
+Future<void> backgroundCaptureMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await runBackgroundCapture();
+}
+
 class MisGastosApp extends StatefulWidget {
   const MisGastosApp({super.key, this.appLockSettings});
 
@@ -67,7 +78,13 @@ class _MisGastosAppState extends State<MisGastosApp> {
 
   /// Created here so a share that opens the app is queued before the
   /// interface exists.
-  late final _dependencies = AppDependencies(db, historicalImport: kDebugMode);
+  late final _dependencies = AppDependencies(
+    db,
+    historicalImport: kDebugMode,
+    backgroundCapture: defaultTargetPlatform == TargetPlatform.android
+        ? AndroidBackgroundCapture()
+        : const UnsupportedBackgroundCapture(),
+  );
   StreamSubscription<SharedMedia>? _sub;
 
   @override

@@ -89,7 +89,7 @@ abstract final class ReceiptReader {
   };
 
   static final _received = RegExp(
-    r'te\s*yapearon|recibiste|te\s*plinearon|te\s*envi[oó]|te\s*transfiri|abono|dep[oó]sito\s*recibido',
+    r'te\s*yapearon|te\s*yape[oó]|recibiste|te\s*plinearon|te\s*envi[oó]|te\s*transfiri|abono|dep[oó]sito\s*recibido',
   );
   static final _sent = RegExp(
     r'yapeaste|plineaste|enviaste|pagaste|transferiste|consumo|compra\s*aprobada|pago\s*exitoso|operaci[oó]n\s*exitosa',
@@ -109,6 +109,13 @@ abstract final class ReceiptReader {
   static final _operation = RegExp(
     r'(?:n(?:ro|°|º)?\.?\s*de\s*operaci[oó]n|c[oó]digo\s*de\s*operaci[oó]n|operaci[oó]n)\D{0,12}(\d{5,})',
     caseSensitive: false,
+  );
+
+  /// Notifications name the sender: "Juan Pérez te yapeó S/ 50".
+  static final _sender = RegExp(
+    r'^([^\n]+?)\s+te\s+(?:yape[oó]|envi[oó]|plin[eo][oó]?|transfiri[oó])',
+    caseSensitive: false,
+    multiLine: true,
   );
 
   /// Lines that are labels, never the counterpart.
@@ -150,7 +157,9 @@ abstract final class ReceiptReader {
       source: source,
       at: _date(ocrText, now) ?? now,
       amountCents: amount,
-      counterpart: _counterpart(lines, amountLine),
+      counterpart:
+          _sender.firstMatch(ocrText)?.group(1)?.trim() ??
+          _counterpart(lines, amountLine),
       operation: _operation.firstMatch(ocrText)?.group(1),
       text: text,
     );

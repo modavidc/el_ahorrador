@@ -53,3 +53,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // NotificationCompat and ServiceCompat for the background capture.
+    implementation("androidx.core:core-ktx:1.13.1")
+}

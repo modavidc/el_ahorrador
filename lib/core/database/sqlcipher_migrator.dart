@@ -30,6 +30,10 @@ class SqlCipherMigrator {
     }
     database.execute('PRAGMA key = "${_keySql(key)}"');
     database.execute('PRAGMA foreign_keys = ON');
+    // The background capture engine opens the same file: wait for its
+    // writes instead of failing, and let readers work while it writes.
+    database.execute('PRAGMA busy_timeout = 5000');
+    database.execute('PRAGMA journal_mode = WAL');
   }
 
   Future<SqlCipherMigrationResult> prepare(File database, List<int> key) async {

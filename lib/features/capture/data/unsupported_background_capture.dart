@@ -16,4 +16,7 @@ class UnsupportedBackgroundCapture implements BackgroundCapture {
 
   @override
   Future<void> refresh() async {}
+
+  @override
+  Stream<void> get captured => const Stream.empty();
 }
