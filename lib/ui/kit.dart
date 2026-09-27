@@ -611,3 +611,104 @@ void showUndoToast(
       ),
     );
 }
+
+/// Sub-page of v3: back arrow, 17/700 title and an optional grey note on the
+/// right ("2 pendientes"), over paper.
+class SubPage extends StatelessWidget {
+  const SubPage({
+    super.key,
+    required this.title,
+    required this.children,
+    this.trailing,
+  });
+
+  final String title;
+  final String? trailing;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: DesignColors.paper,
+    body: SafeArea(
+      child: Column(
+        children: [
+          SizedBox(
+            height: 56,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(6, 0, 12, 0),
+              child: Row(
+                children: [
+                  Semantics(
+                    button: true,
+                    label: 'Volver',
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).maybePop(),
+                      child: const SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Sym(DesignIcons.arrowBack, size: 24),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(title, style: DesignText.subTitle)),
+                  if (trailing != null)
+                    Text(
+                      trailing!,
+                      style: DesignText.label13Semi.copyWith(
+                        color: DesignColors.ink2,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 40),
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// On/off switch of v3: 50×30 track, red when on.
+class DsToggle extends StatelessWidget {
+  const DsToggle({super.key, required this.value, required this.onTap});
+
+  final bool value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    toggled: value,
+    button: true,
+    child: GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 50,
+        height: 30,
+        padding: const EdgeInsets.all(3),
+        alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+        decoration: BoxDecoration(
+          color: value ? DesignColors.red : DesignColors.lineStrong,
+          borderRadius: BorderRadius.circular(DesignRadius.pill),
+        ),
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: DesignColors.card,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    ),
+  );
+}

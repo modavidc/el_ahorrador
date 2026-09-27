@@ -12,9 +12,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:el_ahorrador/core/app_clock.dart';
 import 'package:el_ahorrador/data/app_database.dart';
+import 'package:el_ahorrador/features/capture/capture_controller.dart';
+import 'package:el_ahorrador/features/capture/capture_service.dart';
 import 'package:el_ahorrador/features/ledger/demo_seed_v3.dart';
 import 'package:el_ahorrador/theme/design_tokens.dart';
 import 'package:el_ahorrador/ui/app_home.dart';
+
+import '../support/capture_fakes.dart';
 
 /// Renders the v3 screens with the prototype's data, fonts and phone size
 /// (370×824 inside the 10px frame; 36px status bar, 18px gesture area) and
@@ -47,7 +51,9 @@ void main() {
     AppClock.pin(DemoSeedV3.today);
   });
 
-  Future<void> capture(
+  late CaptureController capture;
+
+  Future<void> render(
     WidgetTester tester,
     String name,
     Future<void> Function(WidgetTester tester)? steps,
@@ -61,6 +67,14 @@ void main() {
 
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     await tester.runAsync(() => DemoSeedV3.load(db));
+    capture = CaptureController(
+      CaptureService(
+        db: db,
+        ocr: FakeOcr(),
+        storage: FakeStorage(),
+        now: AppClock.now,
+      ),
+    );
 
     final boundary = GlobalKey();
     await tester.pumpWidget(
@@ -69,7 +83,7 @@ void main() {
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: buildDesignTheme(),
-          home: AppHome(db: db),
+          home: AppHome(db: db, capture: capture),
         ),
       ),
     );
@@ -89,7 +103,20 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 1));
+    capture.dispose();
     await tester.runAsync(db.close);
+  }
+
+  Future<void> share(WidgetTester tester, List<String> paths) async {
+    var finished = false;
+    capture.start(paths).whenComplete(() => finished = true);
+    for (var i = 0; i < 200 && !finished; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.pumpAndSettle();
   }
 
   Future<void> tap(WidgetTester tester, Finder finder) async {
@@ -111,11 +138,29 @@ void main() {
     'streak': (t) => tap(t, find.bySemanticsLabel(RegExp('^Racha'))),
     'search': (t) => tap(t, find.bySemanticsLabel('Buscar')),
     'detail': (t) => tap(t, find.text('Menú').first),
+    '72_done': (t) => share(t, ['sent']),
+    '76_batch_done': (t) => share(t, [
+      'sent',
+      'person',
+      'sent#copy',
+      'bcp',
+      'selfie',
+      'received',
+      'blurry',
+    ]),
+    'inbox': (t) async {
+      await share(t, ['person', 'blurry']);
+      await tap(t, find.text('Ver Por revisar'));
+    },
+    'rules': (t) async {
+      await tap(t, find.text('Ajustes'));
+      await tap(t, find.text('Reglas de captura'));
+    },
   };
 
   for (final entry in screens.entries) {
     testWidgets(entry.key, (tester) async {
-      await capture(tester, entry.key, entry.value);
+      await render(tester, entry.key, entry.value);
     }, skip: out == null);
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_clock.dart';
@@ -43,6 +45,8 @@ class MovementsScreen extends StatefulWidget {
     required this.onUndo,
     required this.onTryShare,
     required this.onStreak,
+    this.inboxCount,
+    this.onOpenInbox,
   });
 
   final AppPreferences preferences;
@@ -51,6 +55,11 @@ class MovementsScreen extends StatefulWidget {
   final ValueChanged<Movement> onUndo;
   final VoidCallback onTryShare;
   final VoidCallback onStreak;
+
+  /// Payments waiting in Por revisar, for the "N pagos necesitan un dato"
+  /// notice.
+  final Stream<int>? inboxCount;
+  final VoidCallback? onOpenInbox;
 
   @override
   State<MovementsScreen> createState() => _MovementsScreenState();
@@ -179,6 +188,8 @@ class _MovementsScreenState extends State<MovementsScreen> {
           preferences: widget.preferences,
           streak: streak,
           onTryShare: widget.onTryShare,
+          inboxCount: widget.inboxCount,
+          onOpenInbox: widget.onOpenInbox,
           onAdd: widget.onAdd,
         ),
       ],
@@ -686,6 +697,8 @@ class _Notices extends StatefulWidget {
     required this.streak,
     required this.onTryShare,
     required this.onAdd,
+    this.inboxCount,
+    this.onOpenInbox,
   });
 
   final List<Movement> movements;
@@ -693,6 +706,8 @@ class _Notices extends StatefulWidget {
   final int streak;
   final VoidCallback onTryShare;
   final VoidCallback onAdd;
+  final Stream<int>? inboxCount;
+  final VoidCallback? onOpenInbox;
 
   @override
   State<_Notices> createState() => _NoticesState();
@@ -707,7 +722,18 @@ class _NoticesState extends State<_Notices> {
   @override
   void dispose() {
     _pages?.dispose();
+    _inboxSubscription?.cancel();
     super.dispose();
+  }
+
+  late final Stream<int> _inbox = widget.inboxCount ?? Stream.value(0);
+  int _pending = 0;
+  StreamSubscription<int>? _inboxSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _inboxSubscription = _inbox.listen((n) => setState(() => _pending = n));
   }
 
   List<_Notice> _notices(Set<String> dismissed) {
@@ -728,6 +754,17 @@ class _NoticesState extends State<_Notices> {
           cta: 'Probar',
           onTap: widget.onTryShare,
           dark: true,
+        ),
+      if (_pending > 0 && widget.onOpenInbox != null)
+        _Notice(
+          key: 'inbox:$_pending',
+          icon: DesignIcons.inbox,
+          title: _pending == 1
+              ? '1 pago necesita un dato'
+              : '$_pending pagos necesitan un dato',
+          subtitle: 'Complétalos y quedan registrados.',
+          cta: 'Revisar',
+          onTap: widget.onOpenInbox!,
         ),
       if (!hasToday && now.hour >= 20)
         _Notice(

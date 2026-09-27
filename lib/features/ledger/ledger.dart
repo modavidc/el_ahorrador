@@ -242,6 +242,7 @@ class LedgerRepository {
     String? note,
     DateTime? at,
     String sourceApp = 'Manual',
+    String? captureId,
   }) async {
     final db = _db;
     final id = const Uuid().v4();
@@ -269,6 +270,7 @@ class LedgerRepository {
       }
       await db.insertExpenseFromParser(
         id: id,
+        captureId: captureId,
         dateEpochMs: when,
         amountCents: type == MovementType.income ? amountCents : -amountCents,
         currency: 'PEN',
@@ -295,6 +297,11 @@ class LedgerRepository {
       return rows;
     });
   }
+
+  /// Removes a registered income or expense by id ("Deshacer" of a
+  /// capture).
+  Future<void> deleteById(String id) =>
+      (_db.delete(_db.expenses)..where((e) => e.id.equals(id))).go();
 
   Future<void> restore(List<Expense> rows) => _db.batch(
     (b) => b.insertAll(_db.expenses, rows, mode: InsertMode.insertOrReplace),

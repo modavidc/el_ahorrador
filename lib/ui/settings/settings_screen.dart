@@ -14,9 +14,19 @@ import 'budgets_screen.dart';
 
 /// Ajustes of the v1 prototype: Coach e IA, General, Datos, Seguridad.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.db, this.lockAuthenticator});
+  const SettingsScreen({
+    super.key,
+    required this.db,
+    this.lockAuthenticator,
+    this.onOpenInbox,
+    this.onOpenRules,
+  });
 
   final AppDatabase db;
+
+  /// Captura → Por revisar and Reglas de captura.
+  final VoidCallback? onOpenInbox;
+  final VoidCallback? onOpenRules;
 
   /// Confirms changes to the fingerprint lock; the system prompt by default.
   final LocalAuthenticator? lockAuthenticator;
@@ -88,6 +98,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
 
     final groups = <(String, List<_SettingRow>)>[
+      if (widget.onOpenInbox != null && widget.onOpenRules != null)
+        (
+          'Captura',
+          [
+            _SettingRow.link(
+              icon: DesignIcons.inbox,
+              label: 'Por revisar',
+              value: '',
+              onTap: widget.onOpenInbox!,
+            ),
+            _SettingRow.link(
+              icon: DesignIcons.rule,
+              label: 'Reglas de captura',
+              value: '',
+              onTap: widget.onOpenRules!,
+            ),
+          ],
+        ),
       (
         'Coach e IA',
         [

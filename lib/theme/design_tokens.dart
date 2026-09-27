@@ -291,6 +291,9 @@ abstract final class DesignIcons {
   static const favorite = IconData(0xe87e, fontFamily: _family);
   static const history = IconData(0xe8b3, fontFamily: _family);
   static const inbox = IconData(0xe156, fontFamily: _family);
+  static const info = IconData(0xe88e, fontFamily: _family);
+  static const photoLibrary = IconData(0xe413, fontFamily: _family);
+  static const rule = IconData(0xf1c2, fontFamily: _family);
   static const localActivity = IconData(0xe553, fontFamily: _family);
   static const localFireDepartment = IconData(0xef55, fontFamily: _family);
   static const mic = IconData(0xe31d, fontFamily: _family);
