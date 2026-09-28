@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Splash screen instantánea para compartir -->
+<!-- Launch screen before Android 12: paper background, Solito icon centered.
+     Android 12+ uses the system splash (values-v31/styles.xml). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Fondo azul claro -->
-    <item android:drawable="@color/splash_background" />
+    <item android:drawable="@color/solito_paper" />
 
-    <!-- Logo/Icono centrado -->
     <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/ic_launcher" />
+            android:src="@drawable/splash_logo" />
     </item>
 </layer-list>

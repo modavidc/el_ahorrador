@@ -380,14 +380,14 @@ class _ShareSheet extends StatelessWidget {
             _app(DesignIcons.forum, 'WhatsApp'),
             _app(DesignIcons.mail, 'Gmail'),
             _app(DesignIcons.backup, 'Drive'),
-            _app(DesignIcons.savings, 'El Ahorrador', ours: true),
+            _app(null, 'El Ahorrador', ours: true),
           ],
         ),
       ],
     ),
   );
 
-  Widget _app(IconData icon, String label, {bool ours = false}) => SizedBox(
+  Widget _app(IconData? icon, String label, {bool ours = false}) => SizedBox(
     width: 56,
     child: Column(
       children: [
@@ -402,11 +402,12 @@ class _ShareSheet extends StatelessWidget {
                 ? Border.all(color: DesignColors.ink, width: 2)
                 : null,
           ),
-          child: Sym(
-            ours ? DesignIcons.filled(icon) : icon,
-            size: 20,
-            color: ours ? DesignColors.onPrimary : DesignColors.ink2,
-          ),
+          child: icon == null
+              ? const ClipRRect(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  child: BrandMark(size: 40),
+                )
+              : Sym(icon, size: 20, color: DesignColors.ink2),
         ),
         const SizedBox(height: 6),
         Text(
@@ -436,11 +437,7 @@ class _Reading extends StatelessWidget {
         children: [
           Row(
             children: [
-              Sym(
-                DesignIcons.filled(DesignIcons.savings),
-                size: 18,
-                color: DesignColors.red,
-              ),
+              const BrandMark(size: 18),
               const SizedBox(width: 6),
               Text('El Ahorrador', style: DesignText.smallBold),
             ],

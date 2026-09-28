@@ -86,7 +86,8 @@ class ScreenshotCaptureService : Service() {
             android.app.PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(this, ResultNotifier.STATUS_CHANNEL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_solito)
+            .setColor(0xFFD33F2B.toInt())
             .setContentTitle("Captura de pagos")
             .setContentText("Captura activa · toma una captura de tu pago")
             .setOngoing(true)

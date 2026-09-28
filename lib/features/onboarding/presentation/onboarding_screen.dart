@@ -160,19 +160,13 @@ class _Welcome extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const SizedBox(height: 60),
-      Container(
-        width: 64,
-        height: 64,
+      DecoratedBox(
         decoration: BoxDecoration(
-          color: DesignColors.red,
-          borderRadius: BorderRadius.circular(22),
+          // The mark's corner: 114 of 512 units.
+          borderRadius: BorderRadius.circular(64 * 114 / 512),
           boxShadow: DesignShadows.fab,
         ),
-        child: Sym(
-          DesignIcons.savings,
-          size: 36,
-          color: DesignColors.onPrimary,
-        ),
+        child: const BrandMark(size: 64),
       ),
       const SizedBox(height: 24),
       Text('Tu plata,\nen orden.', style: DesignText.hero),

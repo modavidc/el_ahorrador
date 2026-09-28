@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -1320,4 +1321,66 @@ class ChoiceRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The Solito app icon ("Sol-moneda"): a paper sun-coin with "S/" on a red
+/// rounded square, drawn like `docs/producto/play-store/icon.svg`.
+class BrandMark extends StatelessWidget {
+  const BrandMark({super.key, required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Solito',
+    image: true,
+    child: SizedBox.square(
+      dimension: size,
+      child: CustomPaint(painter: _BrandMarkPainter()),
+    ),
+  );
+}
+
+class _BrandMarkPainter extends CustomPainter {
+  static const _canvas = 512.0;
+  static const _center = Offset(256, 256);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / _canvas);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(0, 0, _canvas, _canvas),
+        const Radius.circular(114),
+      ),
+      Paint()..color = DesignColors.red,
+    );
+    final rays = Paint()
+      ..color = DesignColors.paper
+      ..strokeWidth = 22
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 12; i++) {
+      final direction = Offset.fromDirection(i * math.pi / 6 - math.pi / 2);
+      canvas.drawLine(
+        _center + direction * 150,
+        _center + direction * 196,
+        rays,
+      );
+    }
+    canvas.drawCircle(_center, 122, Paint()..color = DesignColors.paper);
+    final text = TextPainter(
+      text: TextSpan(text: 'S/', style: DesignText.brandMark),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final baseline = text.computeDistanceToActualBaseline(
+      TextBaseline.alphabetic,
+    );
+    text.paint(canvas, Offset(256 - text.width / 2, 298 - baseline));
+    text.dispose();
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_BrandMarkPainter oldDelegate) => false;
 }

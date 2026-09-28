@@ -51,7 +51,8 @@ object ResultNotifier {
         val body = result["body"] as? String ?: ""
         val id = nextId++
         val builder = NotificationCompat.Builder(context, RESULT_CHANNEL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_solito)
+            .setColor(0xFFD33F2B.toInt())
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

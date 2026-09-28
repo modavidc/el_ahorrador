@@ -234,6 +234,15 @@ abstract final class DesignText {
   static final microRegular = style(11, FontWeight.w400);
   static final microStrong = style(11, FontWeight.w600);
   static final axis = style(11, FontWeight.w400);
+
+  /// "S/" inside the Solito sun-coin mark, on its 512-unit canvas: 124/800,
+  /// letter-spacing -6 (`docs/producto/play-store/icon.svg`).
+  static final brandMark = style(
+    124,
+    FontWeight.w800,
+    letterSpacing: -6 / 124,
+    height: 1,
+  ).copyWith(color: DesignColors.red);
 }
 
 abstract final class DesignSpacing {

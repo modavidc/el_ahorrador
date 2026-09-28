@@ -289,17 +289,7 @@ class _ProfileCard extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
     child: Row(
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: const BoxDecoration(
-            color: DesignColors.red,
-            shape: BoxShape.circle,
-          ),
-          child: const Center(
-            child: Sym(DesignIcons.savings, size: 24, color: DesignColors.card),
-          ),
-        ),
+        const ClipOval(child: BrandMark(size: 48)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
