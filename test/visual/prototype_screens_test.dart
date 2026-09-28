@@ -30,6 +30,9 @@ import '../support/capture_fakes.dart';
 /// Skipped when VISUAL_OUT is not set (CI).
 void main() {
   final out = Platform.environment['VISUAL_OUT'];
+  // VISUAL_SCALE=3 renders sharper images (store screenshots).
+  final scale =
+      double.tryParse(Platform.environment['VISUAL_SCALE'] ?? '') ?? 2;
 
   setUpAll(() async {
     if (out == null) return;
@@ -60,10 +63,10 @@ void main() {
     Future<void> Function(WidgetTester tester)? steps,
   ) async {
     tester.view
-      ..physicalSize = const Size(740, 1648)
-      ..devicePixelRatio = 2
-      ..padding = const FakeViewPadding(top: 72, bottom: 36)
-      ..viewPadding = const FakeViewPadding(top: 72, bottom: 36);
+      ..physicalSize = Size(370 * scale, 824 * scale)
+      ..devicePixelRatio = scale
+      ..padding = FakeViewPadding(top: 36 * scale, bottom: 18 * scale)
+      ..viewPadding = FakeViewPadding(top: 36 * scale, bottom: 18 * scale);
     addTearDown(tester.view.reset);
 
     final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -88,7 +91,7 @@ void main() {
     final render =
         boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final bytes = await tester.runAsync(() async {
-      final image = await render.toImage(pixelRatio: 2);
+      final image = await render.toImage(pixelRatio: scale);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
       return data!.buffer.asUint8List();
     });
