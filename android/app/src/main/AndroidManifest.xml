@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Dictar: the system recognizer listens; the app gets the text. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Dictar is optional: devices without a microphone can still install. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!-- Background capture of payment screenshots and notifications. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
