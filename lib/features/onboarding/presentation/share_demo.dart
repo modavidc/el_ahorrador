@@ -387,8 +387,8 @@ class _ShareSheet extends StatelessWidget {
     ),
   );
 
-  Widget _app(IconData? icon, String label, {bool ours = false}) => SizedBox(
-    width: 56,
+  // Four tiles share the row, so each takes an equal part of its width.
+  Widget _app(IconData? icon, String label, {bool ours = false}) => Expanded(
     child: Column(
       children: [
         AnimatedContainer(
