@@ -10,12 +10,12 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Channel `el_ahorrador/capture` between the open app and the capture
+ * Channel `solito/capture` between the open app and the capture
  * service: state, switch, permission pages, and "captured" so the open
  * screens refresh.
  */
 object AppChannel {
-    private const val NAME = "el_ahorrador/capture"
+    private const val NAME = "solito/capture"
     private var channel: MethodChannel? = null
     private val main = Handler(Looper.getMainLooper())
 

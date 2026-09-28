@@ -110,7 +110,7 @@ class OpenAiCoach implements CoachAssistant, CoachModelAccess {
       {
         'role': 'system',
         'content':
-            'Eres el Coach de El Ahorrador, una app de gastos en Perú. '
+            'Eres el Coach de Solito, una app de gastos en Perú. '
             'Responde en español peruano, en 2 a 4 oraciones, con cifras en '
             'soles (S/). Tono: ${context.tone.label.toLowerCase()}. Usa solo '
             'estos datos del usuario; si falta algo, dilo.\n\n'

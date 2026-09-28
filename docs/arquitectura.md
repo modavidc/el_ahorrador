@@ -76,8 +76,8 @@ interfaz** (`backgroundCaptureMain` en `lib/main.dart` →
   refresca cuando el motor de fondo escribe.
 
 El código nativo vive en `android/app/src/main/kotlin/.../{capture,reminders}`
-y habla con Dart por los canales `el_ahorrador/capture`,
-`el_ahorrador/capture_background` y `el_ahorrador/reminders`.
+y habla con Dart por los canales `solito/capture`,
+`solito/capture_background` y `solito/reminders`.
 
 ## Privacidad del Coach con OpenAI
 

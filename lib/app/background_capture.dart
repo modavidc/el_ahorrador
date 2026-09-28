@@ -11,7 +11,7 @@ import 'package:el_ahorrador/features/reminders/domain/reminders.dart';
 /// screenshot or a payment notification is registered in 1–2 seconds even
 /// with the app closed.
 ///
-/// Channel `el_ahorrador/capture_background`:
+/// Channel `solito/capture_background`:
 /// - `processImage(path)` / `processText({text, source})` → the notification
 ///   to show: `{status, title, body, movementId}`; no title means silence
 ///   (duplicates, images that are not receipts).
@@ -21,7 +21,7 @@ Future<void> runBackgroundCapture() async {
   final db = AppDatabase();
   final dependencies = AppDependencies(db);
   final service = dependencies.capture.service;
-  const channel = MethodChannel('el_ahorrador/capture_background');
+  const channel = MethodChannel('solito/capture_background');
 
   channel.setMethodCallHandler((call) async {
     switch (call.method) {

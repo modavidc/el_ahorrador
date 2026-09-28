@@ -6,7 +6,7 @@ Poder ver, dentro de la app, cuánto hay realmente en cada cuenta (BCP Soles, Vi
 
 ## 1) Estado actual real (corrige `IMPORT_MASIVO_SPEC.md`)
 
-`IMPORT_MASIVO_SPEC.md` (sección 1) dice *"El Ahorrador hoy no tiene concepto de ingreso"* — **eso ya no es cierto**, quedó desactualizado en algún punto sin que el doc se corrigiera. Verificado hoy (21/08) contra el código real:
+`IMPORT_MASIVO_SPEC.md` (sección 1) dice *"Solito hoy no tiene concepto de ingreso"* — **eso ya no es cierto**, quedó desactualizado en algún punto sin que el doc se corrigiera. Verificado hoy (21/08) contra el código real:
 
 | Qué | Dónde | Estado |
 |---|---|---|

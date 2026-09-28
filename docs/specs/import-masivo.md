@@ -1,4 +1,4 @@
-# Spec — Import masivo de gastos históricos a El Ahorrador
+# Spec — Import masivo de gastos históricos a Solito
 
 ## 0) Objetivo
 
@@ -9,16 +9,16 @@ Columnas: `date,type,account,category,subcategory,content,detail,amount`
 - `date`: `YYYY-MM-DD`
 - `type`: `expense` | `income`
 - `account`: nombre libre (ej. "BCP Soles", "Visa Light", "Cartera Efectivo", "Interbank Dólares", "Binance Funds USDT")
-- `category`/`subcategory`: taxonomía de MoneyManager (ver mapeo en sección 3 — **no coincide 1:1** con las categorías de El Ahorrador)
+- `category`/`subcategory`: taxonomía de MoneyManager (ver mapeo en sección 3 — **no coincide 1:1** con las categorías de Solito)
 - `content`: descripción de la transacción
 - `detail`: tags internos tipo `[cuenta?]`, `[categoría?]`, `[USD]` — indican que ese campo fue **inferido por default**, no que venía explícito en el texto original. Útil para que el usuario revise después, pero no bloquea el import.
 - `amount`: número, sin símbolo de moneda, en la moneda indicada por el tag `[USD]`/`[USDT]` en `detail` (si no hay tag, es PEN)
 
 ## 1) Limitación importante — SOLO GASTOS
 
-**El Ahorrador hoy no tiene concepto de "ingreso"** — la tabla `Expenses` (`lib/data/app_database.dart:51`) no tiene un campo de tipo income/expense, es una tabla de gastos únicamente. No hay tabla `Incomes` en el schema (`@DriftDatabase(tables: [Captures, Categories, Subcategories, Expenses])`, línea 68).
+**Solito hoy no tiene concepto de "ingreso"** — la tabla `Expenses` (`lib/data/app_database.dart:51`) no tiene un campo de tipo income/expense, es una tabla de gastos únicamente. No hay tabla `Incomes` en el schema (`@DriftDatabase(tables: [Captures, Categories, Subcategories, Expenses])`, línea 68).
 
-→ **De las 397 filas del CSV, solo importar las que tengan `type=expense`** (aprox. 310-320 filas). Las filas `type=income` se quedan afuera de este import — si se quiere trackear ingresos en El Ahorrador es un feature nuevo, fuera de este scope.
+→ **De las 397 filas del CSV, solo importar las que tengan `type=expense`** (aprox. 310-320 filas). Las filas `type=income` se quedan afuera de este import — si se quiere trackear ingresos en Solito es un feature nuevo, fuera de este scope.
 
 ## 2) Dónde vive todo (referencias de archivo)
 
@@ -32,9 +32,9 @@ Columnas: `date,type,account,category,subcategory,content,detail,amount`
 | Cómo se instancia la BD en la app real | `lib/main.dart:62` | `final db = AppDatabase();` |
 | Generación de IDs | Ya se usa `package:uuid` en `category_repository.dart` (`const Uuid()`, `.v4()`) — reusar el mismo patrón para el `id` de cada `Expense`. |
 
-## 3) Mapeo de categorías — MoneyManager (CSV) → El Ahorrador
+## 3) Mapeo de categorías — MoneyManager (CSV) → Solito
 
-El Ahorrador solo tiene **8 categorías** con subcategorías fijas (todas creadas en `_initializeDefaultCategories`):
+Solito solo tiene **8 categorías** con subcategorías fijas (todas creadas en `_initializeDefaultCategories`):
 
 - **Comida**: Carnes y pollo, Vegetales y verduras, Verduras y túbérculos, Frutas, Lácteos, Pan y cereales, Snacks, Bebidas, Comidas fuera, Supermercado, Otros
 - **Transporte**: Taxi, Uber/Didi, Bus, Metro, Gasolina, Estacionamiento, Otros
@@ -47,7 +47,7 @@ El Ahorrador solo tiene **8 categorías** con subcategorías fijas (todas creada
 
 El CSV trae **49 combinaciones distintas** de categoría>subcategoría (taxonomía de MoneyManager, mucho más granular — 20+ categorías). Tabla de mapeo sugerida (cantidad de filas afectadas entre paréntesis):
 
-| CSV (MoneyManager) | → El Ahorrador (existente) | Acción |
+| CSV (MoneyManager) | → Solito (existente) | Acción |
 |---|---|---|
 | Comida > Bebidas (36), Agua (9) | Comida > Bebidas | directo |
 | Comida > Comidas fuera (63) | Comida > Comidas fuera | directo |
@@ -95,7 +95,7 @@ El script de import debería recibir esta tabla de mapeo como una constante/conf
 | `date` (`YYYY-MM-DD`) | `dateEpochMs` | Parsear con `DateTime.parse(date).millisecondsSinceEpoch` (usar mediodía o medianoche local, a definir — no hay hora en el CSV) |
 | `amount` | `amountCents` | `(double.parse(amount) * 100).round()` |
 | moneda (tag `[USD]`/`[USDT]` en `detail`, si no PEN) | `currency` | `'PEN'` por default; `'USD'` o `'USDT'` si el tag está presente en `detail`. **No hay conversión de tasa de cambio acá** — se guarda el monto tal cual viene en su moneda original (mismo criterio que MoneyManager) |
-| `category`/`subcategory` | `categoryId`/`subcategoryId` | vía tabla de mapeo (sección 3) → pasar el **nombre** de la categoría/subcategoría de El Ahorrador (el método ya resuelve por nombre) |
+| `category`/`subcategory` | `categoryId`/`subcategoryId` | vía tabla de mapeo (sección 3) → pasar el **nombre** de la categoría/subcategoría de Solito (el método ya resuelve por nombre) |
 | `account` | `account` | pasar tal cual (campo de texto libre, no hay tabla de cuentas en este schema) |
 | `content` | `description` | tal cual |
 | `detail` | `notes` | tal cual (para que quede visible qué campos fueron inferidos, ej. `[cuenta?]`) |

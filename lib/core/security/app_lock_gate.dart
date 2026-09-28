@@ -152,7 +152,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'El Ahorrador está bloqueado',
+                    'Solito está bloqueado',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),

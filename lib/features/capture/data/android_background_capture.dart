@@ -7,13 +7,13 @@ import 'package:el_ahorrador/features/capture/domain/background_capture.dart';
 /// [BackgroundCapture] backed by the Android service
 /// (`android/app/src/main/kotlin/.../capture`).
 ///
-/// Channel `el_ahorrador/capture`:
+/// Channel `solito/capture`:
 /// - `state` → `{enabled: bool, granted: [permission names]}`
 /// - `setEnabled(bool)` and `openSettings(permission name)` → state
 /// - native → Dart `captured`: the background engine registered something.
 class AndroidBackgroundCapture implements BackgroundCapture {
   AndroidBackgroundCapture({
-    MethodChannel channel = const MethodChannel('el_ahorrador/capture'),
+    MethodChannel channel = const MethodChannel('solito/capture'),
   }) : _channel = channel {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'captured') _captured.add(null);

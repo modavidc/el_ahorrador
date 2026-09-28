@@ -40,7 +40,7 @@ Future<void> main() async {
   final appLockSettings = await AppLockSettings.load(
     const SecureAppLockPreferenceStore(),
   );
-  await AppObservability.run(MisGastosApp(appLockSettings: appLockSettings));
+  await AppObservability.run(SolitoApp(appLockSettings: appLockSettings));
   AppObservability.metric(
     'startup_duration',
     DateTime.now().difference(startTime).inMilliseconds,
@@ -55,18 +55,18 @@ Future<void> backgroundCaptureMain() async {
   await runBackgroundCapture();
 }
 
-class MisGastosApp extends StatefulWidget {
-  const MisGastosApp({super.key, this.appLockSettings});
+class SolitoApp extends StatefulWidget {
+  const SolitoApp({super.key, this.appLockSettings});
 
   /// Fingerprint lock preference, loaded before the first frame so a locked
   /// app never shows financial data. Defaults to disabled.
   final AppLockSettings? appLockSettings;
 
   @override
-  State<MisGastosApp> createState() => _MisGastosAppState();
+  State<SolitoApp> createState() => _SolitoAppState();
 }
 
-class _MisGastosAppState extends State<MisGastosApp> {
+class _SolitoAppState extends State<SolitoApp> {
   final db = AppDatabase();
   late final AppLockSettings _appLock =
       widget.appLockSettings ?? AppLockSettings.disabled();

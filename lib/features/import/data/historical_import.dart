@@ -22,8 +22,8 @@ class _CatMap {
   const _CatMap(this.category, this.subcategory);
 }
 
-// Categorías nuevas que no existen por default en El Ahorrador — se crean
-// (idempotente) antes de importar. Ver Z:\el_ahorrador\IMPORT_MASIVO_SPEC.md sección 3.
+// Categorías nuevas que no existen por default en Solito — se crean
+// (idempotente) antes de importar. Ver docs/specs/import-masivo.md, sección 3.
 const Map<String, List<String>> _newCategories = {
   'Vivienda': ['Renta', 'Mantenimiento', 'Gas', 'Otros'],
   'Cuidado Personal': ['Peluquería', 'Productos higiénicos', 'Otros'],
@@ -54,7 +54,7 @@ const Map<String, String> _newCategoryColors = {
   'Hogar': 'lime',
 };
 
-// Mapeo category>subcategory del CSV (taxonomía de MoneyManager) -> El Ahorrador.
+// Mapeo category>subcategory del CSV (taxonomía de MoneyManager) -> Solito.
 // Key = "<category> > <subcategory>" tal cual vienen en el CSV (subcategory puede ser '').
 // ignore: unused_element
 final Map<String, _CatMap> _categoryMapping = {

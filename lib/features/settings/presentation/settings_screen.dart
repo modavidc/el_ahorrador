@@ -249,7 +249,7 @@ class SettingsScreen extends StatelessWidget {
                       value: version.isEmpty ? '' : 'v$version',
                       onTap: () => showUndoToast(
                         context,
-                        'El Ahorrador${version.isEmpty ? '' : ' v$version'}'
+                        'Solito${version.isEmpty ? '' : ' v$version'}'
                         ' · datos en este dispositivo',
                       ),
                     ),
@@ -264,7 +264,7 @@ class SettingsScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 24),
                   child: Text(
-                    'El Ahorrador${version.isEmpty ? '' : ' · v$version'} · '
+                    'Solito${version.isEmpty ? '' : ' · v$version'} · '
                     'datos en este dispositivo',
                     textAlign: TextAlign.center,
                     style: DesignText.small.copyWith(color: DesignColors.ink2),
@@ -295,7 +295,7 @@ class _ProfileCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('El Ahorrador', style: DesignText.headlineBold),
+              Text('Solito', style: DesignText.headlineBold),
               Text(
                 'Datos en este dispositivo · racha de $streak '
                 '${streak == 1 ? 'día' : 'días'}',

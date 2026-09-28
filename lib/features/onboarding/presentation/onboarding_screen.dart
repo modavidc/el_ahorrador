@@ -172,8 +172,8 @@ class _Welcome extends StatelessWidget {
       Text('Tu plata,\nen orden.', style: DesignText.hero),
       const SizedBox(height: 14),
       Text(
-        'Registra gastos en segundos, deja que la captura haga el resto y '
-        'pregúntale a tu coach cuando dudes.',
+        'Pagaste. Compartiste. Solito se encarga del resto: tus gastos se '
+        'registran solos y sabes cuánto puedes gastar hoy.',
         style: DesignText.lead.copyWith(color: DesignColors.ink2),
       ),
     ],

@@ -52,7 +52,7 @@ abstract final class AppObservability {
       options
         ..dsn = _dsn
         ..environment = _environment
-        ..release = 'el_ahorrador@$_release'
+        ..release = 'solito@$_release'
         ..dist = _revision
         ..sendDefaultPii = false
         ..attachScreenshot = false
@@ -110,7 +110,7 @@ abstract final class AppObservability {
         'revision': _revision,
         'attributes': safe,
       }),
-      name: 'el_ahorrador',
+      name: 'solito',
     );
     if (_remoteEnabled) {
       unawaited(

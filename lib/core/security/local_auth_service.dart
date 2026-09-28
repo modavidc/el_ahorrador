@@ -22,7 +22,7 @@ final class SystemLocalAuthenticator implements LocalAuthenticator {
       }
 
       final authenticated = await _localAuth.authenticate(
-        localizedReason: 'Confirma tu identidad para acceder a El Ahorrador',
+        localizedReason: 'Confirma tu identidad para acceder a Solito',
         options: const AuthenticationOptions(
           biometricOnly: false,
           // AppLockGate owns session restoration. Letting the plugin also

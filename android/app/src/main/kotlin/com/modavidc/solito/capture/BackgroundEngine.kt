@@ -14,7 +14,7 @@ import io.flutter.plugin.common.MethodChannel
  * registered in 1–2 seconds even with the app closed.
  */
 object BackgroundEngine {
-    private const val CHANNEL = "el_ahorrador/capture_background"
+    private const val CHANNEL = "solito/capture_background"
 
     private val main = Handler(Looper.getMainLooper())
     private var engine: FlutterEngine? = null

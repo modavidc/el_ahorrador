@@ -82,7 +82,7 @@ void main() {
   });
 
   test('the Android adapter reads the service state', () async {
-    const channel = MethodChannel('el_ahorrador/capture');
+    const channel = MethodChannel('solito/capture');
     final calls = <String>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {

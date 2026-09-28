@@ -103,7 +103,7 @@ void main() {
     tester,
   ) async {
     final settings = AppLockSettings(_MemoryStore(), enabled: true);
-    await tester.pumpWidget(MisGastosApp(appLockSettings: settings));
+    await tester.pumpWidget(SolitoApp(appLockSettings: settings));
 
     expect(find.textContaining('bloqueado'), findsOneWidget);
     await unmount(tester);

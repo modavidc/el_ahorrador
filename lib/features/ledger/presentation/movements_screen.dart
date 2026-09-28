@@ -729,7 +729,7 @@ class _NoticesState extends State<_Notices> {
           key: 'share',
           icon: DesignIcons.bolt,
           title: 'Prueba la función principal',
-          subtitle: 'Yape → Compartir → El Ahorrador.',
+          subtitle: 'Yape → Compartir → Solito.',
           cta: 'Probar',
           onTap: widget.onTryShare,
           dark: true,

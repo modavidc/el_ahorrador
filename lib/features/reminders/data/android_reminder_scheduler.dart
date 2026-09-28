@@ -6,12 +6,12 @@ import 'package:el_ahorrador/features/reminders/domain/reminders.dart';
 /// (`android/app/src/main/kotlin/.../reminders`). Each alarm wakes the
 /// background engine, which asks [ReminderService.due] what to notify.
 ///
-/// Channel `el_ahorrador/reminders`:
+/// Channel `solito/reminders`:
 /// - `schedule({evening, hour, minute, morning})`
 /// - `show({id, title, body})`
 class AndroidReminderScheduler implements ReminderScheduler {
   const AndroidReminderScheduler({
-    MethodChannel channel = const MethodChannel('el_ahorrador/reminders'),
+    MethodChannel channel = const MethodChannel('solito/reminders'),
   }) : _channel = channel;
 
   final MethodChannel _channel;

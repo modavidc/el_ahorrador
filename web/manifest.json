@@ -1,11 +1,11 @@
 {
-    "name": "mis_gastos",
-    "short_name": "mis_gastos",
+    "name": "Solito",
+    "short_name": "Solito",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FAF6F1",
     "theme_color": "#D33F2B",
-    "description": "A new Flutter project.",
+    "description": "Solito: gastos sin teclear.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

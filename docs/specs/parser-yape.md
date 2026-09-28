@@ -68,7 +68,7 @@ lib/
 
 ### Caso 1: Pago por Yape ✅
 1. Usuario hace pago en Yape
-2. Comparte captura con "El Ahorrador"
+2. Comparte captura con "Solito"
 3. App detecta automáticamente que es Yape
 4. Extrae datos: monto, destinatario, fecha
 5. Registra como gasto automáticamente

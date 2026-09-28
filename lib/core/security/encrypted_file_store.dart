@@ -82,7 +82,7 @@ class FileStore {
     );
 
     final root = temporaryDirectory ?? await getTemporaryDirectory();
-    final ocrDirectory = Directory(p.join(root.path, 'el_ahorrador_ocr'));
+    final ocrDirectory = Directory(p.join(root.path, 'solito_ocr'));
     await ocrDirectory.create(recursive: true);
     final output = File(
       p.join(ocrDirectory.path, '${_uuid.v4()}${parsed.extension}'),

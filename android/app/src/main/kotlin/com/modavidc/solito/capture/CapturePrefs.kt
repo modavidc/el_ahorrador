@@ -4,7 +4,7 @@ import android.content.Context
 
 /** Background capture settings, readable by the service without Flutter. */
 object CapturePrefs {
-    private const val FILE = "el_ahorrador_capture"
+    private const val FILE = "solito_capture"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)

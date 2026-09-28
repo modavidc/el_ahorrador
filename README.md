@@ -1,4 +1,7 @@
-# El Ahorrador
+# Solito
+
+*Gastos sin teclear.* (Antes "El Ahorrador"; el repositorio y el paquete Dart
+conservan ese nombre.)
 
 App Android (Flutter) de finanzas personales. Registra gastos **a partir de
 capturas de pantalla** (Yape, bancos, Binance…) con OCR en el propio teléfono,

@@ -43,7 +43,7 @@ void main() {
     controller.lock();
     await tester.pumpAndSettle();
     expect(find.text('financial data'), findsNothing);
-    expect(find.text('El Ahorrador está bloqueado'), findsOneWidget);
+    expect(find.text('Solito está bloqueado'), findsOneWidget);
 
     await tester.tap(find.text('Desbloquear'));
     await tester.pumpAndSettle();

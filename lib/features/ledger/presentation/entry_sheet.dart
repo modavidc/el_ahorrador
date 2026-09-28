@@ -958,7 +958,7 @@ class TryShareSheet extends StatelessWidget {
       for (final (n, title, subtitle) in const [
         ('1', 'Paga', 'Con Yape, Plin o tu banco.'),
         ('2', 'Compartir', 'En el comprobante, toca Compartir.'),
-        ('3', 'El Ahorrador', 'Elige la app y listo: queda registrado.'),
+        ('3', 'Solito', 'Elige la app y listo: queda registrado.'),
       ])
         Padding(
           padding: const EdgeInsets.only(bottom: 10),

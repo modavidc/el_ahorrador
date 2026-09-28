@@ -6,8 +6,8 @@ import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 
 /// The looping demo of the onboarding (`design/share-demo-ahorrador.js`),
-/// recreated with native animation: pay with Yape → Compartir → El
-/// Ahorrador reads it → it is in Movimientos with "Registrado · Deshacer".
+/// recreated with native animation: pay with Yape → Compartir → Solito
+/// reads it → it is in Movimientos with "Registrado · Deshacer".
 class ShareDemo extends StatefulWidget {
   const ShareDemo({super.key, this.animate = true});
 
@@ -18,7 +18,7 @@ class ShareDemo extends StatefulWidget {
   static const segments = [
     (0.0, 3.2, 'Paga'),
     (3.2, 5.3, 'Compartir'),
-    (5.3, 8.4, 'El Ahorrador'),
+    (5.3, 8.4, 'Solito'),
     (8.4, length, 'Listo'),
   ];
 
@@ -380,7 +380,7 @@ class _ShareSheet extends StatelessWidget {
             _app(DesignIcons.forum, 'WhatsApp'),
             _app(DesignIcons.mail, 'Gmail'),
             _app(DesignIcons.backup, 'Drive'),
-            _app(null, 'El Ahorrador', ours: true),
+            _app(null, 'Solito', ours: true),
           ],
         ),
       ],
@@ -439,7 +439,7 @@ class _Reading extends StatelessWidget {
             children: [
               const BrandMark(size: 18),
               const SizedBox(width: 6),
-              Text('El Ahorrador', style: DesignText.smallBold),
+              Text('Solito', style: DesignText.smallBold),
             ],
           ),
           const SizedBox(height: 14),

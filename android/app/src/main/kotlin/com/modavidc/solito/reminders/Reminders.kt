@@ -20,15 +20,15 @@ import java.util.Calendar
  * alert) and one at 09:00 (weekly and monthly recaps). Each alarm wakes
  * the background engine, which decides what to notify from the ledger.
  *
- * Channel `el_ahorrador/reminders`: `schedule({evening, hour, minute,
+ * Channel `solito/reminders`: `schedule({evening, hour, minute,
  * morning, morningHour})` and `show({id, title, body})`.
  */
 object Reminders {
     const val EVENING = "evening"
     const val MORNING = "morning"
-    private const val CHANNEL = "el_ahorrador/reminders"
+    private const val CHANNEL = "solito/reminders"
     private const val NOTICE_CHANNEL = "reminders"
-    private const val PREFS = "el_ahorrador_reminders"
+    private const val PREFS = "solito_reminders"
 
     fun attach(context: Context, messenger: BinaryMessenger) {
         val app = context.applicationContext

@@ -13,7 +13,7 @@ import 'package:el_ahorrador/main.dart';
 void main() {
   testWidgets('App loads correctly', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MisGastosApp());
+    await tester.pumpWidget(const SolitoApp());
 
     expect(find.byType(MaterialApp), findsOneWidget);
     // The fingerprint lock is off until the user enables it in Ajustes.
