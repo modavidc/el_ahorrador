@@ -1,9 +1,9 @@
-package com.elahorrador.app.capture
+package com.modavidc.solito.capture
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.elahorrador.app.reminders.Reminders
+import com.modavidc.solito.reminders.Reminders
 
 /** Starts the capture and the reminders again after a reboot or an update. */
 class BootReceiver : BroadcastReceiver() {

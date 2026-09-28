@@ -1,4 +1,4 @@
-package com.elahorrador.app.capture
+package com.modavidc.solito.capture
 
 import android.app.Service
 import android.content.ContentUris
@@ -13,7 +13,7 @@ import android.os.IBinder
 import android.provider.MediaStore
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.elahorrador.app.R
+import com.modavidc.solito.R
 import java.io.File
 
 /**
@@ -23,7 +23,7 @@ import java.io.File
  */
 class ScreenshotCaptureService : Service() {
     companion object {
-        const val ACTION_PAUSE = "com.elahorrador.app.capture.PAUSE"
+        const val ACTION_PAUSE = "com.modavidc.solito.capture.PAUSE"
 
         /** Screenshots older than this when noticed are not new. */
         private const val RECENT_SECONDS = 20L

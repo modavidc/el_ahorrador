@@ -1,4 +1,4 @@
-package com.elahorrador.app.capture
+package com.modavidc.solito.capture
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,8 +8,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.elahorrador.app.MainActivity
-import com.elahorrador.app.R
+import com.modavidc.solito.MainActivity
+import com.modavidc.solito.R
 
 /** Notifications of the capture: the fixed one and "Registrado · Deshacer". */
 object ResultNotifier {

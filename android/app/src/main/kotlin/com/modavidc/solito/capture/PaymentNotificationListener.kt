@@ -1,4 +1,4 @@
-package com.elahorrador.app.capture
+package com.modavidc.solito.capture
 
 import android.app.Notification
 import android.service.notification.NotificationListenerService

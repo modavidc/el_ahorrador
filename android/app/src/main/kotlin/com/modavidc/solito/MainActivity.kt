@@ -1,10 +1,10 @@
-package com.elahorrador.app
+package com.modavidc.solito
 
 import android.os.Bundle
 import android.view.WindowManager
-import com.elahorrador.app.capture.AppChannel
-import com.elahorrador.app.capture.CapturePermissions
-import com.elahorrador.app.reminders.Reminders
+import com.modavidc.solito.capture.AppChannel
+import com.modavidc.solito.capture.CapturePermissions
+import com.modavidc.solito.reminders.Reminders
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 

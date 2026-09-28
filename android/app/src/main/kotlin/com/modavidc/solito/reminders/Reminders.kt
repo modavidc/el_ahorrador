@@ -1,4 +1,4 @@
-package com.elahorrador.app.reminders
+package com.modavidc.solito.reminders
 
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -9,8 +9,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.elahorrador.app.R
-import com.elahorrador.app.capture.ResultNotifier
+import com.modavidc.solito.R
+import com.modavidc.solito.capture.ResultNotifier
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import java.util.Calendar

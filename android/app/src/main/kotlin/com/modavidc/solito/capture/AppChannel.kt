@@ -1,4 +1,4 @@
-package com.elahorrador.app.capture
+package com.modavidc.solito.capture
 
 import android.app.Activity
 import android.content.Intent

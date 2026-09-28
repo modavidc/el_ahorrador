@@ -1,10 +1,10 @@
-package com.elahorrador.app.reminders
+package com.modavidc.solito.reminders
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.elahorrador.app.capture.BackgroundEngine
-import com.elahorrador.app.capture.CapturePrefs
+import com.modavidc.solito.capture.BackgroundEngine
+import com.modavidc.solito.capture.CapturePrefs
 
 /** An alarm of Recordatorios: asks Dart what to notify, then re-arms. */
 class ReminderReceiver : BroadcastReceiver() {

@@ -14,7 +14,7 @@ void main() {
 
   test('Android screenshot protection is controlled by configuration', () {
     final activity = source(
-      'android/app/src/main/kotlin/com/example/mis_gastos/MainActivity.kt',
+      'android/app/src/main/kotlin/com/modavidc/solito/MainActivity.kt',
     );
     final config = source(
       'android/app/src/main/res/values/security_config.xml',
