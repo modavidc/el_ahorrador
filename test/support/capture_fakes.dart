@@ -16,6 +16,72 @@ Yape
 Compartir
 ''';
 
+/// Current Yape receipt: logo "S/" on top, amount split from its "S/",
+/// shortened name with an asterisk, a message box, security code and the
+/// transaction data read row by row.
+const yapeWithMessage = '''
+S/
+yape
+JOSÉ
+QUIÑONES
+¡Yapeaste!
+S/
+2
+Carla Nue*
+29 set. 2026 | 05:33 p. m.
+pasaje bus
+CÓDIGO DE SEGURIDAD
+6 9 9
+DATOS DE LA TRANSACCIÓN
+Nro. de celular
+*** *** 281
+Destino
+Yape
+Nro. de operación
+23760001
+''';
+
+/// The same layout when the OCR reads the label column before the values
+/// and the time on its own line.
+const yapeColumns = '''
+yape
+¡Yapeaste!
+S/ 12
+Luis Paz*
+29 set. 2026
+| 06:41 p. m.
+almuerzo menu lomo saltado
+CÓDIGO DE SEGURIDAD
+4
+8
+6
+DATOS DE LA TRANSACCIÓN
+Nro. de celular
+Destino
+Nro. de operación
+*** *** 810
+Yape
+26520002
+''';
+
+/// Current Yape receipt without a message.
+const yapeNoMessage = '''
+yape
+¡Yapeaste!
+S/ 10
+Ana Ruiz*
+28 set. 2026 | 10:31 p. m.
+CÓDIGO DE SEGURIDAD
+9 3 8
+DATOS DE LA TRANSACCIÓN
+Nro. de celular
+*** *** 257
+Destino
+Yape
+Nro. de operación
+33940003
+''';
+
 const yapeReceived = '''
 ¡Te yapearon!
 S/ 450
@@ -95,6 +161,8 @@ const receipts = {
   'sent#copy': yapeSent,
   'received': yapeReceived,
   'person': yapeToPerson,
+  'message': yapeWithMessage,
+  'columns': yapeColumns,
   'blurry': yapeBlurry,
   'bcp': bcpCard,
   'selfie': selfie,

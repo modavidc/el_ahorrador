@@ -161,6 +161,7 @@ class DriftLedgerRepository implements LedgerRepository {
     DateTime? at,
     String sourceApp = 'Manual',
     String? captureId,
+    PaymentDetails details = const PaymentDetails(),
   }) async {
     final db = _db;
     final id = const Uuid().v4();
@@ -195,8 +196,12 @@ class DriftLedgerRepository implements LedgerRepository {
         categoryId: category == null ? null : await _categoryId(category),
         accountId: from,
         account: account,
+        vendor: details.counterpart,
         description: text,
         sourceApp: sourceApp,
+        message: details.message,
+        counterpartPhone: details.counterpartPhone,
+        operation: details.operation,
       );
     });
     return id;
@@ -312,6 +317,12 @@ class DriftLedgerRepository implements LedgerRepository {
       origin: e.captureId == null
           ? (isVoice ? MovementOrigin.voice : MovementOrigin.manual)
           : MovementOrigin.fromKey(_metaOrigin(r.captureMeta)),
+      details: PaymentDetails(
+        counterpart: isManual ? null : _nonEmpty(e.vendor),
+        counterpartPhone: e.counterpartPhone,
+        message: e.message,
+        operation: e.operation,
+      ),
     );
   }
 

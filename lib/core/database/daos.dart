@@ -94,6 +94,9 @@ extension CapturesDao on AppDatabase {
     String? source,
     String? destination,
     String? origination,
+    String? message,
+    String? counterpartPhone,
+    String? operation,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final resolvedCategory = categoryId == null
@@ -134,6 +137,9 @@ extension CapturesDao on AppDatabase {
         source: Value(source),
         destination: Value(destination),
         origination: Value(origination),
+        message: Value(message),
+        counterpartPhone: Value(counterpartPhone),
+        operation: Value(operation),
         createdAt: now,
         updatedAt: now,
       ),

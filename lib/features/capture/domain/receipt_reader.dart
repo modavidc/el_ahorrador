@@ -1,6 +1,7 @@
 /// Reads the OCR text of a payment receipt (Yape, Plin, bank apps): whether
-/// money went out or came in, the amount, who it was with, when, and the
-/// operation number used to spot duplicates.
+/// money went out or came in, the amount, who it was with, when, the
+/// message written with the payment, and the operation number used to spot
+/// duplicates.
 library;
 
 enum ReceiptDirection { sent, received, unknown }
@@ -28,6 +29,8 @@ final class ReceiptReading {
     required this.at,
     this.amountCents,
     this.counterpart,
+    this.counterpartPhone,
+    this.message,
     this.operation,
     this.text = '',
   });
@@ -41,8 +44,15 @@ final class ReceiptReading {
   /// Null when the amount could not be read.
   final int? amountCents;
 
-  /// Merchant or person on the other side ("Bodega Don Lucho").
+  /// Merchant or person on the other side ("Bodega Don Lucho"), without
+  /// the asterisk Yape puts after a shortened name.
   final String? counterpart;
+
+  /// Last 3 digits of the other side's phone ("*** *** 281" → "281").
+  final String? counterpartPhone;
+
+  /// What the payer wrote with the payment ("pasaje bus").
+  final String? message;
   final String? operation;
 
   /// Lowercased OCR text, for rules.
@@ -106,8 +116,34 @@ abstract final class ReceiptReader {
   static final _numericDate = RegExp(
     r'(\d{1,2})/(\d{1,2})/(\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?',
   );
+
   static final _operation = RegExp(
     r'(?:n(?:ro|°|º)?\.?\s*de\s*operaci[oó]n|c[oó]digo\s*de\s*operaci[oó]n|operaci[oó]n)\D{0,12}(\d{5,})',
+    caseSensitive: false,
+  );
+
+  /// When the OCR reads the label column first, the number comes a few
+  /// lines after its label ("Nro. de operación / *** *** 257 / Yape /
+  /// 33947938"). The gap never crosses a phone label, so a phone is not
+  /// taken for the operation.
+  static final _operationLater = RegExp(
+    r'n(?:ro|°|º)?\.?\s*de\s*operaci[oó]n(?:(?!celular)[\s\S]){0,60}?(?<!\d)(\d{5,})',
+    caseSensitive: false,
+  );
+
+  /// Masked phone of the other side: "*** *** 281".
+  static final _maskedPhone = RegExp(r'\*[*\s]*\*\s*(\d{3})(?!\d)');
+
+  /// Unmasked phone after its label: "Celular 987 654 321".
+  static final _labeledPhone = RegExp(
+    r'celular\D{0,20}?(\d[\d ]{5,}\d)',
+    caseSensitive: false,
+  );
+
+  /// Lines that end the message box: the labels under it.
+  static final _afterMessage = RegExp(
+    r'c[oó]digo\s*de\s*seguridad|datos\s*de\s*la\s*transacci[oó]n|'
+    r'n(?:ro|°|º)?\.?\s*de\s*(?:celular|operaci[oó]n)|^destino|^compartir',
     caseSensitive: false,
   );
 
@@ -151,16 +187,22 @@ abstract final class ReceiptReader {
     final amount = _amount(ocrText);
     final isReceipt =
         source != ReceiptSource.other || direction != ReceiptDirection.unknown;
+    final counterpart = _clean(
+      _sender.firstMatch(ocrText)?.group(1)?.trim() ??
+          _counterpart(lines, amountLine),
+    );
     return ReceiptReading(
       isReceipt: isReceipt,
       direction: direction,
       source: source,
       at: _date(ocrText, now) ?? now,
       amountCents: amount,
-      counterpart:
-          _sender.firstMatch(ocrText)?.group(1)?.trim() ??
-          _counterpart(lines, amountLine),
-      operation: _operation.firstMatch(ocrText)?.group(1),
+      counterpart: counterpart,
+      counterpartPhone: _phone(ocrText),
+      message: _message(lines, counterpart),
+      operation:
+          _operation.firstMatch(ocrText)?.group(1) ??
+          _operationLater.firstMatch(ocrText)?.group(1),
       text: text,
     );
   }
@@ -239,6 +281,49 @@ abstract final class ReceiptReader {
     if (p.startsWith('p') && h != 12) h += 12;
     if (p.startsWith('a') && h == 12) h = 0;
     return DateTime(year, month, day, h, m);
+  }
+
+  /// "Andrez Qui*" → "Andrez Qui".
+  static String? _clean(String? name) {
+    final n = name?.replaceAll(RegExp(r'[\s*]+$'), '').trim();
+    return n == null || n.isEmpty ? null : n;
+  }
+
+  static String? _phone(String text) {
+    final masked = _maskedPhone.firstMatch(text)?.group(1);
+    if (masked != null) return masked;
+    final digits = _labeledPhone
+        .firstMatch(text)
+        ?.group(1)
+        ?.replaceAll(' ', '');
+    return digits?.substring(digits.length - 3);
+  }
+
+  /// The box under the date: the first line with words after the date and
+  /// before the labels under it (código de seguridad, datos de la
+  /// transacción). Receipts without a message go straight to those labels.
+  static String? _message(List<String> lines, String? counterpart) {
+    final dateLine = lines.indexWhere(
+      (l) => _textDate.hasMatch(l) || _numericDate.hasMatch(l),
+    );
+    if (dateLine < 0) return null;
+    for (var i = dateLine + 1; i < lines.length; i++) {
+      final line = lines[i];
+      if (_afterMessage.hasMatch(line)) return null;
+      // The OCR may keep the note icon as a stray symbol before the text.
+      final text = line.replaceFirst(
+        RegExp(r'^[^\p{L}\p{N}]+', unicode: true),
+        '',
+      );
+      // The time can land on its own line: "10:31 p. m.".
+      if (text.isEmpty ||
+          _clean(text) == counterpart ||
+          RegExp(r'^\d{1,2}:\d{2}').hasMatch(text)) {
+        continue;
+      }
+      if (RegExp(r'\p{L}', unicode: true).hasMatch(text)) return text;
+    }
+    return null;
   }
 
   /// First line after the amount that is not a label, date or number.

@@ -29,6 +29,7 @@ final class CaptureDraft {
     this.ocrPercent,
     this.ruleLabel,
     this.why,
+    this.details = const PaymentDetails(),
   });
 
   final String note;
@@ -44,6 +45,9 @@ final class CaptureDraft {
 
   /// Why it is waiting in Por revisar ("Falta la categoría").
   final String? why;
+
+  /// Recipient, phone, message and operation read from the receipt.
+  final PaymentDetails details;
 }
 
 final class CaptureOutcome {

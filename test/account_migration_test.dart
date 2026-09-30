@@ -88,4 +88,27 @@ void main() {
       );
     },
   );
+
+  test('v8 expenses gain the receipt message, phone and operation', () async {
+    final sqlite = sqlite3.openInMemory();
+    final fresh = AppDatabase.forTesting(
+      NativeDatabase.opened(sqlite, closeUnderlyingOnClose: false),
+    );
+    await fresh.customSelect('SELECT 1').get();
+    await fresh.close();
+    sqlite
+      ..execute('ALTER TABLE expenses DROP COLUMN message')
+      ..execute('ALTER TABLE expenses DROP COLUMN counterpart_phone')
+      ..execute('ALTER TABLE expenses DROP COLUMN operation')
+      ..execute('PRAGMA user_version = 8');
+
+    final db = AppDatabase.forTesting(NativeDatabase.opened(sqlite));
+    addTearDown(db.close);
+
+    final columns = await db.customSelect('PRAGMA table_info(expenses)').get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      containsAll(['message', 'counterpart_phone', 'operation']),
+    );
+  });
 }

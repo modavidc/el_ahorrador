@@ -3037,6 +3037,39 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _messageMeta = const VerificationMeta(
+    'message',
+  );
+  @override
+  late final GeneratedColumn<String> message = GeneratedColumn<String>(
+    'message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _counterpartPhoneMeta = const VerificationMeta(
+    'counterpartPhone',
+  );
+  @override
+  late final GeneratedColumn<String> counterpartPhone = GeneratedColumn<String>(
+    'counterpart_phone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _operationMeta = const VerificationMeta(
+    'operation',
+  );
+  @override
+  late final GeneratedColumn<String> operation = GeneratedColumn<String>(
+    'operation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3077,6 +3110,9 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     source,
     destination,
     origination,
+    message,
+    counterpartPhone,
+    operation,
     createdAt,
     updatedAt,
   ];
@@ -3206,6 +3242,27 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         ),
       );
     }
+    if (data.containsKey('message')) {
+      context.handle(
+        _messageMeta,
+        message.isAcceptableOrUnknown(data['message']!, _messageMeta),
+      );
+    }
+    if (data.containsKey('counterpart_phone')) {
+      context.handle(
+        _counterpartPhoneMeta,
+        counterpartPhone.isAcceptableOrUnknown(
+          data['counterpart_phone']!,
+          _counterpartPhoneMeta,
+        ),
+      );
+    }
+    if (data.containsKey('operation')) {
+      context.handle(
+        _operationMeta,
+        operation.isAcceptableOrUnknown(data['operation']!, _operationMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3295,6 +3352,18 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.string,
         data['${effectivePrefix}origination'],
       ),
+      message: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message'],
+      ),
+      counterpartPhone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}counterpart_phone'],
+      ),
+      operation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -3329,6 +3398,15 @@ class Expense extends DataClass implements Insertable<Expense> {
   final String? source;
   final String? destination;
   final String? origination;
+
+  /// Message written with the payment on the receipt ("pasaje bus").
+  final String? message;
+
+  /// Last 3 digits of the recipient's phone on the receipt ("281").
+  final String? counterpartPhone;
+
+  /// Operation number of the receipt.
+  final String? operation;
   final int createdAt;
   final int updatedAt;
   const Expense({
@@ -3348,6 +3426,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     this.source,
     this.destination,
     this.origination,
+    this.message,
+    this.counterpartPhone,
+    this.operation,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -3393,6 +3474,15 @@ class Expense extends DataClass implements Insertable<Expense> {
     }
     if (!nullToAbsent || origination != null) {
       map['origination'] = Variable<String>(origination);
+    }
+    if (!nullToAbsent || message != null) {
+      map['message'] = Variable<String>(message);
+    }
+    if (!nullToAbsent || counterpartPhone != null) {
+      map['counterpart_phone'] = Variable<String>(counterpartPhone);
+    }
+    if (!nullToAbsent || operation != null) {
+      map['operation'] = Variable<String>(operation);
     }
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -3441,6 +3531,15 @@ class Expense extends DataClass implements Insertable<Expense> {
       origination: origination == null && nullToAbsent
           ? const Value.absent()
           : Value(origination),
+      message: message == null && nullToAbsent
+          ? const Value.absent()
+          : Value(message),
+      counterpartPhone: counterpartPhone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(counterpartPhone),
+      operation: operation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(operation),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -3468,6 +3567,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       source: serializer.fromJson<String?>(json['source']),
       destination: serializer.fromJson<String?>(json['destination']),
       origination: serializer.fromJson<String?>(json['origination']),
+      message: serializer.fromJson<String?>(json['message']),
+      counterpartPhone: serializer.fromJson<String?>(json['counterpartPhone']),
+      operation: serializer.fromJson<String?>(json['operation']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -3492,6 +3594,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       'source': serializer.toJson<String?>(source),
       'destination': serializer.toJson<String?>(destination),
       'origination': serializer.toJson<String?>(origination),
+      'message': serializer.toJson<String?>(message),
+      'counterpartPhone': serializer.toJson<String?>(counterpartPhone),
+      'operation': serializer.toJson<String?>(operation),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -3514,6 +3619,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     Value<String?> source = const Value.absent(),
     Value<String?> destination = const Value.absent(),
     Value<String?> origination = const Value.absent(),
+    Value<String?> message = const Value.absent(),
+    Value<String?> counterpartPhone = const Value.absent(),
+    Value<String?> operation = const Value.absent(),
     int? createdAt,
     int? updatedAt,
   }) => Expense(
@@ -3535,6 +3643,11 @@ class Expense extends DataClass implements Insertable<Expense> {
     source: source.present ? source.value : this.source,
     destination: destination.present ? destination.value : this.destination,
     origination: origination.present ? origination.value : this.origination,
+    message: message.present ? message.value : this.message,
+    counterpartPhone: counterpartPhone.present
+        ? counterpartPhone.value
+        : this.counterpartPhone,
+    operation: operation.present ? operation.value : this.operation,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -3568,6 +3681,11 @@ class Expense extends DataClass implements Insertable<Expense> {
       origination: data.origination.present
           ? data.origination.value
           : this.origination,
+      message: data.message.present ? data.message.value : this.message,
+      counterpartPhone: data.counterpartPhone.present
+          ? data.counterpartPhone.value
+          : this.counterpartPhone,
+      operation: data.operation.present ? data.operation.value : this.operation,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -3592,6 +3710,9 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('source: $source, ')
           ..write('destination: $destination, ')
           ..write('origination: $origination, ')
+          ..write('message: $message, ')
+          ..write('counterpartPhone: $counterpartPhone, ')
+          ..write('operation: $operation, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -3599,7 +3720,7 @@ class Expense extends DataClass implements Insertable<Expense> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     captureId,
     date,
@@ -3616,9 +3737,12 @@ class Expense extends DataClass implements Insertable<Expense> {
     source,
     destination,
     origination,
+    message,
+    counterpartPhone,
+    operation,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3639,6 +3763,9 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.source == this.source &&
           other.destination == this.destination &&
           other.origination == this.origination &&
+          other.message == this.message &&
+          other.counterpartPhone == this.counterpartPhone &&
+          other.operation == this.operation &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -3660,6 +3787,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<String?> source;
   final Value<String?> destination;
   final Value<String?> origination;
+  final Value<String?> message;
+  final Value<String?> counterpartPhone;
+  final Value<String?> operation;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   final Value<int> rowid;
@@ -3680,6 +3810,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.source = const Value.absent(),
     this.destination = const Value.absent(),
     this.origination = const Value.absent(),
+    this.message = const Value.absent(),
+    this.counterpartPhone = const Value.absent(),
+    this.operation = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3701,6 +3834,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.source = const Value.absent(),
     this.destination = const Value.absent(),
     this.origination = const Value.absent(),
+    this.message = const Value.absent(),
+    this.counterpartPhone = const Value.absent(),
+    this.operation = const Value.absent(),
     required int createdAt,
     required int updatedAt,
     this.rowid = const Value.absent(),
@@ -3726,6 +3862,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<String>? source,
     Expression<String>? destination,
     Expression<String>? origination,
+    Expression<String>? message,
+    Expression<String>? counterpartPhone,
+    Expression<String>? operation,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
@@ -3747,6 +3886,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (source != null) 'source': source,
       if (destination != null) 'destination': destination,
       if (origination != null) 'origination': origination,
+      if (message != null) 'message': message,
+      if (counterpartPhone != null) 'counterpart_phone': counterpartPhone,
+      if (operation != null) 'operation': operation,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -3770,6 +3912,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<String?>? source,
     Value<String?>? destination,
     Value<String?>? origination,
+    Value<String?>? message,
+    Value<String?>? counterpartPhone,
+    Value<String?>? operation,
     Value<int>? createdAt,
     Value<int>? updatedAt,
     Value<int>? rowid,
@@ -3791,6 +3936,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       source: source ?? this.source,
       destination: destination ?? this.destination,
       origination: origination ?? this.origination,
+      message: message ?? this.message,
+      counterpartPhone: counterpartPhone ?? this.counterpartPhone,
+      operation: operation ?? this.operation,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -3848,6 +3996,15 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (origination.present) {
       map['origination'] = Variable<String>(origination.value);
     }
+    if (message.present) {
+      map['message'] = Variable<String>(message.value);
+    }
+    if (counterpartPhone.present) {
+      map['counterpart_phone'] = Variable<String>(counterpartPhone.value);
+    }
+    if (operation.present) {
+      map['operation'] = Variable<String>(operation.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -3879,6 +4036,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('source: $source, ')
           ..write('destination: $destination, ')
           ..write('origination: $origination, ')
+          ..write('message: $message, ')
+          ..write('counterpartPhone: $counterpartPhone, ')
+          ..write('operation: $operation, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -6277,6 +6437,9 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       Value<String?> source,
       Value<String?> destination,
       Value<String?> origination,
+      Value<String?> message,
+      Value<String?> counterpartPhone,
+      Value<String?> operation,
       required int createdAt,
       required int updatedAt,
       Value<int> rowid,
@@ -6299,6 +6462,9 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<String?> source,
       Value<String?> destination,
       Value<String?> origination,
+      Value<String?> message,
+      Value<String?> counterpartPhone,
+      Value<String?> operation,
       Value<int> createdAt,
       Value<int> updatedAt,
       Value<int> rowid,
@@ -6447,6 +6613,21 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<String> get origination => $composableBuilder(
     column: $table.origination,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get message => $composableBuilder(
+    column: $table.message,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get counterpartPhone => $composableBuilder(
+    column: $table.counterpartPhone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operation => $composableBuilder(
+    column: $table.operation,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6622,6 +6803,21 @@ class $$ExpensesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get message => $composableBuilder(
+    column: $table.message,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get counterpartPhone => $composableBuilder(
+    column: $table.counterpartPhone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6778,6 +6974,17 @@ class $$ExpensesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get message =>
+      $composableBuilder(column: $table.message, builder: (column) => column);
+
+  GeneratedColumn<String> get counterpartPhone => $composableBuilder(
+    column: $table.counterpartPhone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get operation =>
+      $composableBuilder(column: $table.operation, builder: (column) => column);
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -6926,6 +7133,9 @@ class $$ExpensesTableTableManager
                 Value<String?> source = const Value.absent(),
                 Value<String?> destination = const Value.absent(),
                 Value<String?> origination = const Value.absent(),
+                Value<String?> message = const Value.absent(),
+                Value<String?> counterpartPhone = const Value.absent(),
+                Value<String?> operation = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6946,6 +7156,9 @@ class $$ExpensesTableTableManager
                 source: source,
                 destination: destination,
                 origination: origination,
+                message: message,
+                counterpartPhone: counterpartPhone,
+                operation: operation,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -6968,6 +7181,9 @@ class $$ExpensesTableTableManager
                 Value<String?> source = const Value.absent(),
                 Value<String?> destination = const Value.absent(),
                 Value<String?> origination = const Value.absent(),
+                Value<String?> message = const Value.absent(),
+                Value<String?> counterpartPhone = const Value.absent(),
+                Value<String?> operation = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -6988,6 +7204,9 @@ class $$ExpensesTableTableManager
                 source: source,
                 destination: destination,
                 origination: origination,
+                message: message,
+                counterpartPhone: counterpartPhone,
+                operation: operation,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

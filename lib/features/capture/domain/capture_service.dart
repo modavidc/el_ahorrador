@@ -162,6 +162,7 @@ class CaptureService {
         amountCents: amount,
         category: category,
         ocrPercent: d.ocrPercent,
+        details: d.details,
       ),
       ReceiptSource.other,
     );
@@ -271,6 +272,7 @@ class CaptureService {
       category: category ?? d.category,
       ocrPercent: d.ocrPercent,
       ruleLabel: d.ruleLabel,
+      details: d.details,
     );
     if ((draft.amountCents ?? 0) <= 0 || draft.category == null) {
       throw ArgumentError('Falta un dato');
@@ -336,6 +338,12 @@ class CaptureService {
           : category == null
           ? 'Falta la categoría'
           : null,
+      details: PaymentDetails(
+        counterpart: r.counterpart,
+        counterpartPhone: r.counterpartPhone,
+        message: r.message,
+        operation: r.operation,
+      ),
     );
   }
 
@@ -370,6 +378,7 @@ class CaptureService {
       at: draft.at,
       sourceApp: source.label,
       captureId: captureId,
+      details: draft.details,
     );
     await _records.setStatus(captureId, CaptureRecordStatus.processed);
     return id;

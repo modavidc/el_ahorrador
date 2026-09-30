@@ -25,6 +25,35 @@ enum MovementOrigin {
 }
 
 /// One row of the ledger: an income, an expense, or a transfer shown once.
+/// What a payment receipt says about the other side, kept with the
+/// movement it created (not shown yet; for "who did I pay most").
+final class PaymentDetails {
+  const PaymentDetails({
+    this.counterpart,
+    this.counterpartPhone,
+    this.message,
+    this.operation,
+  });
+
+  /// Person or merchant paid ("Andrez Qui").
+  final String? counterpart;
+
+  /// Last 3 digits of their phone ("281").
+  final String? counterpartPhone;
+
+  /// What was written with the payment ("pasaje bus").
+  final String? message;
+
+  /// Operation number of the receipt.
+  final String? operation;
+
+  bool get isEmpty =>
+      counterpart == null &&
+      counterpartPhone == null &&
+      message == null &&
+      operation == null;
+}
+
 final class Movement {
   const Movement({
     required this.id,
@@ -39,6 +68,7 @@ final class Movement {
     this.method,
     this.ocrPercent,
     this.origin = MovementOrigin.manual,
+    this.details = const PaymentDetails(),
   });
 
   final String id;
@@ -60,6 +90,9 @@ final class Movement {
   final int? ocrPercent;
 
   final MovementOrigin origin;
+
+  /// Recipient, phone, message and operation of the receipt it came from.
+  final PaymentDetails details;
 
   double get amount => amountCents / 100;
 

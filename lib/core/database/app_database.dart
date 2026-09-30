@@ -116,6 +116,15 @@ class Expenses extends Table {
   TextColumn get destination =>
       text().nullable()(); // A dónde va el dinero (para gastos)
   TextColumn get origination => text().nullable()(); // Origen de la transacción
+
+  /// Message written with the payment on the receipt ("pasaje bus").
+  TextColumn get message => text().nullable()();
+
+  /// Last 3 digits of the recipient's phone on the receipt ("281").
+  TextColumn get counterpartPhone => text().nullable()();
+
+  /// Operation number of the receipt.
+  TextColumn get operation => text().nullable()();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
   @override
@@ -162,7 +171,7 @@ class AppDatabase extends _$AppDatabase {
   static const defaultAccountGroupId = 'group_default';
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -240,6 +249,17 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8) {
         if (!await _hasColumn('accounts', 'is_hidden')) {
           await m.addColumn(accounts, accounts.isHidden);
+        }
+      }
+      if (from < 9 && await _hasTable('expenses')) {
+        for (final column in [
+          expenses.message,
+          expenses.counterpartPhone,
+          expenses.operation,
+        ]) {
+          if (!await _hasColumn('expenses', column.name)) {
+            await m.addColumn(expenses, column);
+          }
         }
       }
     },

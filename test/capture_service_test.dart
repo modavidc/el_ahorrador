@@ -29,6 +29,56 @@ void main() {
       expect(r.note, 'Yapeaste a Bodega Don Lucho');
     });
 
+    test('reads the message, recipient, phone and operation of a Yape', () {
+      final r = ReceiptReader.read(yapeWithMessage, now: now);
+      expect(r.direction, ReceiptDirection.sent);
+      expect(r.amountCents, 200);
+      expect(r.counterpart, 'Carla Nue');
+      expect(r.message, 'pasaje bus');
+      expect(r.counterpartPhone, '281');
+      expect(r.operation, '23760001');
+      expect(r.at, DateTime(2026, 9, 29, 17, 33));
+      expect(r.note, 'Yapeaste a Carla Nue');
+    });
+
+    test('the same Yape read column by column', () {
+      final r = ReceiptReader.read(yapeColumns, now: now);
+      expect(r.amountCents, 1200);
+      expect(r.counterpart, 'Luis Paz');
+      expect(r.message, 'almuerzo menu lomo saltado');
+      expect(r.counterpartPhone, '810');
+      expect(r.operation, '26520002');
+      expect(r.at, DateTime(2026, 9, 29, 18, 41));
+    });
+
+    test('a Yape without a message', () {
+      final r = ReceiptReader.read(yapeNoMessage, now: now);
+      expect(r.amountCents, 1000);
+      expect(r.counterpart, 'Ana Ruiz');
+      expect(r.message, isNull);
+      expect(r.counterpartPhone, '257');
+      expect(r.operation, '33940003');
+    });
+
+    test('a phone is never taken for the operation number', () {
+      const text = '''
+Operación exitosa
+S/ 80
+Celular
+987654321
+''';
+      final r = ReceiptReader.read(text, now: now);
+      expect(r.operation, isNull);
+      expect(r.counterpartPhone, '321');
+    });
+
+    test('older receipts have no message or phone', () {
+      final r = ReceiptReader.read(yapeSent, now: now);
+      expect(r.message, isNull);
+      expect(r.counterpartPhone, isNull);
+      expect(ReceiptReader.read(bcpCard, now: now).message, isNull);
+    });
+
     test('a received Yape is income', () {
       final r = ReceiptReader.read(yapeReceived, now: now);
       expect(r.direction, ReceiptDirection.received);
@@ -105,6 +155,41 @@ void main() {
       expect(m.type, MovementType.income);
       expect(m.category, 'Extra');
       expect(m.account, 'Yape');
+    });
+
+    test('keeps the recipient, phone, message and operation', () async {
+      final out = await service.process('columns');
+      expect(out.status, CaptureStatus.registered);
+      final m = (await movements()).single;
+      expect(m.category, 'Comida');
+      expect(m.note, 'Yapeaste a Luis Paz');
+      expect(m.details.counterpart, 'Luis Paz');
+      expect(m.details.counterpartPhone, '810');
+      expect(m.details.message, 'almuerzo menu lomo saltado');
+      expect(m.details.operation, '26520002');
+      final row = await db.select(db.expenses).getSingle();
+      expect(row.vendor, 'Luis Paz');
+      expect(row.message, 'almuerzo menu lomo saltado');
+    });
+
+    test('Por revisar keeps the receipt details until approved', () async {
+      final out = await service.process('message');
+      expect(out.status, CaptureStatus.review);
+      final item = (await service.watchInbox().first).single;
+      expect(item.draft.details.message, 'pasaje bus');
+      await service.approve(item, category: 'Transporte');
+      final m = (await movements()).single;
+      expect(m.details.counterpart, 'Carla Nue');
+      expect(m.details.counterpartPhone, '281');
+      expect(m.details.message, 'pasaje bus');
+      expect(m.details.operation, '23760001');
+    });
+
+    test('a manual entry has no receipt details', () async {
+      await DriftLedgerRepository(
+        db,
+      ).addEntry(type: MovementType.expense, amountCents: 500, account: 'Yape');
+      expect((await movements()).single.details.isEmpty, isTrue);
     });
 
     test('the same image or operation is a duplicate', () async {

@@ -21,7 +21,7 @@ abstract interface class LedgerRepository {
   Future<void> clearBudget(String category);
 
   /// Registers a movement and returns its id. [captureId] links the image
-  /// it was read from.
+  /// it was read from and [details] keeps what its receipt said.
   Future<String> addEntry({
     required MovementType type,
     required int amountCents,
@@ -32,6 +32,7 @@ abstract interface class LedgerRepository {
     DateTime? at,
     String sourceApp = 'Manual',
     String? captureId,
+    PaymentDetails details = const PaymentDetails(),
   });
 
   /// Deletes a movement (both halves of a transfer).

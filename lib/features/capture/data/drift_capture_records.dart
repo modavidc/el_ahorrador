@@ -161,6 +161,13 @@ class DriftCaptureRecords implements CaptureRecords {
     'ocrPercent': d.ocrPercent,
     'rule': d.ruleLabel,
     'why': d.why,
+    if (!d.details.isEmpty)
+      'details': {
+        'counterpart': d.details.counterpart,
+        'phone': d.details.counterpartPhone,
+        'message': d.details.message,
+        'operation': d.details.operation,
+      },
   };
 
   static CaptureDraft _draftFromJson(Map<String, dynamic> j) => CaptureDraft(
@@ -173,5 +180,14 @@ class DriftCaptureRecords implements CaptureRecords {
     ocrPercent: j['ocrPercent'] as int?,
     ruleLabel: j['rule'] as String?,
     why: j['why'] as String?,
+    details: switch (j['details']) {
+      final Map<String, dynamic> d => PaymentDetails(
+        counterpart: d['counterpart'] as String?,
+        counterpartPhone: d['phone'] as String?,
+        message: d['message'] as String?,
+        operation: d['operation'] as String?,
+      ),
+      _ => const PaymentDetails(),
+    },
   );
 }
