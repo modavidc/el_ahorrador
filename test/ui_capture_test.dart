@@ -157,4 +157,43 @@ void main() {
     expect(find.text('Comida'), findsWidgets);
     await unmount(tester);
   });
+
+  testWidgets('the letter of a category changes from Ajustes', (tester) async {
+    await pumpHome(tester);
+    await tester.tap(find.text('Ajustes'));
+    await tester.pumpAndSettle();
+    final categories = find.text('Categorías');
+    await tester.ensureVisible(categories);
+    await tester.pumpAndSettle();
+    await tester.tap(categories);
+    await tester.pumpAndSettle();
+    final letters = find.text('LETRAS');
+    await tester.scrollUntilVisible(
+      letters,
+      200,
+      scrollable: find
+          .ancestor(
+            of: find.text('Comida').first,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    // Transporte is in Gastos and again under Letras, with its "T".
+    final transporte = find.text('Transporte').last;
+    await tester.ensureVisible(transporte);
+    await tester.tap(transporte);
+    await tester.pumpAndSettle();
+    expect(find.text('Letra de Transporte'), findsOneWidget);
+
+    await tester.tap(find.text('B'));
+    await tester.pumpAndSettle();
+    final stored = (await tester.runAsync(
+      () => dependencies.ledger.watchCategoryLetters().first,
+    ))!;
+    expect(stored.letterOf(Category.transporte), 'B');
+    expect(stored['T'], isNull);
+    expect(find.text('B'), findsOneWidget);
+    await unmount(tester);
+  });
 }

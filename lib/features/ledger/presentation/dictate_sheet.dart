@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:el_ahorrador/core/format/fmt.dart';
 import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/domain/entry_interpreter.dart';
 import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
@@ -17,10 +18,15 @@ Future<EntryResult?> showDictateSheet(
   required SpeechInput speech,
   required LedgerRepository repository,
   required List<LedgerAccount> accounts,
+  CategoryLetters letters = CategoryLetters.defaults,
 }) => showPaperSheet<EntryResult>(
   context,
-  builder: (_) =>
-      DictateSheet(speech: speech, repository: repository, accounts: accounts),
+  builder: (_) => DictateSheet(
+    speech: speech,
+    repository: repository,
+    accounts: accounts,
+    letters: letters,
+  ),
 );
 
 /// Microphone with a pulse → transcript → amount, category and account
@@ -32,11 +38,15 @@ class DictateSheet extends StatefulWidget {
     required this.speech,
     required this.repository,
     required this.accounts,
+    this.letters = CategoryLetters.defaults,
   });
 
   final SpeechInput speech;
   final LedgerRepository repository;
   final List<LedgerAccount> accounts;
+
+  /// "C 15" → Comida S/ 15.
+  final CategoryLetters letters;
 
   @override
   State<DictateSheet> createState() => _DictateSheetState();
@@ -106,7 +116,11 @@ class _DictateSheetState extends State<DictateSheet>
 
   void _interpret() {
     _pulse.stop();
-    final entry = interpretEntry(_heard, accounts: widget.accounts);
+    final entry = interpretEntry(
+      _heard,
+      accounts: widget.accounts,
+      letters: widget.letters,
+    );
     setState(() {
       _done = true;
       _type = entry.type;

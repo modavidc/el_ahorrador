@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:el_ahorrador/core/database/app_database.dart';
 import 'package:el_ahorrador/core/database/daos.dart';
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
 
@@ -35,6 +36,25 @@ class DriftLedgerRepository implements LedgerRepository {
       .into(_db.appSettings)
       .insertOnConflictUpdate(
         AppSettingsCompanion.insert(key: monthlyBudgetKey, value: '$cents'),
+      );
+
+  static const categoryLettersKey = 'category_letters';
+
+  @override
+  Stream<CategoryLetters> watchCategoryLetters() =>
+      (_db.select(_db.appSettings)
+            ..where((s) => s.key.equals(categoryLettersKey)))
+          .watchSingleOrNull()
+          .map((row) => CategoryLetters.decode(row?.value));
+
+  @override
+  Future<void> setCategoryLetters(CategoryLetters letters) => _db
+      .into(_db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(
+          key: categoryLettersKey,
+          value: letters.encode(),
+        ),
       );
 
   @override

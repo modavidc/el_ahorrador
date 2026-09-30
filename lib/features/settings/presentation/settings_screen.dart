@@ -9,6 +9,7 @@ import 'package:el_ahorrador/design_system/kit.dart';
 import 'package:el_ahorrador/design_system/tokens.dart';
 import 'package:el_ahorrador/features/capture/domain/background_capture.dart';
 import 'package:el_ahorrador/features/capture/presentation/capture_hub_screen.dart';
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/month_summary.dart';
 import 'package:el_ahorrador/features/ledger/presentation/ledger_scope.dart';
 import 'package:el_ahorrador/features/settings/domain/app_preferences.dart';
@@ -553,7 +554,8 @@ class SecurityScreen extends StatelessWidget {
   }
 }
 
-/// Categorías: expenses and incomes with their caps; each opens its detail.
+/// Categorías: expenses and incomes with their caps (each opens its
+/// detail) and the letter of each expense category.
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key, required this.onOpen});
 
@@ -561,7 +563,8 @@ class CategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final budgets = LedgerScope.of(context).budgets;
+    final data = LedgerScope.of(context);
+    final budgets = data.budgets;
     SettingRow row(Category c, bool first, {bool cap = true}) {
       final limit = budgetFor(c, budgets);
       return SettingRow(
@@ -592,6 +595,99 @@ class CategoriesScreen extends StatelessWidget {
             for (final (i, c) in incomes.indexed) row(c, i == 0, cap: false),
           ],
         ),
+        SettingsGroup(
+          title: 'Letras',
+          rows: [
+            for (final (i, c) in expenses.indexed)
+              SettingRow(
+                first: i == 0,
+                icon: CategoryStyle.of(c).icon,
+                label: c.label,
+                value: data.letters.letterOf(c) ?? 'Sin letra',
+                onTap: () => showPaperSheet<void>(
+                  context,
+                  builder: (_) => _LetterSheet(
+                    category: c,
+                    letters: data.letters,
+                    onSave: data.repository.setCategoryLetters,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+          child: Text(
+            'Escribe o dicta “C 15” para un gasto de S/ 15 en Comida, o pon '
+            'la letra como mensaje de tu Yape y se registra solo.',
+            style: DesignText.small.copyWith(color: DesignColors.ink2),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Picks the letter of [category]; a letter taken by another category
+/// moves to this one.
+class _LetterSheet extends StatelessWidget {
+  const _LetterSheet({
+    required this.category,
+    required this.letters,
+    required this.onSave,
+  });
+
+  final Category category;
+  final CategoryLetters letters;
+  final Future<void> Function(CategoryLetters letters) onSave;
+
+  static const _alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  Future<void> _pick(BuildContext context, String? letter) async {
+    await onSave(letters.assign(category, letter));
+    if (context.mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = letters.letterOf(category);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Letra de ${category.label}', style: DesignText.sheetTitle),
+        const SizedBox(height: 4),
+        Text(
+          'Si la letra ya es de otra categoría, pasa a esta.',
+          style: DesignText.small.copyWith(color: DesignColors.ink2),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            // DsChip fills its width; in a Wrap it must hug its label.
+            for (final l in _alphabet.split(''))
+              IntrinsicWidth(
+                child: DsChip(
+                  label: switch (letters[l]) {
+                    final owner? when owner != category =>
+                      '$l · ${owner.label}',
+                    _ => l,
+                  },
+                  selected: l == current,
+                  onTap: () => _pick(context, l),
+                ),
+              ),
+          ],
+        ),
+        if (current != null) ...[
+          const SizedBox(height: 14),
+          SheetButton.secondary(
+            label: 'Quitar letra',
+            onTap: () => _pick(context, null),
+          ),
+        ],
       ],
     );
   }

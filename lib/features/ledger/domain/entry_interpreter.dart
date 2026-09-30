@@ -1,4 +1,5 @@
 import 'package:el_ahorrador/features/ledger/domain/category.dart';
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 
 /// What a sentence like "almuerzo 18 soles con yape" means (Dictar and
@@ -25,10 +26,28 @@ final class InterpretedEntry {
       '$account${yape ? ' · Yape' : ''}. Revisa y guarda.';
 }
 
+/// "C 15 menú" uses the category of the letter in [letters]; any other
+/// sentence is read by keywords.
 InterpretedEntry interpretEntry(
   String text, {
   required List<LedgerAccount> accounts,
+  CategoryLetters? letters,
 }) {
+  final lettered = letters?.parse(text);
+  if (lettered != null) {
+    final cents = lettered.amountCents;
+    final note = lettered.note ?? '';
+    return InterpretedEntry(
+      type: MovementType.expense,
+      amount: cents % 100 == 0
+          ? '${cents ~/ 100}'
+          : (cents / 100).toStringAsFixed(2),
+      category: lettered.category,
+      account: accounts.isEmpty ? '' : accounts.first.name,
+      note: note.isEmpty ? note : note[0].toUpperCase() + note.substring(1),
+      yape: false,
+    );
+  }
   final low = text.toLowerCase();
   final amount = RegExp(r'(\d+(?:[.,]\d{1,2})?)').firstMatch(low)?.group(1);
 

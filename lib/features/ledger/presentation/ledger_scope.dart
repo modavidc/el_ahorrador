@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
 
@@ -14,10 +15,14 @@ final class LedgerData {
     required this.budgets,
     required this.monthlyBudgetCents,
     required this.loaded,
+    this.letters = CategoryLetters.defaults,
   });
 
   final LedgerRepository repository;
   final List<Movement> movements;
+
+  /// Letter of each category ("C" → Comida).
+  final CategoryLetters letters;
   final List<LedgerAccount> accounts;
   final Map<String, int> budgets;
   final int monthlyBudgetCents;
@@ -46,6 +51,7 @@ class _LedgerProviderState extends State<LedgerProvider> {
   List<LedgerAccount>? _accounts;
   Map<String, int>? _budgets;
   int? _monthlyBudget;
+  CategoryLetters? _letters;
 
   @override
   void initState() {
@@ -55,6 +61,9 @@ class _LedgerProviderState extends State<LedgerProvider> {
       ..add(r.watchMovements().listen((v) => setState(() => _movements = v)))
       ..add(r.watchAccounts().listen((v) => setState(() => _accounts = v)))
       ..add(r.watchBudgets().listen((v) => setState(() => _budgets = v)))
+      ..add(
+        r.watchCategoryLetters().listen((v) => setState(() => _letters = v)),
+      )
       ..add(
         r.watchMonthlyBudget().listen(
           (v) => setState(() => _monthlyBudget = v),
@@ -80,6 +89,7 @@ class _LedgerProviderState extends State<LedgerProvider> {
       monthlyBudgetCents:
           _monthlyBudget ?? LedgerRepository.defaultMonthlyBudgetCents,
       loaded: _movements != null && _accounts != null && _budgets != null,
+      letters: _letters ?? CategoryLetters.defaults,
     ),
     child: widget.child,
   );

@@ -233,6 +233,7 @@ class _AppHomeState extends State<AppHome> {
       speech: widget.dependencies.speech,
       repository: _repository,
       accounts: LedgerScope.of(context).accounts,
+      letters: LedgerScope.of(context).letters,
     );
     if (result != null && context.mounted) {
       _registered(context, result.id, result.message);

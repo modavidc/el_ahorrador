@@ -64,6 +64,25 @@ Yape
 26520002
 ''';
 
+/// Yape to a person with a category letter as the message.
+const yapeLetter = '''
+yape
+¡Yapeaste!
+S/ 8
+Pedro Soto*
+29 set. 2026 | 01:15 p. m.
+C
+CÓDIGO DE SEGURIDAD
+1 2 3
+DATOS DE LA TRANSACCIÓN
+Nro. de celular
+*** *** 444
+Destino
+Yape
+Nro. de operación
+41110004
+''';
+
 /// Current Yape receipt without a message.
 const yapeNoMessage = '''
 yape
@@ -163,6 +182,7 @@ const receipts = {
   'person': yapeToPerson,
   'message': yapeWithMessage,
   'columns': yapeColumns,
+  'letter': yapeLetter,
   'blurry': yapeBlurry,
   'bcp': bcpCard,
   'selfie': selfie,

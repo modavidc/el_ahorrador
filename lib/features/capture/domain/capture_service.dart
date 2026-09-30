@@ -314,10 +314,16 @@ class CaptureService {
     final wantedAccount =
         merchantRule?.account ?? sourceRule?.account ?? r.source.label;
     final ruleCategory = merchantRule?.category ?? sourceRule?.category;
+    // A letter written as the message ("C") is the user's own choice.
+    final letters = await _ledger.watchCategoryLetters().first;
+    final lettered = type == MovementType.expense
+        ? letters.fromMessage(r.message)?.label
+        : null;
     final category =
-        ruleCategory == null || ruleCategory == CaptureRule.automatic
-        ? guessCategory(r)
-        : ruleCategory;
+        lettered ??
+        (ruleCategory == null || ruleCategory == CaptureRule.automatic
+            ? guessCategory(r)
+            : ruleCategory);
     final label = [merchantRule, sourceRule].nonNulls.firstOrNull;
 
     return CaptureDraft(

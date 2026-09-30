@@ -8,6 +8,8 @@ import 'package:el_ahorrador/features/capture/data/drift_capture_rule_repository
 import 'package:el_ahorrador/features/capture/domain/capture_models.dart';
 import 'package:el_ahorrador/features/capture/domain/capture_service.dart';
 import 'package:el_ahorrador/features/capture/domain/receipt_reader.dart';
+import 'package:el_ahorrador/features/ledger/domain/category.dart';
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/data/drift_ledger_repository.dart';
 
@@ -183,6 +185,29 @@ Celular
       expect(m.details.counterpartPhone, '281');
       expect(m.details.message, 'pasaje bus');
       expect(m.details.operation, '23760001');
+    });
+
+    test('a letter as the Yape message registers it in its category', () async {
+      final out = await service.process('letter');
+      expect(out.status, CaptureStatus.registered);
+      final m = (await movements()).single;
+      expect(m.category, 'Comida');
+      expect(m.details.message, 'C');
+      expect(m.details.counterpart, 'Pedro Soto');
+    });
+
+    test('the user\'s letters decide, and without a letter it waits', () async {
+      final ledger = DriftLedgerRepository(db);
+      await ledger.setCategoryLetters(
+        CategoryLetters.defaults.assign(Category.ocio, 'C'),
+      );
+      await service.process('letter');
+      expect((await movements()).single.category, 'Ocio');
+
+      await ledger.setCategoryLetters(const CategoryLetters({}));
+      final out = await service.process('message');
+      expect(out.status, CaptureStatus.review);
+      expect(out.draft!.why, 'Falta la categoría');
     });
 
     test('a manual entry has no receipt details', () async {

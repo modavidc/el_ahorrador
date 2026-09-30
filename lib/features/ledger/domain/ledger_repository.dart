@@ -1,3 +1,4 @@
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 
 /// Puts deleted rows back ("Deshacer").
@@ -17,6 +18,10 @@ abstract interface class LedgerRepository {
   Stream<int> watchMonthlyBudget();
 
   Future<void> setMonthlyBudget(int cents);
+
+  /// Letter of each category for "C 15" and Yape messages.
+  Stream<CategoryLetters> watchCategoryLetters();
+  Future<void> setCategoryLetters(CategoryLetters letters);
   Future<void> setBudget(String category, int monthlyCapCents);
   Future<void> clearBudget(String category);
 
