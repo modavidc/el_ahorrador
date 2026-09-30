@@ -212,6 +212,7 @@ class _AppHomeState extends State<AppHome> {
       repository: _repository,
       accounts: data.accounts,
       movements: data.movements,
+      letters: data.letters,
     );
     if (result == null || !context.mounted) return;
     _registered(context, result.id, result.message);

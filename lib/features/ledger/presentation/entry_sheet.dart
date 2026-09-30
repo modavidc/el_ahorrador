@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:el_ahorrador/core/clock/app_clock.dart';
+import 'package:el_ahorrador/features/ledger/domain/category_letters.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
 import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
 import 'package:el_ahorrador/features/ledger/domain/month_summary.dart';
@@ -24,6 +25,7 @@ Future<EntryResult?> showEntrySheet(
   required LedgerRepository repository,
   required List<LedgerAccount> accounts,
   required List<Movement> movements,
+  CategoryLetters letters = CategoryLetters.defaults,
 }) => showPaperSheet<EntryResult>(
   context,
   padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
@@ -31,23 +33,29 @@ Future<EntryResult?> showEntrySheet(
     repository: repository,
     accounts: accounts,
     movements: movements,
+    letters: letters,
   ),
 );
 
-/// Manual entry of v3: type segment, big amount, frequent entries, category
-/// grid, a folded "Yape · Hoy · Sin nota" row and its own keypad, with
-/// Guardar always visible at the bottom.
+/// Manual entry of v3: type segment, big amount, frequent entries, the
+/// description (where "C 15 almuerzo" fills amount and category), category
+/// grid, a folded "Yape · Hoy" row and its own keypad, with Guardar always
+/// visible at the bottom.
 class EntrySheet extends StatefulWidget {
   const EntrySheet({
     super.key,
     required this.repository,
     required this.accounts,
     required this.movements,
+    this.letters = CategoryLetters.defaults,
   });
 
   final LedgerRepository repository;
   final List<LedgerAccount> accounts;
   final List<Movement> movements;
+
+  /// "C 15" in the description → S/ 15 in Comida.
+  final CategoryLetters letters;
 
   @override
   State<EntrySheet> createState() => _EntrySheetState();
@@ -111,6 +119,24 @@ class _EntrySheetState extends State<EntrySheet> {
     });
   }
 
+  /// What the description says when it starts with a letter and amount.
+  LetterEntry? get _lettered =>
+      _type == MovementType.transfer ? null : widget.letters.parse(_note.text);
+
+  /// "C 15 almuerzo" sets the amount and category as it is typed; the
+  /// rest ("almuerzo") is what gets saved as the description.
+  void _describe(String text) => setState(() {
+    final e = _lettered;
+    if (e == null) return;
+    _type = MovementType.expense;
+    _amount = _plain(e.amountCents / 100);
+    _category = e.category.label;
+    _error = null;
+  });
+
+  String get _description =>
+      _lettered == null ? _note.text.trim() : (_lettered!.note ?? '').trim();
+
   void _useFrequent(Movement m) => setState(() {
     _amount = _plain(m.amount);
     _note.text = m.note;
@@ -140,9 +166,9 @@ class _EntrySheetState extends State<EntrySheet> {
         account: _account,
         category: transfer ? null : _category,
         toAccount: to,
-        note: _note.text.trim().isEmpty
+        note: _description.isEmpty
             ? (transfer ? '$_account → $to' : null)
-            : _note.text,
+            : _description,
         at: at,
       );
       if (!mounted) return;
@@ -174,7 +200,6 @@ class _EntrySheetState extends State<EntrySheet> {
     final summary = [
       if (!transfer) _account,
       _yesterday ? 'Ayer' : 'Hoy',
-      _note.text.trim().isEmpty ? 'Sin nota' : _note.text.trim(),
     ].join(' · ');
 
     return Column(
@@ -249,6 +274,33 @@ class _EntrySheetState extends State<EntrySheet> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 12),
+                Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: DesignColors.card,
+                    borderRadius: BorderRadius.circular(DesignRadius.pill),
+                  ),
+                  child: TextField(
+                    key: const ValueKey('entry-description'),
+                    controller: _note,
+                    onChanged: _describe,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: DesignText.body14,
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: transfer
+                          ? 'Descripción'
+                          : 'Descripción · o escribe “C 15 almuerzo”',
+                      hintStyle: DesignText.body14.copyWith(
+                        color: DesignColors.ink2,
+                      ),
+                    ),
+                  ),
+                ),
                 if (transfer) ...[
                   _Label('DESDE'),
                   _AccountChips(
@@ -315,33 +367,6 @@ class _EntrySheetState extends State<EntrySheet> {
                         label: 'Ayer',
                         selected: _yesterday,
                         onTap: () => setState(() => _yesterday = true),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Container(
-                          height: 40,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          alignment: Alignment.centerLeft,
-                          decoration: BoxDecoration(
-                            color: DesignColors.card,
-                            borderRadius: BorderRadius.circular(
-                              DesignRadius.pill,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _note,
-                            onChanged: (_) => setState(() {}),
-                            style: DesignText.body14,
-                            decoration: InputDecoration(
-                              isCollapsed: true,
-                              border: InputBorder.none,
-                              hintText: 'Nota',
-                              hintStyle: DesignText.body14.copyWith(
-                                color: DesignColors.ink2,
-                              ),
-                            ),
-                          ),
-                        ),
                       ),
                     ],
                   ),

@@ -142,6 +142,36 @@ void main() {
     await _unmount(tester);
   });
 
+  testWidgets('"C 15 almuerzo" in the description fills the entry', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await _pumpHome(tester, db);
+
+    await tester.tap(find.byKey(const ValueKey('fab')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Manual'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('entry-description')),
+      'C 15 almuerzo',
+    );
+    await tester.pump();
+    expect(find.text('Guardar S/ 15.00'), findsOneWidget);
+
+    await tester.tap(find.text('Guardar S/ 15.00'));
+    await tester.pumpAndSettle();
+    final saved = await db.select(db.expenses).getSingle();
+    expect(saved.amountCents, -1500);
+    expect(saved.description, 'almuerzo');
+    final category = await (db.select(
+      db.categories,
+    )..where((c) => c.id.equals(saved.categoryId!))).getSingle();
+    expect(category.name, 'Comida');
+    await _unmount(tester);
+  });
+
   testWidgets('+ → Manual registers with the keypad and can be undone', (
     tester,
   ) async {
