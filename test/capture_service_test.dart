@@ -100,6 +100,25 @@ Celular
       expect(r.operation, '01120002');
     });
 
+    test('a message block read before the date is still the message', () {
+      const text = '''
+yape
+¡Yapeaste!
+pasaje bus
+S/ 2
+Carla Nue*
+29 set. 2026 | 05:33 p. m.
+CÓDIGO DE SEGURIDAD
+DATOS DE LA TRANSACCIÓN
+Nro. de operación
+23760001
+''';
+      final r = ReceiptReader.read(text, now: now);
+      expect(r.message, 'pasaje bus');
+      expect(r.counterpart, 'Carla Nue');
+      expect(r.amountCents, 200);
+    });
+
     test('older receipts have no message or phone', () {
       final r = ReceiptReader.read(yapeSent, now: now);
       expect(r.message, isNull);
@@ -253,6 +272,44 @@ Celular
       expect(m.category, 'Comida');
       expect(m.account, 'BCP Soles');
       expect(m.details.message, 'Prueba comida');
+    });
+
+    test('a message word anywhere in the receipt still counts', () async {
+      final ocr = FakeOcr({
+        'lost': '''
+yape
+¡Yapeaste!
+S/ 2
+Luz Bustamante*
+29 set. 2026 | 05:33 p. m.
+CÓDIGO DE SEGURIDAD
+Nro. de operación
+23760009
+pasaje
+''',
+        'name': '''
+yape
+¡Yapeaste!
+S/ 5
+Luz Bustamante*
+29 set. 2026 | 05:40 p. m.
+CÓDIGO DE SEGURIDAD
+Nro. de operación
+23760010
+''',
+      });
+      final s = CaptureService(
+        ocr: ocr,
+        images: FakeStorage(),
+        records: DriftCaptureRecords(db),
+        rules: DriftCaptureRuleRepository(db),
+        ledger: DriftLedgerRepository(db),
+        now: () => now,
+      );
+      expect((await s.process('lost')).status, CaptureStatus.registered);
+      expect((await movements()).single.category, 'Transporte');
+      // "Luz" and "Bustamante" are the recipient, not Servicios or bus.
+      expect((await s.process('name')).status, CaptureStatus.review);
     });
 
     test('a Plin without a message waits for its category', () async {
