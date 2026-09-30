@@ -4,6 +4,7 @@ import 'package:el_ahorrador/features/capture/domain/capture_rule.dart';
 import 'package:el_ahorrador/features/capture/domain/receipt_reader.dart';
 import 'package:el_ahorrador/features/capture/domain/ticket_reader.dart';
 import 'package:el_ahorrador/features/ledger/domain/entities.dart';
+import 'package:el_ahorrador/features/ledger/domain/entry_interpreter.dart';
 import 'package:el_ahorrador/features/ledger/domain/ledger_repository.dart';
 
 /// Turns a shared image into a movement: OCR, receipt reading, capture
@@ -314,15 +315,19 @@ class CaptureService {
     final wantedAccount =
         merchantRule?.account ?? sourceRule?.account ?? r.source.label;
     final ruleCategory = merchantRule?.category ?? sourceRule?.category;
-    // A letter written as the message ("C") is the user's own choice.
+    // The message is the user's own words: a letter ("C") decides, then a
+    // rule's fixed category, then a known word ("pasaje bus"), then the
+    // merchant.
+    final expense = type == MovementType.expense;
     final letters = await _ledger.watchCategoryLetters().first;
-    final lettered = type == MovementType.expense
-        ? letters.fromMessage(r.message)?.label
+    final lettered = expense ? letters.fromMessage(r.message)?.label : null;
+    final said = expense && r.message != null
+        ? keywordCategory(r.message!)?.label
         : null;
     final category =
         lettered ??
         (ruleCategory == null || ruleCategory == CaptureRule.automatic
-            ? guessCategory(r)
+            ? said ?? guessCategory(r)
             : ruleCategory);
     final label = [merchantRule, sourceRule].nonNulls.firstOrNull;
 

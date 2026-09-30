@@ -83,6 +83,45 @@ Nro. de operación
 41110004
 ''';
 
+/// BCP app paying a Plin user, with a message box. Invented data.
+const bcpToPlin = '''
+>BCP>
+¡Operación exitosa!
+S/ 1.00
+Martes 29 Septiembre 2026 - 07:57 pm.
+Enviado a LUCIA FERNANDA PAZ ROJAS
+*** **
+PLIN
+Comisión
+Gratis
+Desde
+Cuentas De Ahorro
+**** 6097
+Número de operación
+06080001
+Mensaje
+Prueba comida
+''';
+
+/// Interbank app paying by Plin: no message, the name wrapped on two lines
+/// and the recipient's phone and bank. Invented data.
+const interbankPlin = '''
+Interbank
+plin
+¡Pago exitoso!
+S/ 1.01
+Enviado a:
+LUCIA FERNANDA PAZ R OJAS
+TORRES
+987 654 321 - BCP
+Comisión:
+GRATIS
+Fecha y hora:
+29 Sep 2026 08:05 PM
+Código de operación:
+01120002
+''';
+
 /// Current Yape receipt without a message.
 const yapeNoMessage = '''
 yape
@@ -183,6 +222,8 @@ const receipts = {
   'message': yapeWithMessage,
   'columns': yapeColumns,
   'letter': yapeLetter,
+  'bcpPlin': bcpToPlin,
+  'interbankPlin': interbankPlin,
   'blurry': yapeBlurry,
   'bcp': bcpCard,
   'selfie': selfie,

@@ -86,4 +86,11 @@ void main() {
     // Without letters, the same words go by keywords.
     expect(interpretEntry('c 15', accounts: accounts).category, Category.otros);
   });
+
+  test('a known whole word names the category', () {
+    expect(keywordCategory('pasaje bus'), Category.transporte);
+    expect(keywordCategory('Prueba comida'), Category.comida);
+    expect(keywordCategory('Pago Bustamante'), isNull);
+    expect(keywordCategory('Moises evento'), isNull);
+  });
 }

@@ -32,6 +32,7 @@ final class ReceiptReading {
     this.counterpartPhone,
     this.message,
     this.operation,
+    this.via,
     this.text = '',
   });
 
@@ -55,6 +56,10 @@ final class ReceiptReading {
   final String? message;
   final String? operation;
 
+  /// Plin or Yape when a bank app sent the money through them ("Enviado a
+  /// … PLIN" from BCP).
+  final ReceiptSource? via;
+
   /// Lowercased OCR text, for rules.
   final String text;
 
@@ -71,6 +76,8 @@ final class ReceiptReading {
         who == null ? 'Te plinearon' : 'Plin de $who',
       ReceiptSource.plin => who == null ? 'Plin' : 'Plin a $who',
       ReceiptSource.other => who ?? 'Pago',
+      _ when via != null && !received =>
+        who == null ? via!.label : '${via!.label} a $who',
       _ when received =>
         who == null ? 'Transferencia ${source.label}' : 'Transferencia de $who',
       _ =>
@@ -127,7 +134,7 @@ abstract final class ReceiptReader {
   /// 33947938"). The gap never crosses a phone label, so a phone is not
   /// taken for the operation.
   static final _operationLater = RegExp(
-    r'n(?:ro|°|º)?\.?\s*de\s*operaci[oó]n(?:(?!celular)[\s\S]){0,60}?(?<!\d)(\d{5,})',
+    r'(?:n[uú]mero|n(?:ro|°|º)?\.?)\s*de\s*operaci[oó]n(?:(?!celular)[\s\S]){0,60}?(?<!\d)(\d{5,})',
     caseSensitive: false,
   );
 
@@ -137,6 +144,23 @@ abstract final class ReceiptReader {
   /// Unmasked phone after its label: "Celular 987 654 321".
   static final _labeledPhone = RegExp(
     r'celular\D{0,20}?(\d[\d ]{5,}\d)',
+    caseSensitive: false,
+  );
+
+  /// Peruvian mobile written in full: "938 804 597".
+  static final _mobile = RegExp(r'(?<!\d)9\d{2} ?\d{3} ?\d{3}(?!\d)');
+
+  /// "Enviado a:" of bank and Plin receipts, with the name after it or on
+  /// the next lines.
+  static final _sentTo = RegExp(
+    r'^enviado\s+a\s*:?\s*(.*)$',
+    caseSensitive: false,
+  );
+
+  /// "Mensaje" title of a message box (BCP), with the text on the next
+  /// line or after it.
+  static final _messageTitle = RegExp(
+    r'^mensaje\s*:?\s*(.*)$',
     caseSensitive: false,
   );
 
@@ -187,8 +211,10 @@ abstract final class ReceiptReader {
     final amount = _amount(ocrText);
     final isReceipt =
         source != ReceiptSource.other || direction != ReceiptDirection.unknown;
+    final sentTo = _sentToBlock(lines);
     final counterpart = _clean(
       _sender.firstMatch(ocrText)?.group(1)?.trim() ??
+          sentTo?.name ??
           _counterpart(lines, amountLine),
     );
     return ReceiptReading(
@@ -198,23 +224,55 @@ abstract final class ReceiptReader {
       at: _date(ocrText, now) ?? now,
       amountCents: amount,
       counterpart: counterpart,
-      counterpartPhone: _phone(ocrText),
-      message: _message(lines, counterpart),
+      counterpartPhone: _phone(ocrText, sentTo),
+      message:
+          _titledMessage(lines) ??
+          (source == ReceiptSource.yape ? _message(lines, counterpart) : null),
       operation:
           _operation.firstMatch(ocrText)?.group(1) ??
           _operationLater.firstMatch(ocrText)?.group(1),
+      via: _via(text, source),
       text: text,
     );
   }
 
+  static final _sources = {
+    ReceiptSource.yape: RegExp('yape'),
+    ReceiptSource.plin: RegExp('plin'),
+    ReceiptSource.bbva: RegExp('bbva'),
+    ReceiptSource.interbank: RegExp('interbank'),
+    ReceiptSource.scotiabank: RegExp('scotiabank'),
+    ReceiptSource.bcp: RegExp(r'\bbcp\b'),
+  };
+
+  /// The app or bank that issued the receipt: the first one named, which
+  /// is its logo. Later names are where the money went ("Enviado a …
+  /// PLIN" from BCP, "938 804 597 - BCP" from Interbank).
   static ReceiptSource _source(String text) {
-    if (text.contains('yape')) return ReceiptSource.yape;
+    var best = ReceiptSource.other;
+    var at = text.length;
+    for (final MapEntry(key: source, value: pattern) in _sources.entries) {
+      final i = pattern.firstMatch(text)?.start;
+      if (i != null && i < at) {
+        best = source;
+        at = i;
+      }
+    }
+    return best;
+  }
+
+  /// Plin or Yape named after a bank issuer.
+  static ReceiptSource? _via(String text, ReceiptSource source) {
+    const banks = [
+      ReceiptSource.bcp,
+      ReceiptSource.bbva,
+      ReceiptSource.interbank,
+      ReceiptSource.scotiabank,
+    ];
+    if (!banks.contains(source)) return null;
     if (text.contains('plin')) return ReceiptSource.plin;
-    if (text.contains('bbva')) return ReceiptSource.bbva;
-    if (text.contains('interbank')) return ReceiptSource.interbank;
-    if (text.contains('scotiabank')) return ReceiptSource.scotiabank;
-    if (RegExp(r'\bbcp\b').hasMatch(text)) return ReceiptSource.bcp;
-    return ReceiptSource.other;
+    if (text.contains('yape')) return ReceiptSource.yape;
+    return null;
   }
 
   static int? _amount(String text) {
@@ -289,14 +347,66 @@ abstract final class ReceiptReader {
     return n == null || n.isEmpty ? null : n;
   }
 
-  static String? _phone(String text) {
+  static String? _phone(String text, _SentTo? sentTo) {
     final masked = _maskedPhone.firstMatch(text)?.group(1);
     if (masked != null) return masked;
+    final mobile = sentTo == null
+        ? null
+        : _mobile.firstMatch(sentTo.after)?.group(0)?.replaceAll(' ', '');
+    if (mobile != null) return mobile.substring(mobile.length - 3);
     final digits = _labeledPhone
         .firstMatch(text)
         ?.group(1)
         ?.replaceAll(' ', '');
     return digits?.substring(digits.length - 3);
+  }
+
+  /// "Enviado a MOISES …" or "Enviado a:" followed by the name, which may
+  /// wrap to a second line. [_SentTo.after] holds the lines under it,
+  /// where Plin writes the phone.
+  static _SentTo? _sentToBlock(List<String> lines) {
+    final i = lines.indexWhere(_sentTo.hasMatch);
+    if (i < 0) return null;
+    final parts = [_sentTo.firstMatch(lines[i])!.group(1)!.trim()];
+    var next = i + 1;
+    bool isName(String l) =>
+        RegExp(r'^[\p{L} .]+$', unicode: true).hasMatch(l) &&
+        !_label.hasMatch(l) &&
+        !RegExp(r'^comisi[oó]n', caseSensitive: false).hasMatch(l);
+    // Name on the next lines when the label stands alone; one wrapped line
+    // when it continues.
+    final maxLines = parts.first.isEmpty ? 2 : 1;
+    var taken = 0;
+    while (next < lines.length && taken < maxLines && isName(lines[next])) {
+      final upperName = lines[next] == lines[next].toUpperCase();
+      if (parts.first.isNotEmpty && !upperName) break;
+      parts.add(lines[next]);
+      next++;
+      taken++;
+    }
+    final name = parts.where((p) => p.isNotEmpty).join(' ');
+    return _SentTo(
+      name: name.isEmpty ? null : _titleCase(name),
+      after: lines.skip(next).take(3).join('\n'),
+    );
+  }
+
+  /// "MOISES DAVID" → "Moises David"; mixed case stays as written.
+  static String _titleCase(String name) => name != name.toUpperCase()
+      ? name
+      : name
+            .toLowerCase()
+            .split(' ')
+            .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+            .join(' ');
+
+  /// Text under a "Mensaje" title (BCP), or after it on the same line.
+  static String? _titledMessage(List<String> lines) {
+    final i = lines.indexWhere(_messageTitle.hasMatch);
+    if (i < 0) return null;
+    final inline = _messageTitle.firstMatch(lines[i])!.group(1)!.trim();
+    if (inline.isNotEmpty) return inline;
+    return i + 1 < lines.length ? lines[i + 1] : null;
   }
 
   /// The box under the date: the first line with words after the date and
@@ -341,4 +451,12 @@ abstract final class ReceiptReader {
     }
     return null;
   }
+}
+
+/// Name and the lines under "Enviado a".
+final class _SentTo {
+  const _SentTo({required this.name, required this.after});
+
+  final String? name;
+  final String after;
 }

@@ -74,6 +74,32 @@ Celular
       expect(r.counterpartPhone, '321');
     });
 
+    test('BCP paying a Plin user, with its message', () {
+      final r = ReceiptReader.read(bcpToPlin, now: now);
+      expect(r.source, ReceiptSource.bcp);
+      expect(r.via, ReceiptSource.plin);
+      expect(r.direction, ReceiptDirection.sent);
+      expect(r.amountCents, 100);
+      expect(r.at, DateTime(2026, 9, 29, 19, 57));
+      expect(r.counterpart, 'Lucia Fernanda Paz Rojas');
+      expect(r.message, 'Prueba comida');
+      expect(r.counterpartPhone, isNull);
+      expect(r.operation, '06080001');
+      expect(r.note, 'Plin a Lucia Fernanda Paz Rojas');
+    });
+
+    test('Interbank Plin: wrapped name, full phone, no message', () {
+      final r = ReceiptReader.read(interbankPlin, now: now);
+      expect(r.source, ReceiptSource.interbank);
+      expect(r.via, ReceiptSource.plin);
+      expect(r.amountCents, 101);
+      expect(r.at, DateTime(2026, 9, 29, 20, 5));
+      expect(r.counterpart, 'Lucia Fernanda Paz R Ojas Torres');
+      expect(r.counterpartPhone, '321');
+      expect(r.message, isNull);
+      expect(r.operation, '01120002');
+    });
+
     test('older receipts have no message or phone', () {
       final r = ReceiptReader.read(yapeSent, now: now);
       expect(r.message, isNull);
@@ -174,17 +200,27 @@ Celular
       expect(row.message, 'almuerzo menu lomo saltado');
     });
 
-    test('Por revisar keeps the receipt details until approved', () async {
+    test('"pasaje bus" registers the Yape in Transporte', () async {
       final out = await service.process('message');
-      expect(out.status, CaptureStatus.review);
-      final item = (await service.watchInbox().first).single;
-      expect(item.draft.details.message, 'pasaje bus');
-      await service.approve(item, category: 'Transporte');
+      expect(out.status, CaptureStatus.registered);
       final m = (await movements()).single;
+      expect(m.category, 'Transporte');
       expect(m.details.counterpart, 'Carla Nue');
       expect(m.details.counterpartPhone, '281');
       expect(m.details.message, 'pasaje bus');
       expect(m.details.operation, '23760001');
+    });
+
+    test('Por revisar keeps the receipt details until approved', () async {
+      final out = await service.process('interbankPlin');
+      expect(out.status, CaptureStatus.review);
+      final item = (await service.watchInbox().first).single;
+      await service.approve(item, category: 'Casa');
+      final m = (await movements()).single;
+      expect(m.category, 'Casa');
+      expect(m.details.counterpart, 'Lucia Fernanda Paz R Ojas Torres');
+      expect(m.details.counterpartPhone, '321');
+      expect(m.details.operation, '01120002');
     });
 
     test('a letter as the Yape message registers it in its category', () async {
@@ -205,9 +241,29 @@ Celular
       expect((await movements()).single.category, 'Ocio');
 
       await ledger.setCategoryLetters(const CategoryLetters({}));
-      final out = await service.process('message');
+      final out = await service.process('interbankPlin');
       expect(out.status, CaptureStatus.review);
       expect(out.draft!.why, 'Falta la categoría');
+    });
+
+    test('a known word in the message picks the category', () async {
+      final out = await service.process('bcpPlin');
+      expect(out.status, CaptureStatus.registered);
+      final m = (await movements()).single;
+      expect(m.category, 'Comida');
+      expect(m.account, 'BCP Soles');
+      expect(m.details.message, 'Prueba comida');
+    });
+
+    test('a Plin without a message waits for its category', () async {
+      final out = await service.process('interbankPlin');
+      expect(out.status, CaptureStatus.review);
+      expect(out.draft!.why, 'Falta la categoría');
+      expect(
+        out.draft!.details.counterpart,
+        'Lucia Fernanda Paz R Ojas Torres',
+      );
+      expect(out.draft!.details.counterpartPhone, '321');
     });
 
     test('a manual entry has no receipt details', () async {

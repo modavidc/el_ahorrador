@@ -18,3 +18,21 @@ explícita.
 - Captura en segundo plano en iOS (hoy no es posible: solo compartir).
 - Mejoras menores del roadmap anterior: detalles sin truncar, detección
   origen/destino en transferencias (Yape → Plin).
+
+## Retención y prueba cerrada (propuestas de setiembre 2026)
+
+Quedan fuera de la v1 porque piden un servidor y cuentas de usuario, y la app
+promete "sin cuenta" y datos solo en el teléfono.
+
+- **Monedas por uso** con tope diario. Hoy la IA no le cuesta nada al
+  proyecto: la voz y el OCR corren en el teléfono y el Coach usa la clave de
+  cada usuario. Tiene sentido si algún día el Coach pasa por un servidor
+  propio. Premiar días registrados (la racha) antes que minutos en la app.
+- **Panel privado de testers** con `last_active_at`. Durante la prueba cerrada
+  basta un grupo de WhatsApp con los testers.
+- **Código de referido** para pagar por instalaciones efectivas. En prueba
+  cerrada los testers entran por enlace de invitación y la atribución de Play
+  no aplica; llevarlo en una hoja de cálculo.
+- **Incentivos a testers**: pagar por probar y dar feedback, nunca por
+  calificaciones o reseñas (lo prohíbe Google Play). Preferir una recompensa
+  fija a un sorteo.
