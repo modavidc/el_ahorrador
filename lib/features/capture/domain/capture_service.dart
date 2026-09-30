@@ -321,13 +321,16 @@ class CaptureService {
     final expense = type == MovementType.expense;
     final letters = await _ledger.watchCategoryLetters().first;
     final lettered = expense ? letters.fromMessage(r.message)?.label : null;
-    final said = expense && r.message != null
-        ? keywordCategory(r.message!)?.label
+    final said = expense ? keywordCategory(r.message ?? '')?.label : null;
+    // Last, a known word anywhere but the name: a message the OCR did not
+    // read as its own line.
+    final anywhere = expense
+        ? keywordCategory(_withoutName(r.text, r.counterpart))?.label
         : null;
     final category =
         lettered ??
         (ruleCategory == null || ruleCategory == CaptureRule.automatic
-            ? said ?? guessCategory(r)
+            ? said ?? guessCategory(r) ?? anywhere
             : ruleCategory);
     final label = [merchantRule, sourceRule].nonNulls.firstOrNull;
 
@@ -356,6 +359,24 @@ class CaptureService {
         operation: r.operation,
       ),
     );
+  }
+
+  /// The receipt text without the words of [name], so a person called
+  /// "Luz" or "Bus…" does not decide the category when the message was
+  /// not read on its own.
+  static String _withoutName(String text, String? name) {
+    var rest = text;
+    for (final word in (name ?? '').toLowerCase().split(RegExp(r'\s+'))) {
+      if (word.length < 2) continue;
+      rest = rest.replaceAll(
+        RegExp(
+          '(?<![\\p{L}])${RegExp.escape(word)}(?![\\p{L}])',
+          unicode: true,
+        ),
+        ' ',
+      );
+    }
+    return rest;
   }
 
   /// The user's account for a rule's account name: exact name, a name that

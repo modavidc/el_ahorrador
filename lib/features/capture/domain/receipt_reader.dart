@@ -419,7 +419,7 @@ abstract final class ReceiptReader {
     if (dateLine < 0) return null;
     for (var i = dateLine + 1; i < lines.length; i++) {
       final line = lines[i];
-      if (_afterMessage.hasMatch(line)) return null;
+      if (_afterMessage.hasMatch(line)) break;
       // The OCR may keep the note icon as a stray symbol before the text.
       final text = line.replaceFirst(
         RegExp(r'^[^\p{L}\p{N}]+', unicode: true),
@@ -432,6 +432,36 @@ abstract final class ReceiptReader {
         continue;
       }
       if (RegExp(r'\p{L}', unicode: true).hasMatch(text)) return text;
+    }
+    return _messageBeforeDate(lines, dateLine, counterpart);
+  }
+
+  /// A message block the OCR placed between the title and the date: the
+  /// line there that is neither the amount nor the name.
+  static String? _messageBeforeDate(
+    List<String> lines,
+    int dateLine,
+    String? counterpart,
+  ) {
+    final title = lines.indexWhere(
+      (l) =>
+          _sent.hasMatch(l.toLowerCase()) ||
+          _received.hasMatch(l.toLowerCase()),
+    );
+    if (title < 0 || title >= dateLine) return null;
+    for (var i = title + 1; i < dateLine; i++) {
+      final text = lines[i].replaceFirst(
+        RegExp(r'^[^\p{L}\p{N}]+', unicode: true),
+        '',
+      );
+      if (text.isEmpty ||
+          _money.hasMatch(text) ||
+          RegExp(r'^s\s*/\.?$', caseSensitive: false).hasMatch(text) ||
+          _clean(text) == counterpart ||
+          !RegExp(r'\p{L}', unicode: true).hasMatch(text)) {
+        continue;
+      }
+      return text;
     }
     return null;
   }
