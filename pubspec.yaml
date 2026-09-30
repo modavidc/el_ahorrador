@@ -1,5 +1,5 @@
 name: el_ahorrador
-description: "El Ahorrador - App de gestión de gastos personales"
+description: "Solito - gastos sin teclear"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -58,6 +58,11 @@ dependencies:
   sentry_flutter: ^9.6.0
   local_auth: ^2.3.0
 
+  # Escanear boleta, Dictar and the Coach with OpenAI
+  image_picker: ^1.2.2
+  speech_to_text: ^7.4.0
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -103,19 +108,24 @@ flutter:
   # (opsz 24, wght 400, FILL 0), bundled so the app matches the prototype
   # offline and on every device.
   fonts:
-    - family: Roboto
+    - family: SchibstedGrotesk
       fonts:
-        - asset: assets/fonts/Roboto-400.ttf
+        - asset: assets/fonts/SchibstedGrotesk-400.ttf
           weight: 400
-        - asset: assets/fonts/Roboto-500.ttf
+        - asset: assets/fonts/SchibstedGrotesk-500.ttf
           weight: 500
-        - asset: assets/fonts/Roboto-600.ttf
+        - asset: assets/fonts/SchibstedGrotesk-600.ttf
           weight: 600
-        - asset: assets/fonts/Roboto-700.ttf
+        - asset: assets/fonts/SchibstedGrotesk-700.ttf
           weight: 700
+        - asset: assets/fonts/SchibstedGrotesk-800.ttf
+          weight: 800
     - family: MaterialSymbolsRounded
       fonts:
         - asset: assets/fonts/MaterialSymbolsRounded.ttf
+    - family: MaterialSymbolsRoundedFilled
+      fonts:
+        - asset: assets/fonts/MaterialSymbolsRoundedFilled.ttf
 
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

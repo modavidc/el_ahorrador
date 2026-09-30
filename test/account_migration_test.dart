@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:el_ahorrador/data/app_database.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
 
 void main() {
   test('v4 accounts receive balance columns during v5 migration', () async {
@@ -52,8 +52,44 @@ void main() {
     },
   );
 
-  test('v6 databases gain budgets, settings and account details', () async {
-    // Build the current schema, then strip what v7 adds to get a v6 file.
+  test(
+    'v6 databases gain budgets, settings, account details and hiding',
+    () async {
+      // Build the current schema, then strip what v7 adds to get a v6 file.
+      final sqlite = sqlite3.openInMemory();
+      final fresh = AppDatabase.forTesting(
+        NativeDatabase.opened(sqlite, closeUnderlyingOnClose: false),
+      );
+      await fresh.customSelect('SELECT 1').get();
+      await fresh.close();
+      sqlite
+        ..execute('DROP TABLE budgets')
+        ..execute('DROP TABLE app_settings')
+        ..execute('ALTER TABLE accounts DROP COLUMN description')
+        ..execute('ALTER TABLE accounts DROP COLUMN credit_limit_cents')
+        ..execute('ALTER TABLE accounts DROP COLUMN is_hidden')
+        ..execute('PRAGMA user_version = 6');
+
+      final db = AppDatabase.forTesting(NativeDatabase.opened(sqlite));
+      addTearDown(db.close);
+
+      final columns = await db
+          .customSelect('PRAGMA table_info(accounts)')
+          .get();
+      expect(
+        columns.map((row) => row.read<String>('name')),
+        containsAll(['description', 'credit_limit_cents', 'is_hidden']),
+      );
+      expect(await db.select(db.budgets).get(), isEmpty);
+      expect(await db.select(db.appSettings).get(), isEmpty);
+      expect(
+        (await db.select(db.accounts).getSingle()).id,
+        AppDatabase.defaultAccountId,
+      );
+    },
+  );
+
+  test('v8 expenses gain the receipt message, phone and operation', () async {
     final sqlite = sqlite3.openInMemory();
     final fresh = AppDatabase.forTesting(
       NativeDatabase.opened(sqlite, closeUnderlyingOnClose: false),
@@ -61,25 +97,18 @@ void main() {
     await fresh.customSelect('SELECT 1').get();
     await fresh.close();
     sqlite
-      ..execute('DROP TABLE budgets')
-      ..execute('DROP TABLE app_settings')
-      ..execute('ALTER TABLE accounts DROP COLUMN description')
-      ..execute('ALTER TABLE accounts DROP COLUMN credit_limit_cents')
-      ..execute('PRAGMA user_version = 6');
+      ..execute('ALTER TABLE expenses DROP COLUMN message')
+      ..execute('ALTER TABLE expenses DROP COLUMN counterpart_phone')
+      ..execute('ALTER TABLE expenses DROP COLUMN operation')
+      ..execute('PRAGMA user_version = 8');
 
     final db = AppDatabase.forTesting(NativeDatabase.opened(sqlite));
     addTearDown(db.close);
 
-    final columns = await db.customSelect('PRAGMA table_info(accounts)').get();
+    final columns = await db.customSelect('PRAGMA table_info(expenses)').get();
     expect(
       columns.map((row) => row.read<String>('name')),
-      containsAll(['description', 'credit_limit_cents']),
-    );
-    expect(await db.select(db.budgets).get(), isEmpty);
-    expect(await db.select(db.appSettings).get(), isEmpty);
-    expect(
-      (await db.select(db.accounts).getSingle()).id,
-      AppDatabase.defaultAccountId,
+      containsAll(['message', 'counterpart_phone', 'operation']),
     );
   });
 }

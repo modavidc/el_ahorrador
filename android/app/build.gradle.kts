@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.elahorrador.app"
+    namespace = "com.modavidc.solito"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.elahorrador.app"
+        applicationId = "com.modavidc.solito"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -52,4 +52,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // NotificationCompat and ServiceCompat for the background capture.
+    implementation("androidx.core:core-ktx:1.13.1")
 }

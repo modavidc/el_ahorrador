@@ -1,4 +1,7 @@
-# El Ahorrador
+# Solito
+
+*Gastos sin teclear.* (Antes "El Ahorrador"; el repositorio y el paquete Dart
+conservan ese nombre.)
 
 App Android (Flutter) de finanzas personales. Registra gastos **a partir de
 capturas de pantalla** (Yape, bancos, Binance…) con OCR en el propio teléfono,
@@ -7,13 +10,14 @@ sin escribirlos a mano.
 ## Objetivo v1
 
 La v1 es la del handoff de diseño en [`design/`](design/README.md)
-(tema unificado en `design/tokens.json` + prototipo HTML), **más** el núcleo
+(handoff v3 de Claude Design: `design/README.md` + prototipo HTML), **más** el núcleo
 que da sentido a la app:
 
 1. **Captura → OCR → transacción.** Compartir una imagen con la app, leerla
    on-device y registrarla. *(Ya existe.)*
 2. **Detección automática de capturas (Android).** Detectar capturas nuevas
-   de Yape/bancos y procesarlas sin que el usuario las comparta. *(Pendiente.)*
+   de Yape/bancos y avisos de pago, y procesarlas sin que el usuario las
+   comparta. *(Hecho: servicio en primer plano + lector de notificaciones.)*
 3. **Pantallas del diseño:** Trans. (Diario, Calendario, Mensual, Total),
    Estadísticas, Coach IA, Cuentas y Ajustes.
 
@@ -24,12 +28,11 @@ Fuera de la v1: ver [`docs/ideas.md`](docs/ideas.md).
 | Fase | Contenido | Estado |
 |---|---|---|
 | 0 | Motor: OCR, parsers, cola de captura, DB cifrada (SQLCipher), bloqueo | Hecho |
-| 1 | Tema desde `design/tokens.json`, fuentes Roboto + Material Symbols Rounded | Hecho |
-| 2 | Bottom nav de 5 ítems + FAB, pantalla Trans. (Diario, Calendario, Mensual, Total) | Hecho |
-| 3 | Estadísticas + detalle de categoría | Hecho |
-| 4 | Cuentas (saldos calculados) + Ajustes persistidos + Presupuestos | Hecho |
-| 5 | Detección automática de capturas (Android) + Escanear recibo | Pendiente |
-| 6 | Coach IA: insights locales (hecho) + chat con LLM (pendiente) | Parcial |
+| 1 | Tema v3, shell (5 pestañas + botón +), Movimientos y registro manual | Hecho |
+| 2 | Captura por compartir (1 o varias imágenes), Por revisar y reglas | Hecho |
+| 3 | Estadísticas, Coach, Cuentas, Ajustes y Presupuestos | Hecho |
+| 4 | Captura en segundo plano (Android): capturas de pantalla y avisos de pago | Hecho |
+| 5 | Bienvenida con presupuesto real, recordatorios y recaps, Dictar, Escanear boleta, Coach con OpenAI | Hecho |
 
 ## Desarrollo
 
@@ -52,17 +55,17 @@ flutter test
 
 ## Estructura
 
+Arquitectura por funcionalidad y capas; detalle y reglas en
+[`docs/arquitectura.md`](docs/arquitectura.md).
+
 ```
 lib/
-  ui/         interfaz v1 (shell, Trans., Estad., Coach, Cuentas, Ajustes, Añadir)
-  theme/      design_tokens.dart: colores, tipografía, íconos, sombras del diseño
-  core/       parsers (Yape, banco, Binance), OCR, dominio financiero
-  data/       Drift + SQLCipher, repositorios, backup, import
-  features/   ledger (movimientos, demo), coach, ajustes, captura
-  screens/    pantallas previas aún en uso (alta/edición de cuentas, import)
-  widgets/    componentes
-  security/   bloqueo con biometría
-design/       handoff de diseño v1 (fuente de verdad visual)
+  app/        raíz de composición (dependencies.dart) y shell
+  core/       base de datos, formato, reloj, seguridad, observabilidad
+  design_system/  tokens del diseño v3 y kit de componentes
+  features/   ledger, capture, settings, accounts, stats, coach, import
+              cada una con domain/ data/ application/ presentation/
+design/       handoff de diseño v3 (fuente de verdad visual)
 docs/
   specs/          specs funcionales vigentes
   producto/       estrategia, casos de uso, requerimientos antiguos

@@ -1,5 +1,5 @@
-import 'package:el_ahorrador/security/app_lock_gate.dart';
-import 'package:el_ahorrador/security/local_auth_service.dart';
+import 'package:el_ahorrador/core/security/app_lock_gate.dart';
+import 'package:el_ahorrador/core/security/local_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,7 +43,7 @@ void main() {
     controller.lock();
     await tester.pumpAndSettle();
     expect(find.text('financial data'), findsNothing);
-    expect(find.text('El Ahorrador está bloqueado'), findsOneWidget);
+    expect(find.text('Solito está bloqueado'), findsOneWidget);
 
     await tester.tap(find.text('Desbloquear'));
     await tester.pumpAndSettle();

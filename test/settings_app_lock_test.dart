@@ -1,12 +1,10 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:el_ahorrador/data/app_database.dart';
 import 'package:el_ahorrador/main.dart';
-import 'package:el_ahorrador/ui/settings/settings_screen.dart';
-import 'package:el_ahorrador/security/app_lock_settings.dart';
-import 'package:el_ahorrador/security/local_auth_service.dart';
+import 'package:el_ahorrador/features/settings/presentation/settings_screen.dart';
+import 'package:el_ahorrador/core/security/app_lock_settings.dart';
+import 'package:el_ahorrador/core/security/local_auth_service.dart';
 
 class _MemoryStore implements AppLockPreferenceStore {
   bool stored = false;
@@ -32,11 +30,6 @@ class _FakeAuthenticator implements LocalAuthenticator {
 }
 
 void main() {
-  late AppDatabase db;
-
-  setUp(() => db = AppDatabase.forTesting(NativeDatabase.memory()));
-  tearDown(() => db.close());
-
   Future<void> pumpSettings(
     WidgetTester tester,
     AppLockSettings settings,
@@ -46,18 +39,9 @@ void main() {
       MaterialApp(
         home: AppLockScope(
           settings: settings,
-          child: Scaffold(
-            body: SettingsScreen(db: db, lockAuthenticator: authenticator),
-          ),
+          child: SecurityScreen(authenticator: authenticator),
         ),
       ),
-    );
-    await tester.pumpAndSettle();
-    // Seguridad is the last group of Ajustes.
-    await tester.scrollUntilVisible(
-      find.text('Bloqueo con huella'),
-      200,
-      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
   }
@@ -75,7 +59,7 @@ void main() {
     expect((await AppLockSettings.load(store)).enabled, isTrue);
   });
 
-  testWidgets('Ajustes → Seguridad enables the lock after authenticating', (
+  testWidgets('Seguridad enables the lock after authenticating', (
     tester,
   ) async {
     final store = _MemoryStore();
@@ -85,7 +69,7 @@ void main() {
     );
     await pumpSettings(tester, settings, authenticator);
 
-    expect(find.text('SEGURIDAD'), findsOneWidget);
+    expect(find.text('BLOQUEO'), findsOneWidget);
     await tester.tap(find.text('Bloqueo con huella'));
     await tester.pumpAndSettle();
 
@@ -119,7 +103,7 @@ void main() {
     tester,
   ) async {
     final settings = AppLockSettings(_MemoryStore(), enabled: true);
-    await tester.pumpWidget(MisGastosApp(appLockSettings: settings));
+    await tester.pumpWidget(SolitoApp(appLockSettings: settings));
 
     expect(find.textContaining('bloqueado'), findsOneWidget);
     await unmount(tester);

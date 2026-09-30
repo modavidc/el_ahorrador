@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Color de fondo para splash screen - azul claro -->
-    <color name="splash_background">#E3F2FD</color>
+    <!-- Solito brand palette (design/ handoff v3: red, ink, paper). -->
+    <color name="solito_red">#D33F2B</color>
+    <color name="solito_ink">#1C1917</color>
+    <color name="solito_paper">#FAF6F1</color>
+    <!-- Adaptive launcher icon background. -->
+    <color name="ic_launcher_background">@color/solito_red</color>
 </resources>

@@ -81,7 +81,7 @@
 * **Feedback inmediato**: “Encontré 3 montos, ¿cuál es el total?”
 * **Estados y reintentos** (sin bloquear UI).
 
-# Checklist rápido para tu app “El Ahorrador”
+# Checklist rápido para tu app “Solito”
 
 * [ ] App Bundle + splits; R8 + shrinkResources.
 * [ ] Reescalar imágenes a máx. 1600–1920 px antes de OCR.

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:el_ahorrador/data/sqlcipher_migrator.dart';
+import 'package:el_ahorrador/core/database/sqlcipher_migrator.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
@@ -70,8 +70,14 @@ void main() {
         throwsA(isA<SqlCipherMigrationException>()),
       );
       expect(await databaseFile.readAsBytes(), before);
-      expect(await File('${databaseFile.path}.encrypted.partial').exists(), false);
-      expect(await File('${databaseFile.path}.plaintext.rollback').exists(), false);
+      expect(
+        await File('${databaseFile.path}.encrypted.partial').exists(),
+        false,
+      );
+      expect(
+        await File('${databaseFile.path}.plaintext.rollback').exists(),
+        false,
+      );
       expect(await File('${databaseFile.path}.migration.json').exists(), false);
     },
     skip: hasSqlCipher ? 'Only applies when SQLCipher is unavailable' : false,

@@ -1,8 +1,8 @@
-# Política de privacidad de El Ahorrador
+# Política de privacidad de Solito
 
 Última actualización: 27 de julio de 2026
 
-El Ahorrador procesa en el dispositivo las imágenes compartidas por el usuario,
+Solito procesa en el dispositivo las imágenes compartidas por el usuario,
 el texto extraído por OCR y los datos financieros que el usuario decide guardar.
 Estos datos se usan exclusivamente para registrar y organizar sus gastos.
 

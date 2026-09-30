@@ -1,6 +1,6 @@
 import 'package:drift/native.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/data/daos.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/core/database/daos.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

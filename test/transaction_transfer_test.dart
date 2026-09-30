@@ -1,8 +1,8 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:el_ahorrador/data/app_database.dart';
-import 'package:el_ahorrador/data/account_repository.dart';
-import 'package:el_ahorrador/data/daos.dart';
+import 'package:el_ahorrador/core/database/app_database.dart';
+import 'package:el_ahorrador/features/accounts/data/account_repository.dart';
+import 'package:el_ahorrador/core/database/daos.dart';
 
 void main() {
   late AppDatabase db;
@@ -14,10 +14,9 @@ void main() {
   tearDown(() => db.close());
 
   test('stores a transfer as linked outgoing and incoming movements', () async {
-    final savingsId = await AccountRepository(db).create(
-      name: 'Ahorros',
-      groupId: AppDatabase.defaultAccountGroupId,
-    );
+    final savingsId = await AccountRepository(
+      db,
+    ).create(name: 'Ahorros', groupId: AppDatabase.defaultAccountGroupId);
     await db.insertTransfer(
       id: 'transfer-1',
       dateEpochMs: 1000,
